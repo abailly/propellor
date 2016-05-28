@@ -28,20 +28,21 @@ checkBinaryCommand :: ShellCommand
 checkBinaryCommand = "if test -x ./propellor && ! ./propellor --check; then " ++ go ++ "; fi"
   where
 	go = intercalate " && "
-		[ "stack clean"
+		[ "/usr/local/bin/stack clean"
 		, buildCommand
 		]
 
 buildCommand :: ShellCommand
 buildCommand = intercalate " && "
-	[ "stack build propellor-config"
-	, "ln -sf $(stack path --dist-dir)/build/propellor-config propellor"
+	[ "/usr/local/bin/stack setup"
+	, "/usr/local/bin/stack build propellor-config"
+	, "ln -sf $(/usr/local/bin/stack path --dist-dir)/build/propellor-config propellor"
 	]
 
 -- Run cabal configure to check if all dependencies are installed;
 -- if not, run the depsCommand.
 checkDepsCommand :: Maybe System -> ShellCommand
-checkDepsCommand sys = "if ! [ -x stack ] ; then " ++ depsCommand sys ++ "; fi"
+checkDepsCommand sys = "if ! [ -x /usr/local/bin/stack ] ; then " ++ depsCommand sys ++ "; fi"
 
 -- Install build dependencies of propellor, mainly stack
 --
@@ -56,8 +57,11 @@ depsCommand msys = "( " ++ intercalate " ; " (concat [osinstall, stackinstall]) 
         useapt = "apt-get update" : map aptinstall debdeps
 
         stackinstall =
-		[ "wget -O /usr/local/bin/stack https://www.stackage.org/stack/linux-x86_64"
-		, "chmod +x /usr/local/bin/stack"
+		[ "wget -O stack.tgz https://www.stackage.org/stack/linux-x86_64"
+		, "tar xf stack.tgz"
+                  -- to find the path to stack exe... This is cumbersome because the downloaded archive's path containers
+                  -- version number which we don't know...
+		, "ln -s $(pwd)\"/\"$(find . -name stack) /usr/local/bin/stack"
 		]
 
 	aptinstall p = "DEBIAN_FRONTEND=noninteractive apt-get --no-upgrade --no-install-recommends -y install " ++ p
@@ -108,7 +112,7 @@ buildPropellor mh = unlessM (actionMessage "Propellor build" (build msys)) $
 build :: Maybe System -> IO Bool
 build msys = catchBoolIO $ do
 	unlessM stack_build $ error "stack build failed"
-        (stackDistPath,succeed) <- processTranscript "stack" ["path", "--dist-dir"] Nothing
+        (stackDistPath,succeed) <- processTranscript "/usr/local/bin/stack" ["path", "--dist-dir"] Nothing
         when (not succeed) $ error "stack failed to extract path to executable"
 	-- For safety against eg power loss in the middle of the build,
 	-- make a copy of the binary, and move it into place atomically.
@@ -131,4 +135,4 @@ build msys = catchBoolIO $ do
 	stack_build = stack ["build", "propellor-config"]
 
 stack :: [String] -> IO Bool
-stack = boolSystem "stack" . map Param
+stack = boolSystem "/usr/local/bin/stack" . map Param
