@@ -5,11 +5,11 @@ module Propellor.Bootstrap (
 	buildPropellor,
 ) where
 
-import Propellor.Base
-import Propellor.Types.Info
+import           Propellor.Base
+import           Propellor.Types.Info
 
-import System.Posix.Files
-import Data.List
+import           Data.List
+import           System.Posix.Files
 
 type ShellCommand = String
 
@@ -28,47 +28,36 @@ checkBinaryCommand :: ShellCommand
 checkBinaryCommand = "if test -x ./propellor && ! ./propellor --check; then " ++ go ++ "; fi"
   where
 	go = intercalate " && "
-		[ "cabal clean"
+		[ "stack clean"
 		, buildCommand
 		]
 
 buildCommand :: ShellCommand
 buildCommand = intercalate " && "
-	[ "cabal configure"
-	, "cabal build propellor-config"
-	, "ln -sf dist/build/propellor-config/propellor-config propellor"
+	[ "stack build propellor-config"
+	, "ln -sf $(stack path --dist-dir)/build/propellor-config propellor"
 	]
 
 -- Run cabal configure to check if all dependencies are installed;
 -- if not, run the depsCommand.
 checkDepsCommand :: Maybe System -> ShellCommand
-checkDepsCommand sys = "if ! cabal configure >/dev/null 2>&1; then " ++ depsCommand sys ++ "; fi"
+checkDepsCommand sys = "if ! [ -x stack ] ; then " ++ depsCommand sys ++ "; fi"
 
--- Install build dependencies of propellor.
+-- Install build dependencies of propellor, mainly stack
 --
--- First, try to install ghc, cabal, gnupg, and all haskell libraries that
--- propellor uses from OS packages.
---
--- Some packages may not be available in some versions of Debian
--- (eg, Debian wheezy lacks async), or propellor may need a newer version.
--- So, as a second step, cabal is used to install all dependencies.
---
--- Note: May succeed and leave some deps not installed.
+-- http://docs.haskellstack.org/en/stable/install_and_upgrade/#linux
 depsCommand :: Maybe System -> ShellCommand
-depsCommand msys = "( " ++ intercalate " ; " (concat [osinstall, cabalinstall]) ++ " ) || true"
+depsCommand msys = "( " ++ intercalate " ; " (concat [osinstall, stackinstall]) ++ " ) || true"
   where
 	osinstall = case msys of
 		Just (System (FreeBSD _) _) -> map pkginstall fbsddeps
-		Just (System (Debian _) _) -> useapt
-		Just (System (Buntish _) _) -> useapt
-		-- assume a debian derived system when not specified
-		Nothing -> useapt
+		_                           -> useapt
 
-	useapt = "apt-get update" : map aptinstall debdeps
+        useapt = "apt-get update" : map aptinstall debdeps
 
-	cabalinstall =
-		[ "cabal update"
-		, "cabal install --only-dependencies"
+        stackinstall =
+		[ "wget -O /usr/local/bin/stack https://www.stackage.org/stack/linux-x86_64"
+		, "chmod +x /usr/local/bin/stack"
 		]
 
 	aptinstall p = "DEBIAN_FRONTEND=noninteractive apt-get --no-upgrade --no-install-recommends -y install " ++ p
@@ -76,40 +65,16 @@ depsCommand msys = "( " ++ intercalate " ; " (concat [osinstall, cabalinstall]) 
 
 	-- This is the same deps listed in debian/control.
 	debdeps =
-		[ "gnupg"
-		, "ghc"
-		, "cabal-install"
-		, "libghc-async-dev"
-		, "libghc-missingh-dev"
-		, "libghc-hslogger-dev"
-		, "libghc-unix-compat-dev"
-		, "libghc-ansi-terminal-dev"
-		, "libghc-ifelse-dev"
-		, "libghc-network-dev"
-		, "libghc-mtl-dev"
-		, "libghc-transformers-dev"
-		, "libghc-exceptions-dev"
-		, "libghc-stm-dev"
-		, "libghc-text-dev"
-		, "make"
-		]
+		[ "wget" ]
 	fbsddeps =
-		[ "gnupg"
-		, "ghc"
-		, "hs-cabal-install"
-		, "hs-async"
-		, "hs-MissingH"
-		, "hs-hslogger"
-		, "hs-unix-compat"
-		, "hs-ansi-terminal"
-		, "hs-IfElse"
-		, "hs-network"
-		, "hs-mtl"
-		, "hs-transformers-base"
-		, "hs-exceptions"
-		, "hs-stm"
-		, "hs-text"
-		, "gmake"
+		[ "devel/gmake"
+                , "perl5"
+                , "lang/gcc"
+                , "misc/compat8x"
+                , "misc/compat9x"
+                , "converters/libiconv"
+                , "ca_root_nss"
+                , "wget"
 		]
 
 installGitCommand :: Maybe System -> ShellCommand
@@ -124,7 +89,7 @@ installGitCommand msys = case msys of
 	Nothing -> use apt
   where
 	use cmds = "if ! git --version >/dev/null; then " ++ intercalate " && " cmds ++ "; fi"
-	apt = 
+	apt =
 		[ "apt-get update"
 		, "DEBIAN_FRONTEND=noninteractive apt-get --no-install-recommends --no-upgrade -y install git"
 		]
@@ -137,20 +102,14 @@ buildPropellor mh = unlessM (actionMessage "Propellor build" (build msys)) $
 		Just (InfoVal sys) -> Just sys
 		_ -> Nothing
 
--- Build propellor using cabal, and symlink propellor to where cabal
+-- Build propellor using stack, and symlink propellor to where stack
 -- leaves the built binary.
 --
--- For speed, only runs cabal configure when it's not been run before.
--- If the build fails cabal may need to have configure re-run.
---
--- If the cabal configure fails, and a System is provided, installs
--- dependencies and retries.
 build :: Maybe System -> IO Bool
 build msys = catchBoolIO $ do
-	make "dist/setup-config" ["propellor.cabal"] cabal_configure
-	unlessM cabal_build $
-		unlessM (cabal_configure <&&> cabal_build) $
-			error "cabal build failed"
+	unlessM stack_build $ error "stack build failed"
+        (stackDistPath,succeed) <- processTranscript "stack" ["path", "--dist-dir"] Nothing
+        when (not succeed) $ error "stack failed to extract path to executable"
 	-- For safety against eg power loss in the middle of the build,
 	-- make a copy of the binary, and move it into place atomically.
 	-- This ensures that the propellor symlink only ever points at
@@ -158,7 +117,7 @@ build msys = catchBoolIO $ do
 	-- or breaking the symlink.
 	--
 	-- Need cp -a to make build timestamp checking work.
-	unlessM (boolSystem "cp" [Param "-af", Param cabalbuiltbin, Param (tmpfor safetycopy)]) $
+	unlessM (boolSystem "cp" [Param "-af", Param (stackDistPath </> stackbuiltbin), Param (tmpfor safetycopy)]) $
 		error "cp of binary failed"
 	rename (tmpfor safetycopy) safetycopy
 	createSymbolicLink safetycopy (tmpfor dest)
@@ -166,28 +125,10 @@ build msys = catchBoolIO $ do
 	return True
   where
 	dest = "propellor"
-	cabalbuiltbin = "dist/build/propellor-config/propellor-config"
-	safetycopy = cabalbuiltbin ++ ".built"
+	stackbuiltbin = "propellor-config"
+	safetycopy = stackbuiltbin ++ ".built"
 	tmpfor f = f ++ ".propellortmp"
-	cabal_configure = ifM (cabal ["configure"])
-		( return True
-		, case msys of
-			Nothing -> return False
-			Just sys -> 
-				boolSystem "sh" [Param "-c", Param (depsCommand (Just sys))]
-					<&&> cabal ["configure"]
-		)
-	cabal_build = cabal ["build", "propellor-config"]
+	stack_build = stack ["build", "propellor-config"]
 
-make :: FilePath -> [FilePath] -> IO Bool -> IO ()
-make dest srcs builder = do
-	dt <- getmtime dest
-	st <- mapM getmtime srcs
-	when (dt == Nothing || any (> dt) st) $
-		unlessM builder $
-			error $ "failed to make " ++ dest
-  where
-	getmtime = catchMaybeIO . getModificationTime
-
-cabal :: [String] -> IO Bool
-cabal = boolSystem "cabal" . map Param
+stack :: [String] -> IO Bool
+stack = boolSystem "stack" . map Param
