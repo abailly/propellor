@@ -2,7 +2,7 @@
 --
 -- These are used in the implementation of propellor, including some of its
 -- properties. However, there is no API stability; any of these can change
--- or be removed without a major version number increase. 
+-- or be removed without a major version number increase.
 --
 -- Use outside propellor at your own risk.
 
@@ -10,6 +10,7 @@ module Propellor.Utilities (
 	  module Utility.PartialPrelude
 	, module Utility.Process
 	, module Utility.Exception
+	, module Utility.SafeCommand
 	, module Utility.Env
 	, module Utility.Directory
 	, module Utility.Tmp
@@ -17,11 +18,12 @@ module Propellor.Utilities (
 	, module Utility.Misc
 ) where
 
-import Utility.PartialPrelude
-import Utility.Process
-import Utility.Exception
-import Utility.Env
-import Utility.Directory
-import Utility.Tmp
-import Utility.Monad
-import Utility.Misc
+import           Utility.Directory
+import           Utility.Env
+import           Utility.Exception
+import           Utility.Misc
+import           Utility.Monad
+import           Utility.PartialPrelude
+import           Utility.Process
+import           Utility.SafeCommand
+import           Utility.Tmp
