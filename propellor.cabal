@@ -144,6 +144,7 @@ Library
     Propellor.PrivData
     Propellor.Engine
     Propellor.Exception
+    Propellor.Spin
     Propellor.Types
     Propellor.Types.Chroot
     Propellor.Types.Container
@@ -163,7 +164,6 @@ Library
     Propellor.Git.Config
     Propellor.Git.VerifiedBranch
     Propellor.Gpg
-    Propellor.Spin
     Propellor.Ssh
     Propellor.PrivData.Paths
     Propellor.Protocol
