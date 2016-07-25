@@ -13,6 +13,7 @@ module Propellor.Message (
 	warningMessage,
 	infoMessage,
 	errorMessage,
+	stopPropellorMessage,
 	processChainOutput,
 	messagesDone,
 	createProcessConcurrent,
@@ -29,6 +30,7 @@ import Control.Applicative
 import Prelude
 
 import Propellor.Types
+import Propellor.Types.Exception
 import Utility.PartialPrelude
 import Utility.Monad
 import Utility.Exception
@@ -105,11 +107,29 @@ warningMessage s = liftIO $
 infoMessage :: MonadIO m => [String] -> m ()
 infoMessage ls = liftIO $ outputConcurrent $ concatMap (++ "\n") ls
 
+-- | Displays the error message in red, and throws an exception.
+--
+-- When used inside a property, the exception will make the current
+-- property fail. Propellor will continue to the next property.
 errorMessage :: MonadIO m => String -> m a
 errorMessage s = liftIO $ do
 	outputConcurrent =<< colorLine Vivid Red ("** error: " ++ s)
+	-- Normally this exception gets caught and is not displayed,
+	-- and propellor continues. So it's only displayed if not
+	-- caught, and so we say, cannot continue.
 	error "Cannot continue!"
  
+-- | Like `errorMessage`, but throws a `StopPropellorException`,
+-- preventing propellor from continuing to the next property.
+--
+-- Think twice before using this. Is the problem so bad that propellor
+-- cannot try to ensure other properties? If not, use `errorMessage`
+-- instead.
+stopPropellorMessage :: MonadIO m => String -> m a
+stopPropellorMessage s = liftIO $ do
+	outputConcurrent =<< colorLine Vivid Red ("** fatal error: " ++ s)
+	throwM $ StopPropellorException "Cannot continue!"
+
 colorLine :: ColorIntensity -> Color -> String -> IO String
 colorLine intensity color msg = concat <$> sequence
 	[ whenConsole $

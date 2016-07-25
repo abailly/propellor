@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts, TypeSynonymInstances, FlexibleInstances, TypeFamilies #-}
 
 -- | Docker support for propellor
 --
@@ -48,8 +48,10 @@ module Propellor.Property.Docker (
 import Propellor.Base hiding (init)
 import Propellor.Types.Docker
 import Propellor.Types.Container
+import Propellor.Types.Core
 import Propellor.Types.CmdLine
 import Propellor.Types.Info
+import Propellor.Container
 import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.Cmd as Cmd
@@ -66,16 +68,17 @@ import Data.List.Utils
 import qualified Data.Map as M
 import System.Console.Concurrent
 
-installed :: Property NoInfo
+installed :: Property DebianLike
 installed = Apt.installed ["docker.io"]
 
 -- | Configures docker with an authentication file, so that images can be
 -- pushed to index.docker.io. Optional.
-configured :: Property HasInfo
+configured :: Property (HasInfo + DebianLike)
 configured = prop `requires` installed
   where
+	prop :: Property (HasInfo + DebianLike)
 	prop = withPrivData src anyContext $ \getcfg ->
-		property "docker configured" $ getcfg $ \cfg -> ensureProperty $
+		property' "docker configured" $ \w -> getcfg $ \cfg -> ensureProperty w $
 			"/root/.dockercfg" `File.hasContent` privDataLines cfg
 	src = PrivDataSourceFileFromCommand DockerAuthentication
 		"/root/.dockercfg" "docker login"
@@ -88,6 +91,11 @@ type ContainerName = String
 -- | A docker container.
 data Container = Container Image Host
 
+instance IsContainer Container where
+	containerProperties (Container _ h) = containerProperties h
+	containerInfo (Container _ h) = containerInfo h
+	setContainerProperties (Container i h) ps = Container i (setContainerProperties h ps)
+
 class HasImage a where
 	getImageName :: a -> Image
 
@@ -97,22 +105,17 @@ instance HasImage Image where
 instance HasImage Container where
 	getImageName (Container i _) = i
 
-instance PropAccum Container where
-	(Container i h) `addProp` p = Container i (h `addProp` p)
-	(Container i h) `addPropFront` p = Container i (h `addPropFront` p)
-	getProperties (Container _ h) = hostProperties h
-
 -- | Defines a Container with a given name, image, and properties.
--- Properties can be added to configure the Container.
+-- Add properties to configure the Container.
 --
--- > container "web-server" "debian"
+-- > container "web-server" (latestImage "debian") $ props
 -- >    & publish "80:80"
 -- >    & Apt.installed {"apache2"]
 -- >    & ...
-container :: ContainerName -> Image -> Container
-container cn image = Container image (Host cn [] info)
+container :: ContainerName -> Image -> Props metatypes -> Container
+container cn image (Props ps) = Container image (Host cn ps info)
   where
-	info = dockerInfo mempty
+	info = dockerInfo mempty <> mconcat (map getInfoRecursive ps)
 
 -- | Ensures that a docker container is set up and running.
 --
@@ -124,7 +127,7 @@ container cn image = Container image (Host cn [] info)
 --
 -- Reverting this property ensures that the container is stopped and
 -- removed.
-docked :: Container -> RevertableProperty HasInfo
+docked :: Container -> RevertableProperty (HasInfo + Linux) (HasInfo + Linux)
 docked ctr@(Container _ h) =
 	(propagateContainerInfo ctr (go "docked" setup))
 		<!>
@@ -132,11 +135,12 @@ docked ctr@(Container _ h) =
   where
 	cn = hostName h
 
-	go desc a = property (desc ++ " " ++ cn) $ do
+	go desc a = property' (desc ++ " " ++ cn) $ \w -> do
 		hn <- asks hostName
 		let cid = ContainerId hn cn
-		ensureProperties [a cid (mkContainerInfo cid ctr)]
+		ensureProperty w $ a cid (mkContainerInfo cid ctr)
 
+	setup :: ContainerId -> ContainerInfo -> Property Linux
 	setup cid (ContainerInfo image runparams) =
 		provisionContainer cid
 			`requires`
@@ -144,8 +148,9 @@ docked ctr@(Container _ h) =
 			`requires`
 		installed
 
+	teardown :: ContainerId -> ContainerInfo -> Property Linux
 	teardown cid (ContainerInfo image _runparams) =
-		combineProperties ("undocked " ++ fromContainerId cid)
+		combineProperties ("undocked " ++ fromContainerId cid) $ toProps
 			[ stoppedContainer cid
 			, property ("cleaned up " ++ fromContainerId cid) $
 				liftIO $ report <$> mapM id
@@ -155,32 +160,32 @@ docked ctr@(Container _ h) =
 			]
 
 -- | Build the image from a directory containing a Dockerfile.
-imageBuilt :: HasImage c => FilePath -> c -> Property NoInfo
-imageBuilt directory ctr = describe built msg
+imageBuilt :: HasImage c => FilePath -> c -> Property Linux
+imageBuilt directory ctr = built `describe` msg
   where
 	msg = "docker image " ++ (imageIdentifier image) ++ " built from " ++ directory
-	built = Cmd.cmdProperty' dockercmd ["build", "--tag", imageIdentifier image, "./"] workDir
-		`assume` MadeChange
+	built :: Property Linux
+	built = tightenTargets $
+		Cmd.cmdProperty' dockercmd ["build", "--tag", imageIdentifier image, "./"] workDir
+			`assume` MadeChange
 	workDir p = p { cwd = Just directory }
 	image = getImageName ctr
 
 -- | Pull the image from the standard Docker Hub registry.
-imagePulled :: HasImage c => c -> Property NoInfo
-imagePulled ctr = describe pulled msg
+imagePulled :: HasImage c => c -> Property Linux
+imagePulled ctr = pulled `describe` msg
   where
 	msg = "docker image " ++ (imageIdentifier image) ++ " pulled"
-	pulled = Cmd.cmdProperty dockercmd ["pull", imageIdentifier image]
-		`assume` MadeChange
+	pulled :: Property Linux
+	pulled = tightenTargets $ 
+		Cmd.cmdProperty dockercmd ["pull", imageIdentifier image]
+			`assume` MadeChange
 	image = getImageName ctr
 
-propagateContainerInfo :: (IsProp (Property i)) => Container -> Property i -> Property HasInfo
-propagateContainerInfo ctr@(Container _ h) p = propagateContainer cn ctr p'
+propagateContainerInfo :: Container -> Property (HasInfo + Linux) -> Property (HasInfo + Linux)
+propagateContainerInfo ctr@(Container _ h) p = propagateContainer cn ctr $
+	p `addInfoProperty` dockerinfo
   where
-	p' = infoProperty
-		(propertyDesc p)
-		(propertySatisfy p)
-		(propertyInfo p <> dockerinfo)
-		(propertyChildren p)
 	dockerinfo = dockerInfo $
 		mempty { _dockerContainers = M.singleton cn h }
 	cn = hostName h
@@ -191,8 +196,8 @@ mkContainerInfo cid@(ContainerId hn _cn) (Container img h) =
   where
 	runparams = map (\(DockerRunParam mkparam) -> mkparam hn)
 		(_dockerRunParams info)
-	info = getInfo $ hostInfo h'
-	h' = h
+	info = fromInfo $ hostInfo h'
+	h' = setContainerProps h $ containerProps h
 		-- Restart by default so container comes up on
 		-- boot or when docker is upgraded.
 		&^ restartAlways
@@ -209,14 +214,15 @@ mkContainerInfo cid@(ContainerId hn _cn) (Container img h) =
 -- that were not set up using propellor.
 --
 -- Generally, should come after the properties for the desired containers.
-garbageCollected :: Property NoInfo
-garbageCollected = propertyList "docker garbage collected"
-	[ gccontainers
-	, gcimages
-	]
+garbageCollected :: Property Linux
+garbageCollected = propertyList "docker garbage collected" $ props
+	& gccontainers
+	& gcimages
   where
+	gccontainers :: Property Linux
 	gccontainers = property "docker containers garbage collected" $
 		liftIO $ report <$> (mapM removeContainer =<< listContainers AllContainers)
+	gcimages :: Property Linux
 	gcimages = property "docker images garbage collected" $
 		liftIO $ report <$> (mapM removeImage =<< listImages)
 
@@ -225,8 +231,8 @@ garbageCollected = propertyList "docker garbage collected"
 -- Currently, this consists of making pam_loginuid lines optional in
 -- the pam config, to work around <https://github.com/docker/docker/issues/5663>
 -- which affects docker 1.2.0.
-tweaked :: Property NoInfo
-tweaked = cmdProperty "sh"
+tweaked :: Property Linux
+tweaked = tightenTargets $ cmdProperty "sh"
 	[ "-c"
 	, "sed -ri 's/^session\\s+required\\s+pam_loginuid.so$/session optional pam_loginuid.so/' /etc/pam.d/*"
 	]
@@ -239,10 +245,11 @@ tweaked = cmdProperty "sh"
 -- other GRUB_CMDLINE_LINUX_DEFAULT settings.
 --
 -- Only takes effect after reboot. (Not automated.)
-memoryLimited :: Property NoInfo
-memoryLimited = "/etc/default/grub" `File.containsLine` cfg
-	`describe` "docker memory limited"
-	`onChange` (cmdProperty "update-grub" [] `assume` MadeChange)
+memoryLimited :: Property DebianLike
+memoryLimited = tightenTargets $
+	"/etc/default/grub" `File.containsLine` cfg
+		`describe` "docker memory limited"
+		`onChange` (cmdProperty "update-grub" [] `assume` MadeChange)
   where
 	cmdline = "cgroup_enable=memory swapaccount=1"
 	cfg = "GRUB_CMDLINE_LINUX_DEFAULT=\""++cmdline++"\""
@@ -300,15 +307,15 @@ instance ImageIdentifier ImageUID where
 	imageIdentifier (ImageUID uid) = uid
 
 -- | Set custom dns server for container.
-dns :: String -> Property HasInfo
+dns :: String -> Property (HasInfo + Linux)
 dns = runProp "dns"
 
 -- | Set container host name.
-hostname :: String -> Property HasInfo
+hostname :: String -> Property (HasInfo + Linux)
 hostname = runProp "hostname"
 
 -- | Set name of container.
-name :: String -> Property HasInfo
+name :: String -> Property (HasInfo + Linux)
 name = runProp "name"
 
 class Publishable p where
@@ -322,15 +329,15 @@ instance Publishable String where
 	toPublish = id
 
 -- | Publish a container's port to the host
-publish :: Publishable p => p -> Property HasInfo
+publish :: Publishable p => p -> Property (HasInfo + Linux)
 publish = runProp "publish" . toPublish
 
 -- | Expose a container's port without publishing it.
-expose :: String -> Property HasInfo
+expose :: String -> Property (HasInfo + Linux)
 expose = runProp "expose"
 
 -- | Username or UID for container.
-user :: String -> Property HasInfo
+user :: String -> Property (HasInfo + Linux)
 user = runProp "user"
 
 class Mountable p where
@@ -346,17 +353,17 @@ instance Mountable String where
 	toMount = id
 
 -- | Mount a volume
-volume :: Mountable v => v -> Property HasInfo
+volume :: Mountable v => v -> Property (HasInfo + Linux)
 volume = runProp "volume" . toMount
 
 -- | Mount a volume from the specified container into the current
 -- container.
-volumes_from :: ContainerName -> Property HasInfo
+volumes_from :: ContainerName -> Property (HasInfo + Linux)
 volumes_from cn = genProp "volumes-from" $ \hn ->
 	fromContainerId (ContainerId hn cn)
 
 -- | Work dir inside the container.
-workdir :: String -> Property HasInfo
+workdir :: String -> Property (HasInfo + Linux)
 workdir = runProp "workdir"
 
 -- | Memory limit for container.
@@ -364,18 +371,18 @@ workdir = runProp "workdir"
 --
 -- Note: Only takes effect when the host has the memoryLimited property
 -- enabled.
-memory :: String -> Property HasInfo
+memory :: String -> Property (HasInfo + Linux)
 memory = runProp "memory"
 
 -- | CPU shares (relative weight).
 --
 -- By default, all containers run at the same priority, but you can tell
 -- the kernel to give more CPU time to a container using this property.
-cpuShares :: Int -> Property HasInfo
+cpuShares :: Int -> Property (HasInfo + Linux)
 cpuShares = runProp "cpu-shares" . show
 
 -- | Link with another container on the same host.
-link :: ContainerName -> ContainerAlias -> Property HasInfo
+link :: ContainerName -> ContainerAlias -> Property (HasInfo + Linux)
 link linkwith calias = genProp "link" $ \hn ->
 	fromContainerId (ContainerId hn linkwith) ++ ":" ++ calias
 
@@ -387,24 +394,24 @@ type ContainerAlias = String
 -- propellor; as well as keeping badly behaved containers running,
 -- it ensures that containers get started back up after reboot or
 -- after docker is upgraded.
-restartAlways :: Property HasInfo
+restartAlways :: Property (HasInfo + Linux)
 restartAlways = runProp "restart" "always"
 
 -- | Docker will restart the container if it exits nonzero.
 -- If a number is provided, it will be restarted only up to that many
 -- times.
-restartOnFailure :: Maybe Int -> Property HasInfo
+restartOnFailure :: Maybe Int -> Property (HasInfo + Linux)
 restartOnFailure Nothing = runProp "restart" "on-failure"
 restartOnFailure (Just n) = runProp "restart" ("on-failure:" ++ show n)
 
 -- | Makes docker not restart a container when it exits
 -- Note that this includes not restarting it on boot!
-restartNever :: Property HasInfo
+restartNever :: Property (HasInfo + Linux)
 restartNever = runProp "restart" "no"
 
 -- | Set environment variable with a tuple composed by the environment
 -- variable name and its value.
-environment :: (String, String) -> Property HasInfo
+environment :: (String, String) -> Property (HasInfo + Linux)
 environment (k, v) = runProp "env" $ k ++ "=" ++ v
 
 -- | A container is identified by its name, and the host
@@ -441,9 +448,9 @@ myContainerSuffix = ".propellor"
 containerDesc :: (IsProp (Property i)) => ContainerId -> Property i -> Property i
 containerDesc cid p = p `describe` desc
   where
-	desc = "container " ++ fromContainerId cid ++ " " ++ propertyDesc p
+	desc = "container " ++ fromContainerId cid ++ " " ++ getDesc p
 
-runningContainer :: ContainerId -> Image -> [RunParam] -> Property NoInfo
+runningContainer :: ContainerId -> Image -> [RunParam] -> Property Linux
 runningContainer cid@(ContainerId hn cn) image runps = containerDesc cid $ property "running" $ do
 	l <- liftIO $ listContainers RunningContainers
 	if cid `elem` l
@@ -507,6 +514,7 @@ runningContainer cid@(ContainerId hn cn) image runps = containerDesc cid $ prope
 				retry (n-1) a
 			_ -> return v
 
+	go :: ImageIdentifier i => i -> Propellor Result
 	go img = liftIO $ do
 		clearProvisionedFlag cid
 		createDirectoryIfMissing True (takeDirectory $ identFile cid)
@@ -558,7 +566,7 @@ init s = case toContainerId s of
 
 -- | Once a container is running, propellor can be run inside
 -- it to provision it.
-provisionContainer :: ContainerId -> Property NoInfo
+provisionContainer :: ContainerId -> Property Linux
 provisionContainer cid = containerDesc cid $ property "provisioned" $ liftIO $ do
 	let shim = Shim.file (localdir </> "propellor") (localdir </> shimdir cid)
 	let params = ["--continue", show $ toChain cid]
@@ -580,16 +588,14 @@ chain hostlist hn s = case toContainerId s of
 	Nothing -> errorMessage "bad container id"
 	Just cid -> case findHostNoAlias hostlist hn of
 		Nothing -> errorMessage ("cannot find host " ++ hn)
-		Just parenthost -> case M.lookup (containerName cid) (_dockerContainers $ getInfo $ hostInfo parenthost) of
+		Just parenthost -> case M.lookup (containerName cid) (_dockerContainers $ fromInfo $ hostInfo parenthost) of
 			Nothing -> errorMessage ("cannot find container " ++ containerName cid ++ " docked on host " ++ hn)
 			Just h -> go cid h
   where
 	go cid h = do
 		changeWorkingDirectory localdir
 		onlyProcess (provisioningLock cid) $ do
-			r <- runPropellor h $ ensureProperties $
-				map ignoreInfo $
-					hostProperties h
+			r <- runPropellor h $ ensureChildProperties $ hostProperties h
 			flushConcurrentOutput
 			putStrLn $ "\n" ++ show r
 
@@ -599,15 +605,16 @@ stopContainer cid = boolSystem dockercmd [Param "stop", Param $ fromContainerId 
 startContainer :: ContainerId -> IO Bool
 startContainer cid = boolSystem dockercmd [Param "start", Param $ fromContainerId cid ]
 
-stoppedContainer :: ContainerId -> Property NoInfo
-stoppedContainer cid = containerDesc cid $ property desc $
+stoppedContainer :: ContainerId -> Property Linux
+stoppedContainer cid = containerDesc cid $ property' desc $ \w ->
 	ifM (liftIO $ elem cid <$> listContainers RunningContainers)
-		( liftIO cleanup `after` ensureProperty
-			(property desc $ liftIO $ toResult <$> stopContainer cid)
+		( liftIO cleanup `after` ensureProperty w stop
 		, return NoChange
 		)
   where
 	desc = "stopped"
+	stop :: Property Linux
+	stop = property desc $ liftIO $ toResult <$> stopContainer cid
 	cleanup = do
 		nukeFile $ identFile cid
 		removeDirectoryRecursive $ shimdir cid
@@ -651,14 +658,14 @@ listContainers status =
 listImages :: IO [ImageUID]
 listImages = map ImageUID . lines <$> readProcess dockercmd ["images", "--all", "--quiet"]
 
-runProp :: String -> RunParam -> Property HasInfo
-runProp field val = pureInfoProperty (param) $
+runProp :: String -> RunParam -> Property (HasInfo + Linux)
+runProp field val = tightenTargets $ pureInfoProperty (param) $
 	mempty { _dockerRunParams = [DockerRunParam (\_ -> "--"++param)] }
   where
 	param = field++"="++val
 
-genProp :: String -> (HostName -> RunParam) -> Property HasInfo
-genProp field mkval = pureInfoProperty field $
+genProp :: String -> (HostName -> RunParam) -> Property (HasInfo + Linux)
+genProp field mkval = tightenTargets $ pureInfoProperty field $
 	mempty { _dockerRunParams = [DockerRunParam (\hn -> "--"++field++"=" ++ mkval hn)] }
 
 dockerInfo :: DockerInfo -> Info

@@ -11,7 +11,7 @@ import Propellor.Git.Config
 --
 -- This property is useful when hosts are being updated without using
 -- --spin, eg when using the `Propellor.Property.Cron.runPropellor` cron job.
-hasOriginUrl :: String -> Property NoInfo
+hasOriginUrl :: String -> Property UnixLike
 hasOriginUrl u = property ("propellor repo url " ++ u) $ do
 	curru <- liftIO getRepoUrl
 	if curru == Just u

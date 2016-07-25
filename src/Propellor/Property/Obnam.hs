@@ -1,3 +1,5 @@
+-- | Support for the Obnam backup tool <http://obnam.org/>
+
 module Propellor.Property.Obnam where
 
 import Propellor.Base
@@ -40,7 +42,7 @@ data NumClients = OnlyClient | MultipleClients
 -- Since obnam uses a fair amount of system resources, only one obnam
 -- backup job will be run at a time. Other jobs will wait their turns to
 -- run.
-backup :: FilePath -> Cron.Times -> [ObnamParam] -> NumClients -> Property NoInfo
+backup :: FilePath -> Cron.Times -> [ObnamParam] -> NumClients -> Property DebianLike
 backup dir crontimes params numclients =
 	backup' dir crontimes params numclients
 		`requires` restored dir params
@@ -50,7 +52,7 @@ backup dir crontimes params numclients =
 --
 -- The gpg secret key will be automatically imported
 -- into root's keyring using Propellor.Property.Gpg.keyImported
-backupEncrypted :: FilePath -> Cron.Times -> [ObnamParam] -> NumClients -> Gpg.GpgKeyId -> Property HasInfo
+backupEncrypted :: FilePath -> Cron.Times -> [ObnamParam] -> NumClients -> Gpg.GpgKeyId -> Property (HasInfo + DebianLike)
 backupEncrypted dir crontimes params numclients keyid =
 	backup dir crontimes params' numclients
 		`requires` Gpg.keyImported keyid (User "root")
@@ -58,7 +60,7 @@ backupEncrypted dir crontimes params numclients keyid =
 	params' = ("--encrypt-with=" ++ Gpg.getGpgKeyId keyid) : params
 
 -- | Does a backup, but does not automatically restore.
-backup' :: FilePath -> Cron.Times -> [ObnamParam] -> NumClients -> Property NoInfo
+backup' :: FilePath -> Cron.Times -> [ObnamParam] -> NumClients -> Property DebianLike
 backup' dir crontimes params numclients = cronjob `describe` desc
   where
 	desc = dir ++ " backed up by obnam"
@@ -96,11 +98,12 @@ backup' dir crontimes params numclients = cronjob `describe` desc
 --
 -- The restore is performed atomically; restoring to a temp directory
 -- and then moving it to the directory.
-restored :: FilePath -> [ObnamParam] -> Property NoInfo
-restored dir params = property (dir ++ " restored by obnam") go
-	`requires` installed
+restored :: FilePath -> [ObnamParam] -> Property DebianLike
+restored dir params = go `requires` installed
   where
-	go = ifM (liftIO needsRestore)
+	desc = dir ++ " restored by obnam"
+	go :: Property DebianLike
+	go = property desc $ ifM (liftIO needsRestore)
 		( do
 			warningMessage $ dir ++ " is empty/missing; restoring from backup ..."
 			liftIO restore
@@ -152,5 +155,5 @@ keepParam ps = "--keep=" ++ intercalate "," (map go ps)
 isKeepParam :: ObnamParam -> Bool
 isKeepParam p = "--keep=" `isPrefixOf` p
 
-installed :: Property NoInfo
+installed :: Property DebianLike
 installed = Apt.installed ["obnam"]

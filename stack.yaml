@@ -1,0 +1,4 @@
+# When updating the resolver here, also update stackResolver in Propellor.DotDir
+resolver: lts-5.10
+packages:
+- '.'

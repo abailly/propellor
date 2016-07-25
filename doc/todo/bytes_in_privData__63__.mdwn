@@ -15,3 +15,5 @@ It seems like I can't set the content of a PrivFile to arbitrary bytes.
     
     Enter private data on stdin; ctrl-D when done:
     propellor: <stdin>: hGetContents: invalid argument (invalid byte sequence)
+
+> [[done]]! --[[Joey]]

@@ -9,7 +9,7 @@ import qualified Propellor.Property.Service as Service
 
 type ConfigFile = [String]
 
-siteEnabled :: HostName -> ConfigFile -> RevertableProperty NoInfo
+siteEnabled :: HostName -> ConfigFile -> RevertableProperty DebianLike DebianLike
 siteEnabled hn cf = enable <!> disable
   where
 	enable = siteVal hn `File.isSymlinkedTo` siteValRelativeCfg hn
@@ -22,11 +22,11 @@ siteEnabled hn cf = enable <!> disable
 		`requires` installed
 		`onChange` reloaded
 
-siteAvailable :: HostName -> ConfigFile -> Property NoInfo
-siteAvailable hn cf = ("nginx site available " ++ hn) ==>
-	siteCfg hn `File.hasContent` (comment : cf)
+siteAvailable :: HostName -> ConfigFile -> Property DebianLike
+siteAvailable hn cf = "nginx site available " ++ hn ==> tightenTargets go
   where
 	comment = "# deployed with propellor, do not modify"
+	go = siteCfg hn `File.hasContent` (comment : cf)
 
 siteCfg :: HostName -> FilePath
 siteCfg hn = "/etc/nginx/sites-available/" ++ hn
@@ -37,11 +37,11 @@ siteVal hn = "/etc/nginx/sites-enabled/" ++ hn
 siteValRelativeCfg :: HostName -> File.LinkTarget
 siteValRelativeCfg hn = File.LinkTarget ("../sites-available/" ++ hn)
 
-installed :: Property NoInfo
+installed :: Property DebianLike
 installed = Apt.installed ["nginx"]
 
-restarted :: Property NoInfo
+restarted :: Property DebianLike
 restarted = Service.restarted "nginx"
 
-reloaded :: Property NoInfo
+reloaded :: Property DebianLike
 reloaded = Service.reloaded "nginx"

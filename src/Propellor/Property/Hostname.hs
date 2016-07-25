@@ -22,20 +22,20 @@ import Data.List.Utils
 -- Also, the </etc/hosts> 127.0.0.1 line is set to localhost. Putting any
 -- other hostnames there is not best practices and can lead to annoying
 -- messages from eg, apache.
-sane :: Property NoInfo
+sane :: Property UnixLike
 sane = sane' extractDomain
 
-sane' :: ExtractDomain -> Property NoInfo
-sane' extractdomain = property ("sane hostname") $
-	ensureProperty . setTo' extractdomain =<< asks hostName
+sane' :: ExtractDomain -> Property UnixLike
+sane' extractdomain = property' ("sane hostname") $ \w ->
+	ensureProperty w . setTo' extractdomain =<< asks hostName
 
 -- Like `sane`, but you can specify the hostname to use, instead
 -- of the default hostname of the `Host`.
-setTo :: HostName -> Property NoInfo
+setTo :: HostName -> Property UnixLike
 setTo = setTo' extractDomain
 
-setTo' :: ExtractDomain -> HostName -> Property NoInfo
-setTo' extractdomain hn = combineProperties desc
+setTo' :: ExtractDomain -> HostName -> Property UnixLike
+setTo' extractdomain hn = combineProperties desc $ toProps
 	[ "/etc/hostname" `File.hasContent` [basehost]
 	, hostslines $ catMaybes
 		[ if null domain
@@ -65,11 +65,12 @@ setTo' extractdomain hn = combineProperties desc
 
 -- | Makes </etc/resolv.conf> contain search and domain lines for 
 -- the domain that the hostname is in.
-searchDomain :: Property NoInfo
+searchDomain :: Property UnixLike
 searchDomain = searchDomain' extractDomain
 
-searchDomain' :: ExtractDomain -> Property NoInfo
-searchDomain' extractdomain = property desc (ensureProperty . go =<< asks hostName)
+searchDomain' :: ExtractDomain -> Property UnixLike
+searchDomain' extractdomain = property' desc $ \w ->
+	(ensureProperty w . go =<< asks hostName)
   where
 	desc = "resolv.conf search and domain configured"
 	go hn =

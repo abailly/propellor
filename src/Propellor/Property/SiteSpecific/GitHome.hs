@@ -5,14 +5,15 @@ import qualified Propellor.Property.Apt as Apt
 import Propellor.Property.User
 
 -- | Clones Joey Hess's git home directory, and runs its fixups script.
-installedFor :: User -> Property NoInfo
+installedFor :: User -> Property DebianLike
 installedFor user@(User u) = check (not <$> hasGitDir user) $ 
-	property ("githome " ++ u) (go =<< liftIO (homedir user))
-		`requires` Apt.installed ["git"]
+	go `requires` Apt.installed ["git"]
   where
-	go home = do
+	go :: Property DebianLike
+	go = property' ("githome " ++ u) $ \w -> do
+		home <- liftIO (homedir user)
 		let tmpdir = home </> "githome"
-		ensureProperty $ combineProperties "githome setup"
+		ensureProperty w $ combineProperties "githome setup" $ toProps
 			[ userScriptProperty user ["git clone " ++ url ++ " " ++ tmpdir]
 				`assume` MadeChange
 			, property "moveout" $ makeChange $ void $

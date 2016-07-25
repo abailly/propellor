@@ -12,13 +12,13 @@ import qualified Data.Map as M
 import Data.List
 import Data.Char
 
-installed :: Property NoInfo
+installed :: Property DebianLike
 installed = Apt.serviceInstalledRunning "postfix"
 
-restarted :: Property NoInfo
+restarted :: Property DebianLike
 restarted = Service.restarted "postfix"
 
-reloaded :: Property NoInfo
+reloaded :: Property DebianLike
 reloaded = Service.reloaded "postfix"
 
 -- | Configures postfix as a satellite system, which 
@@ -28,38 +28,39 @@ reloaded = Service.reloaded "postfix"
 -- The smarthost may refuse to relay mail on to other domains, without
 -- further configuration/keys. But this should be enough to get cron job
 -- mail flowing to a place where it will be seen.
-satellite :: Property NoInfo
+satellite :: Property DebianLike
 satellite = check (not <$> mainCfIsSet "relayhost") setup
 	`requires` installed
   where
-	setup = property "postfix satellite system" $ do
+	desc = "postfix satellite system"
+	setup :: Property DebianLike
+	setup = property' desc $ \w -> do
 		hn <- asks hostName
 		let (_, domain) = separate (== '.') hn
-		ensureProperties
-			[ Apt.reConfigure "postfix"
+		ensureProperty w $ combineProperties desc $ props
+			& Apt.reConfigure "postfix"
 				[ ("postfix/main_mailer_type", "select", "Satellite system")
 				, ("postfix/root_address", "string", "root")
 				, ("postfix/destinations", "string", "localhost")
 				, ("postfix/mailname", "string", hn)
 				]
-			, mainCf ("relayhost", "smtp." ++ domain)
+			& mainCf ("relayhost", "smtp." ++ domain)
 				`onChange` reloaded
-			]
 
 -- | Sets up a file by running a property (which the filename is passed
 -- to). If the setup property makes a change, postmap will be run on the
 -- file, and postfix will be reloaded.
 mappedFile
-	:: Combines (Property x) (Property NoInfo)
+	:: Combines (Property x) (Property UnixLike)
 	=> FilePath
 	-> (FilePath -> Property x)
-	-> Property (CInfo x NoInfo)
+	-> CombinedType (Property x) (Property UnixLike)
 mappedFile f setup = setup f
 	`onChange` (cmdProperty "postmap" [f] `assume` MadeChange)
 
 -- | Run newaliases command, which should be done after changing
 -- @/etc/aliases@.
-newaliases :: Property NoInfo
+newaliases :: Property UnixLike
 newaliases = check ("/etc/aliases" `isNewerThan` "/etc/aliases.db")
 	(cmdProperty "newaliases" [])
 
@@ -68,9 +69,9 @@ mainCfFile :: FilePath
 mainCfFile = "/etc/postfix/main.cf"
 
 -- | Sets a main.cf @name=value@ pair. Does not reload postfix immediately.
-mainCf :: (String, String) -> Property NoInfo
+mainCf :: (String, String) -> Property UnixLike
 mainCf (name, value) = check notset set
-		`describe` ("postfix main.cf " ++ setting)
+	`describe` ("postfix main.cf " ++ setting)
   where
 	setting = name ++ "=" ++ value
 	notset = (/= Just value) <$> getMainCf name
@@ -105,7 +106,7 @@ mainCfIsSet name = do
 --
 -- Note that multiline configurations that continue onto the next line
 -- are not currently supported.
-dedupMainCf :: Property NoInfo
+dedupMainCf :: Property UnixLike
 dedupMainCf = File.fileProperty "postfix main.cf dedupped" dedupCf mainCfFile
 
 dedupCf :: [String] -> [String]
@@ -252,7 +253,7 @@ parseServiceLine l = Service
 	nws = length ws
 
 -- | Enables a `Service` in postfix's `masterCfFile`.
-service :: Service -> RevertableProperty NoInfo
+service :: Service -> RevertableProperty DebianLike DebianLike
 service s = (enable <!> disable)
 	`describe` desc
   where
@@ -276,7 +277,7 @@ service s = (enable <!> disable)
 -- It would be wise to enable fail2ban, for example:
 --
 -- > Fail2Ban.jailEnabled "postfix-sasl"
-saslAuthdInstalled :: Property NoInfo
+saslAuthdInstalled :: Property DebianLike
 saslAuthdInstalled = setupdaemon
 	`requires` Service.running "saslauthd"
 	`requires` postfixgroup
@@ -303,7 +304,7 @@ saslAuthdInstalled = setupdaemon
 -- | Uses `saslpasswd2` to set the password for a user in the sasldb2 file.
 --
 -- The password is taken from the privdata.
-saslPasswdSet :: Domain -> User -> Property HasInfo
+saslPasswdSet :: Domain -> User -> Property (HasInfo + UnixLike)
 saslPasswdSet domain (User user) = go `changesFileContent` "/etc/sasldb2"
   where
 	go = withPrivData src ctx $ \getpw ->

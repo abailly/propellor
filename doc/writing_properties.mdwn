@@ -31,7 +31,7 @@ Propellor makes it very easy to put together a property like this.
 
 Let's start with a property that combines the two properties you mentioned:
 
-	hasLoginShell :: UserName -> FilePath -> Property
+	hasLoginShell :: UserName -> FilePath -> Property UnixLike
 	hasLoginShell user shell = shellSetTo user shell `requires` shellEnabled shell
 
 The shellEnabled property can be easily written using propellor's file
@@ -40,14 +40,14 @@ manipulation properties.
 	-- Need to add an import to the top of the source file.
 	import qualified Propellor.Property.File as File
 
-	shellEnabled :: FilePath -> Property
+	shellEnabled :: FilePath -> Property UnixLike
 	shellEnabled shell = "/etc/shells" `File.containsLine` shell
 
 And then, we want to actually change the user's shell. The `chsh(1)`
 program can do that, so we can simply tell propellor the command line to
 run:
 
-	shellSetTo :: UserName -> FilePath -> Property
+	shellSetTo :: UserName -> FilePath -> Property UnixLike
 	shellSetTo user shell = cmdProperty "chsh" ["--shell", shell, user]
 
 The only remaining problem with this is that shellSetTo runs chsh every
@@ -56,7 +56,7 @@ it runs, even when it didn't really do much. Now, there's an easy way to
 avoid that problem, we could just tell propellor to assume that chsh
 has not made a change:
 	
-	shellSetTo :: UserName -> FilePath -> Property
+	shellSetTo :: UserName -> FilePath -> Property UnixLike
 	shellSetTo user shell = cmdProperty "chsh" ["--shell", shell, user]
 		`assume` NoChange
 
@@ -64,7 +64,7 @@ But, it's not much harder to do this right. Let's make the property
 check if the user's shell is already set to the desired value and avoid
 doing anything in that case.
 
-	shellSetTo :: UserName -> FilePath -> Property
+	shellSetTo :: UserName -> FilePath -> Property UnixLike
 	shellSetTo user shell = check needchangeshell $
 		cmdProperty "chsh" ["--shell", shell, user]
 	  where

@@ -16,7 +16,7 @@ import Data.List
 --
 -- It's probably a good idea to put this property inside a docker or
 -- systemd-nspawn container.
-providerFor :: [User] -> HostName -> Maybe Port -> Property HasInfo
+providerFor :: [User] -> HostName -> Maybe Port -> Property (HasInfo + DebianLike)
 providerFor users hn mp = propertyList desc $ props
 	& Apt.serviceInstalledRunning "apache2"
 	& apacheconfigured
@@ -24,7 +24,7 @@ providerFor users hn mp = propertyList desc $ props
 		`onChange` Apache.restarted
 	& File.fileProperty (desc ++ " configured")
 		(map setbaseurl) "/etc/simpleid/config.inc"
-	& propertyList desc (map identfile users)
+	& propertyList desc (toProps $ map identfile users)
   where
 	baseurl = hn ++ case mp of
 		Nothing -> ""
@@ -37,7 +37,7 @@ providerFor users hn mp = propertyList desc $ props
 		| otherwise = l
 
 	apacheconfigured = case mp of
-		Nothing -> toProp $
+		Nothing -> setupRevertableProperty $
 			Apache.virtualHost hn (Port 80) "/var/www/html"
 		Just p -> propertyList desc $ props
 			& Apache.listenPorts [p]

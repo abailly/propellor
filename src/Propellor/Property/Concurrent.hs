@@ -37,6 +37,8 @@ module Propellor.Property.Concurrent (
 ) where
 
 import Propellor.Base
+import Propellor.Types.Core
+import Propellor.Types.MetaTypes
 
 import Control.Concurrent
 import qualified Control.Concurrent.Async as A
@@ -77,8 +79,8 @@ concurrently p1 p2 = (combineWith go go p1 p2)
 --
 -- The above example will run foo and bar concurrently, and once either of
 -- those 2 properties finishes, will start running baz.
-concurrentList :: IO Int -> Desc -> PropList -> Property HasInfo
-concurrentList getn d (PropList ps) = infoProperty d go mempty ps
+concurrentList :: SingI metatypes => IO Int -> Desc -> Props (MetaTypes metatypes) -> Property (MetaTypes metatypes)
+concurrentList getn d (Props ps) = property d go `addChildren` ps
   where
 	go = do
 		n <- liftIO getn
@@ -97,15 +99,11 @@ concurrentList getn d (PropList ps) = infoProperty d go mempty ps
 			(p:rest) -> return (rest, Just p)
 		case v of
 			Nothing -> return r
-			-- This use of propertySatisfy does not lose any
-			-- Info asociated with the property, because
-			-- concurrentList sets all the properties as
-			-- children, and so propigates their info.
 			Just p -> do
 				hn <- asks hostName
 				r' <- actionMessageOn hn
-					(propertyDesc p)
-					(propertySatisfy p)
+					(getDesc p)
+					(getSatisfy p)
 				worker q (r <> r')
 
 -- | Run an action with the number of capabiities increased as necessary to

@@ -42,20 +42,15 @@ see [configuration for the Haskell newbie](https://propellor.branchable.com/hask
      `cabal install propellor`
           or
      `apt-get install propellor`
-2. Run `propellor` for the first time. It will set up a `~/.propellor/` git
+2. Run `propellor --init` ; this will set up a `~/.propellor/` git
    repository for you.
-3. If you don't have a gpg private key already, generate one: `gpg --gen-key`
-4. Run: `propellor --add-key $KEYID`, which will make propellor trust
-   your gpg key, and will sign your `~/.propellor` repository using it.
-5. Edit `~/.propellor/config.hs`, and add a host you want to manage.
+3. Edit `~/.propellor/config.hs`, and add a host you want to manage.
    You can start by not adding any properties, or only a few.
-6. Run: `propellor --spin $HOST`
-7. Now you have a simple propellor deployment, but it doesn't do
-   much to the host yet, besides installing propellor.  
-   So, edit `~/.propellor/config.hs` to configure the host, add some
-   properties to it, and re-run step 6.  
-   Repeat until happy and move on to the next host. :)
-8. Once you have a lot of hosts, and running `propellor --spin HOST` for
+4. Run: `propellor --spin $HOST`
+5. Now you have a simple propellor deployment to a host. Continue editing
+   `~/.propellor/config.hs` to further configure the host, add more hosts
+   etc, and re-run `propellor --spin $HOST` after each change.  
+6. Once you have a lot of hosts, and running `propellor --spin HOST` for
    each host becomes tiresome, you can
    [automate that](http://propellor.branchable.com/automated_spins/).
-9. Write some neat new properties and send patches!
+7. Write some neat new properties and send patches!

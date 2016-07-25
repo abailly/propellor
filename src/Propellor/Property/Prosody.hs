@@ -11,7 +11,7 @@ type ConfigFile = [String]
 
 type Conf = String
 
-confEnabled :: Conf -> ConfigFile -> RevertableProperty NoInfo
+confEnabled :: Conf -> ConfigFile -> RevertableProperty DebianLike DebianLike
 confEnabled conf cf = enable <!> disable
   where
 	enable = dir `File.isSymlinkedTo` target
@@ -29,9 +29,9 @@ confEnabled conf cf = enable <!> disable
 		`requires` installed
 		`onChange` reloaded
 
-confAvailable :: Conf -> ConfigFile -> Property NoInfo
+confAvailable :: Conf -> ConfigFile -> Property DebianLike
 confAvailable conf cf = ("prosody conf available " ++ conf) ==>
-	confAvailPath conf `File.hasContent` (comment : cf)
+	tightenTargets (confAvailPath conf `File.hasContent` (comment : cf))
   where
 	comment = "-- deployed with propellor, do not modify"
 
@@ -41,11 +41,11 @@ confAvailPath conf = "/etc/prosody/conf.avail" </> conf <.> "cfg.lua"
 confValPath :: Conf -> FilePath
 confValPath conf = "/etc/prosody/conf.d" </> conf <.> "cfg.lua"
 
-installed :: Property NoInfo
+installed :: Property DebianLike
 installed = Apt.installed ["prosody"]
 
-restarted :: Property NoInfo
+restarted :: Property DebianLike
 restarted = Service.restarted "prosody"
 
-reloaded :: Property NoInfo
+reloaded :: Property DebianLike
 reloaded = Service.reloaded "prosody"

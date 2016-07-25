@@ -48,12 +48,12 @@ Finally, you need to define the configuration for each host in the list:
 [[!format haskell """
 mylaptop :: Host
 mylaptop = host "mylaptop.example.com"
-	& os (System (Debian Unstable) "amd64")
+	& osDebian Unstable X86_64
 	& Apt.stdSourcesList
 
 myserver :: Host
 myserver = host "server.example.com"
-	& os (System (Debian (Stable "jessie")) "amd64")
+	& osDebian (Stable "jessie") X86_64
 	& Apt.stdSourcesList
 	& Apt.installed ["ssh"]
 """]]
@@ -96,7 +96,7 @@ is.
 <pre>
 config.hs:30:19:
     Couldn't match expected type `RevertableProperty'
-                with actual type `Property NoInfo'
+                with actual type `Property DebianLike'
     In the return type of a call of `Apt.installed'
     In the second argument of `(!)', namely `Apt.installed ["ssh"]'
     In the first argument of `(&)', namely

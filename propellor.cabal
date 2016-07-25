@@ -1,7 +1,7 @@
 Name: propellor
-Version: 2.17.2
+Version: 3.1.1
 Cabal-Version: >= 1.8
-License: BSD3
+License: BSD2
 Maintainer: Joey Hess <id@joeyh.name>
 Author: Joey Hess
 Stability: Stable
@@ -20,6 +20,7 @@ Extra-Source-Files:
   joeyconfig.hs
   config.hs
   contrib/post-merge-hook
+  stack.yaml
   debian/changelog
   debian/README.Debian
   debian/compat
@@ -36,31 +37,39 @@ Description:
 
 Executable propellor
   Main-Is: wrapper.hs
-  GHC-Options: -threaded -Wall -fno-warn-tabs
+  GHC-Options: -threaded -Wall -fno-warn-tabs -O0
+  Extensions: TypeOperators
   Hs-Source-Dirs: src
-  Build-Depends: 
-    -- propellor needs to support the ghc shipped in Debian stable
+  Build-Depends:
+    -- propellor needs to support the ghc shipped in Debian stable,
+    -- and also only depends on packages in Debian stable.
+    base >= 4.5, base < 5,
+    MissingH, directory, filepath, IfElse, process, bytestring, hslogger,
+    unix, unix-compat, ansi-terminal, containers (>= 0.5), network, async,
+    time, mtl, transformers, exceptions (>= 0.6), stm, text
+  Other-Modules:
+    Propellor.DotDir
+
+Executable propellor-config
+  Main-Is: config.hs
+  GHC-Options: -threaded -Wall -fno-warn-tabs -O0
+  Extensions: TypeOperators
+  Hs-Source-Dirs: src
+  Build-Depends:
     base >= 4.5, base < 5,
     MissingH, directory, filepath, IfElse, process, bytestring, hslogger,
     unix, unix-compat, ansi-terminal, containers (>= 0.5), network, async,
     time, mtl, transformers, exceptions (>= 0.6), stm, text
 
-Executable propellor-config
-  Main-Is: config.hs
-  GHC-Options: -threaded -Wall -fno-warn-tabs
-  Hs-Source-Dirs: src
-  Build-Depends: MissingH, directory, filepath, base >= 4.5, base < 5,
-   IfElse, process, bytestring, hslogger, unix-compat, ansi-terminal,
-   containers (>= 0.5), network, async, time, mtl, transformers,
-   exceptions (>= 0.6), stm, text, unix
-
 Library
-  GHC-Options: -Wall -fno-warn-tabs
+  GHC-Options: -Wall -fno-warn-tabs -O0
+  Extensions: TypeOperators
   Hs-Source-Dirs: src
-  Build-Depends: MissingH, directory, filepath, base >= 4.5, base < 5,
-   IfElse, process, bytestring, hslogger, unix-compat, ansi-terminal,
-   containers (>= 0.5), network, async, time, mtl, transformers,
-   exceptions (>= 0.6), stm, text, unix
+  Build-Depends:
+    base >= 4.5, base < 5,
+    MissingH, directory, filepath, IfElse, process, bytestring, hslogger,
+    unix, unix-compat, ansi-terminal, containers (>= 0.5), network, async,
+    time, mtl, transformers, exceptions (>= 0.6), stm, text
 
   Exposed-Modules:
     Propellor
@@ -70,6 +79,10 @@ Library
     Propellor.Property.Aiccu
     Propellor.Property.Apache
     Propellor.Property.Apt
+    Propellor.Property.Apt.PPA
+    Propellor.Property.Attic
+    Propellor.Property.Borg
+    Propellor.Property.Ccache
     Propellor.Property.Cmd
     Propellor.Property.Concurrent
     Propellor.Property.Conductor
@@ -86,10 +99,12 @@ Library
     Propellor.Property.Docker
     Propellor.Property.Fail2Ban
     Propellor.Property.File
+    Propellor.Property.Firejail
     Propellor.Property.Firewall
     Propellor.Property.FreeBSD
     Propellor.Property.FreeBSD.Pkg
     Propellor.Property.FreeBSD.Poudriere
+    Propellor.Property.Fstab
     Propellor.Property.Git
     Propellor.Property.Gpg
     Propellor.Property.Group
@@ -114,7 +129,9 @@ Library
     Propellor.Property.Prosody
     Propellor.Property.Reboot
     Propellor.Property.Rsync
+    Propellor.Property.Sbuild
     Propellor.Property.Scheduled
+    Propellor.Property.Schroot
     Propellor.Property.Service
     Propellor.Property.Ssh
     Propellor.Property.Sudo
@@ -129,6 +146,7 @@ Library
     Propellor.Property.ZFS.Properties
     Propellor.Property.HostingProvider.CloudAtCost
     Propellor.Property.HostingProvider.DigitalOcean
+    Propellor.Property.HostingProvider.Exoscale
     Propellor.Property.HostingProvider.Linode
     Propellor.Property.SiteSpecific.GitHome
     Propellor.Property.SiteSpecific.JoeySites
@@ -138,25 +156,31 @@ Library
     Propellor.PropAccum
     Propellor.Utilities
     Propellor.CmdLine
+    Propellor.Container
     Propellor.Info
     Propellor.Message
     Propellor.Debug
     Propellor.PrivData
     Propellor.Engine
+    Propellor.EnsureProperty
     Propellor.Exception
     Propellor.Spin
     Propellor.Types
+    Propellor.Types.Core
     Propellor.Types.Chroot
+    Propellor.Types.CmdLine
     Propellor.Types.Container
     Propellor.Types.Docker
     Propellor.Types.Dns
     Propellor.Types.Empty
+    Propellor.Types.Exception
     Propellor.Types.Info
+    Propellor.Types.MetaTypes
     Propellor.Types.OS
     Propellor.Types.PrivData
     Propellor.Types.Result
     Propellor.Types.ResultCheck
-    Propellor.Types.CmdLine
+    Propellor.Types.Singletons
     Propellor.Types.ZFS
   Other-Modules:
     Propellor.Bootstrap
@@ -189,6 +213,7 @@ Library
     Utility.Process.NonConcurrent
     Utility.SafeCommand
     Utility.Scheduled
+    Utility.SystemDirectory
     Utility.Table
     Utility.ThreadScheduler
     Utility.Tmp

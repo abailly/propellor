@@ -1,4 +1,5 @@
--- | This module uses the letsencrypt reference client.
+-- | This module gets LetsEncrypt <https://letsencrypt.org/> certificates 
+-- using CertBot <https://certbot.eff.org/>
 
 module Propellor.Property.LetsEncrypt where
 
@@ -7,8 +8,8 @@ import qualified Propellor.Property.Apt as Apt
 
 import System.Posix.Files
 
-installed :: Property NoInfo
-installed = Apt.installed ["letsencrypt"]
+installed :: Property DebianLike
+installed = Apt.installed ["certbot"]
 
 -- | Tell the letsencrypt client that you agree with the Let's Encrypt
 -- Subscriber Agreement. Providing an email address is recommended,
@@ -39,15 +40,16 @@ type WebRoot = FilePath
 --
 -- See `Propellor.Property.Apache.httpsVirtualHost` for a more complete
 -- integration of apache with letsencrypt, that's built on top of this.
-letsEncrypt :: AgreeTOS -> Domain -> WebRoot -> Property NoInfo
+letsEncrypt :: AgreeTOS -> Domain -> WebRoot -> Property DebianLike
 letsEncrypt tos domain = letsEncrypt' tos domain []
 
 -- | Like `letsEncrypt`, but the certificate can be obtained for multiple
 -- domains.
-letsEncrypt' :: AgreeTOS -> Domain -> [Domain] -> WebRoot -> Property NoInfo
+letsEncrypt' :: AgreeTOS -> Domain -> [Domain] -> WebRoot -> Property DebianLike
 letsEncrypt' (AgreeTOS memail) domain domains webroot =
 	prop `requires` installed
   where
+	prop :: Property UnixLike
 	prop = property desc $ do
 		startstats <- liftIO getstats
 		(transcript, ok) <- liftIO $
@@ -73,6 +75,7 @@ letsEncrypt' (AgreeTOS memail) domain domains webroot =
 		, "--webroot"
 		, "--webroot-path", webroot
 		, "--text"
+		, "--noninteractive"
 		, "--keep-until-expiring"
 		] ++ map (\d -> "--domain="++d) alldomains
 

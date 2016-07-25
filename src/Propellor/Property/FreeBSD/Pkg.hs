@@ -22,8 +22,8 @@ runPkg cmd args =
 	in
 		lines <$> readProcess p a
 
-pkgCmdProperty :: String -> [String] -> UncheckedProperty NoInfo
-pkgCmdProperty cmd args =
+pkgCmdProperty :: String -> [String] -> UncheckedProperty FreeBSD
+pkgCmdProperty cmd args = tightenTargets $ 
 	let
 		(p, a) = pkgCommand cmd args
 	in
@@ -44,13 +44,14 @@ instance IsInfo PkgUpdate where
 pkgUpdated :: PkgUpdate -> Bool
 pkgUpdated (PkgUpdate _) = True
 
-update :: Property HasInfo
+update :: Property (HasInfo + FreeBSD)
 update =
 	let
 		upd = pkgCmd "update" []
 		go = ifM (pkgUpdated <$> askInfo) ((noChange), (liftIO upd >> return MadeChange))
 	in
-		infoProperty "pkg update has run" go (addInfo mempty (PkgUpdate "")) []
+		(property "pkg update has run" go :: Property FreeBSD)
+			`setInfoProperty` (toInfo (PkgUpdate ""))
 
 newtype PkgUpgrade = PkgUpgrade String
 	deriving (Typeable, Monoid, Show)
@@ -60,17 +61,19 @@ instance IsInfo PkgUpgrade where
 pkgUpgraded :: PkgUpgrade -> Bool
 pkgUpgraded (PkgUpgrade _) = True
 
-upgrade :: Property HasInfo
+upgrade :: Property (HasInfo + FreeBSD)
 upgrade =
 	let
 		upd = pkgCmd "upgrade" []
 		go = ifM (pkgUpgraded <$> askInfo) ((noChange), (liftIO upd >> return MadeChange))
 	in
-		infoProperty "pkg upgrade has run" go (addInfo mempty (PkgUpgrade "")) [] `requires` update
+		(property "pkg upgrade has run" go :: Property FreeBSD)
+			`setInfoProperty` (toInfo (PkgUpdate ""))
+			`requires` update
 
 type Package = String
 
-installed :: Package -> Property NoInfo
+installed :: Package -> Property FreeBSD
 installed pkg = check (isInstallable pkg) $ pkgCmdProperty "install" [pkg]
 
 isInstallable :: Package -> IO Bool

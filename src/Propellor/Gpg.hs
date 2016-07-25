@@ -1,7 +1,6 @@
 module Propellor.Gpg where
 
 import System.IO
-import System.Directory
 import Data.Maybe
 import Data.List.Utils
 import Control.Monad
@@ -19,6 +18,7 @@ import Utility.Misc
 import Utility.Tmp
 import Utility.FileSystemEncoding
 import Utility.Env
+import Utility.Directory
 
 type KeyId = String
 
@@ -32,14 +32,21 @@ getGpgBin = do
 -- Lists the keys in propellor's keyring.
 listPubKeys :: IO [KeyId]
 listPubKeys = do
-	gpgbin <- getGpgBin
 	keyring <- privDataKeyring
-	parse . lines <$> readProcess gpgbin (listopts keyring)
+	map fst <$> listKeys ("--list-public-keys" : useKeyringOpts keyring)
+
+listSecretKeys :: IO [(KeyId, String)]
+listSecretKeys = listKeys ["--list-secret-keys"]
+
+listKeys :: [String] -> IO [(KeyId, String)]
+listKeys ps = do
+	gpgbin <- getGpgBin
+	parse . lines <$> readProcess gpgbin listopts
   where
-	listopts keyring = useKeyringOpts keyring ++
-		["--with-colons", "--list-public-keys"]
+	listopts = ps ++ ["--with-colons"]
 	parse = mapMaybe (keyIdField . split ":")
-	keyIdField ("pub":_:_:_:f:_) = Just f
+	keyIdField (t:_:_:_:f:_:_:_:_:n:_)
+		| t == "pub" || t == "sec" = Just (f, n)
 	keyIdField _ = Nothing
 
 useKeyringOpts :: FilePath -> [String]

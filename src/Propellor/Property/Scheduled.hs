@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts, ScopedTypeVariables #-}
 
 module Propellor.Property.Scheduled
 	( period
@@ -10,6 +10,7 @@ module Propellor.Property.Scheduled
 	) where
 
 import Propellor.Base
+import Propellor.Types.Core
 import Utility.Scheduled
 
 import Data.Time.Clock
@@ -22,24 +23,24 @@ import qualified Data.Map as M
 -- last run.
 period :: (IsProp (Property i)) => Property i -> Recurrance -> Property i
 period prop recurrance = flip describe desc $ adjustPropertySatisfy prop $ \satisfy -> do
-	lasttime <- liftIO $ getLastChecked (propertyDesc prop)
+	lasttime <- liftIO $ getLastChecked (getDesc prop)
 	nexttime <- liftIO $ fmap startTime <$> nextTime schedule lasttime
 	t <- liftIO localNow
 	if Just t >= nexttime
 		then do
 			r <- satisfy
-			liftIO $ setLastChecked t (propertyDesc prop)
+			liftIO $ setLastChecked t (getDesc prop)
 			return r
 		else noChange
   where
 	schedule = Schedule recurrance AnyTime
-	desc = propertyDesc prop ++ " (period " ++ fromRecurrance recurrance ++ ")"
+	desc = getDesc prop ++ " (period " ++ fromRecurrance recurrance ++ ")"
 
 -- | Like period, but parse a human-friendly string.
-periodParse :: Property NoInfo -> String -> Property NoInfo
+periodParse :: (IsProp (Property i)) => Property i -> String -> Property i
 periodParse prop s = case toRecurrance s of
 	Just recurrance -> period prop recurrance
-	Nothing -> property "periodParse" $ do
+	Nothing -> adjustPropertySatisfy prop $ \_ -> do
 		liftIO $ warningMessage $ "failed periodParse: " ++ s
 		noChange
 

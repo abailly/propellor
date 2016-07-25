@@ -1,6 +1,8 @@
--- | Disk image generation. 
+-- | Disk image generation.
 --
 -- This module is designed to be imported unqualified.
+
+{-# LANGUAGE TypeFamilies #-}
 
 module Propellor.Property.DiskImage (
 	-- * Partition specification
@@ -28,8 +30,10 @@ import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Apt as Apt
 import Propellor.Property.Parted
 import Propellor.Property.Mount
+import Propellor.Property.Fstab (SwapPartition(..), genFstab)
 import Propellor.Property.Partition
 import Propellor.Property.Rsync
+import Propellor.Container
 import Utility.Path
 
 import Data.List (isPrefixOf, isInfixOf, sortBy)
@@ -51,7 +55,8 @@ type DiskImage = FilePath
 --
 -- > import Propellor.Property.DiskImage
 --
--- > let chroot d = Chroot.debootstrapped (System (Debian Unstable) "amd64") mempty d
+-- > let chroot d = Chroot.debootstrapped mempty d
+-- >	& osDebian Unstable X86_64
 -- >	& Apt.installed ["linux-image-amd64"]
 -- >	& User.hasPassword (User "root")
 -- >	& User.accountFor (User "demo")
@@ -76,54 +81,64 @@ type DiskImage = FilePath
 -- chroot while the disk image is being built, which should prevent any
 -- daemons that are included from being started on the system that is
 -- building the disk image.
-imageBuilt :: DiskImage -> (FilePath -> Chroot) -> TableType -> Finalization -> [PartSpec] -> RevertableProperty HasInfo
+imageBuilt :: DiskImage -> (FilePath -> Chroot) -> TableType -> Finalization -> [PartSpec] -> RevertableProperty (HasInfo + Linux) Linux
 imageBuilt = imageBuilt' False
 
 -- | Like 'built', but the chroot is deleted and rebuilt from scratch each
 -- time. This is more expensive, but useful to ensure reproducible results
 -- when the properties of the chroot have been changed.
-imageRebuilt :: DiskImage -> (FilePath -> Chroot) -> TableType -> Finalization -> [PartSpec] -> RevertableProperty HasInfo
+imageRebuilt :: DiskImage -> (FilePath -> Chroot) -> TableType -> Finalization -> [PartSpec] -> RevertableProperty (HasInfo + Linux) Linux
 imageRebuilt = imageBuilt' True
 
-imageBuilt' :: Bool -> DiskImage -> (FilePath -> Chroot) -> TableType -> Finalization -> [PartSpec] -> RevertableProperty HasInfo
-imageBuilt' rebuild img mkchroot tabletype final partspec = 
+imageBuilt' :: Bool -> DiskImage -> (FilePath -> Chroot) -> TableType -> Finalization -> [PartSpec] -> RevertableProperty (HasInfo + Linux) Linux
+imageBuilt' rebuild img mkchroot tabletype final partspec =
 	imageBuiltFrom img chrootdir tabletype final partspec
 		`requires` Chroot.provisioned chroot
-		`requires` (cleanrebuild <!> doNothing)
+		`requires` (cleanrebuild <!> (doNothing :: Property UnixLike))
 		`describe` desc
   where
 	desc = "built disk image " ++ img
+	cleanrebuild :: Property Linux
 	cleanrebuild
 		| rebuild = property desc $ do
 			liftIO $ removeChroot chrootdir
 			return MadeChange
 		| otherwise = doNothing
 	chrootdir = img ++ ".chroot"
-	chroot = mkchroot chrootdir
-		-- Before ensuring any other properties of the chroot, avoid
-		-- starting services. Reverted by imageFinalized.
-		&^ Chroot.noServices
-		-- First stage finalization.
-		& fst final
-		-- Avoid wasting disk image space on the apt cache
-		& Apt.cacheCleaned
+	chroot =
+		let c = mkchroot chrootdir
+		in setContainerProps c $ containerProps c
+			-- Before ensuring any other properties of the chroot,
+			-- avoid starting services. Reverted by imageFinalized.
+			&^ Chroot.noServices
+			-- First stage finalization.
+			& fst final
+			& cachesCleaned
+
+-- | This property is automatically added to the chroot when building a
+-- disk image. It cleans any caches of information that can be omitted;
+-- eg the apt cache on Debian.
+cachesCleaned :: Property UnixLike
+cachesCleaned = "cache cleaned" ==> (Apt.cacheCleaned `pickOS` skipit)
+  where
+	skipit = doNothing :: Property UnixLike
 
 -- | Builds a disk image from the contents of a chroot.
-imageBuiltFrom :: DiskImage -> FilePath -> TableType -> Finalization -> [PartSpec] -> RevertableProperty NoInfo
+imageBuiltFrom :: DiskImage -> FilePath -> TableType -> Finalization -> [PartSpec] -> RevertableProperty (HasInfo + Linux) UnixLike
 imageBuiltFrom img chrootdir tabletype final partspec = mkimg <!> rmimg
   where
 	desc = img ++ " built from " ++ chrootdir
-	mkimg = property desc $ do
+	mkimg = property' desc $ \w -> do
 		-- unmount helper filesystems such as proc from the chroot
 		-- before getting sizes
 		liftIO $ unmountBelow chrootdir
-		szm <- M.mapKeys (toSysDir chrootdir) . M.map toPartSize 
+		szm <- M.mapKeys (toSysDir chrootdir) . M.map toPartSize
 			<$> liftIO (dirSizes chrootdir)
 		let calcsz mnts = maybe defSz fudge . getMountSz szm mnts
 		-- tie the knot!
 		let (mnts, mntopts, parttable) = fitChrootSize tabletype partspec $
 			map (calcsz mnts) mnts
-		ensureProperty $
+		ensureProperty w $
 			imageExists img (partTableSize parttable)
 				`before`
 			partitioned YesReallyDeleteDiskContents img parttable
@@ -135,25 +150,26 @@ imageBuiltFrom img chrootdir tabletype final partspec = mkimg <!> rmimg
 		imageFinalized final mnts mntopts devs parttable
 	rmimg = File.notPresent img
 
-partitionsPopulated :: FilePath -> [Maybe MountPoint] -> [MountOpts] -> [LoopDev] -> Property NoInfo
-partitionsPopulated chrootdir mnts mntopts devs = property desc $ mconcat $ zipWith3 go mnts mntopts devs
+partitionsPopulated :: FilePath -> [Maybe MountPoint] -> [MountOpts] -> [LoopDev] -> Property Linux
+partitionsPopulated chrootdir mnts mntopts devs = property' desc $ \w ->
+	mconcat $ zipWith3 (go w) mnts mntopts devs
   where
 	desc = "partitions populated from " ++ chrootdir
 
-	go Nothing _ _ = noChange
-	go (Just mnt) mntopt loopdev = withTmpDir "mnt" $ \tmpdir -> bracket
+	go _ Nothing _ _ = noChange
+	go w (Just mnt) mntopt loopdev = withTmpDir "mnt" $ \tmpdir -> bracket
 		(liftIO $ mount "auto" (partitionLoopDev loopdev) tmpdir mntopt)
 		(const $ liftIO $ umountLazy tmpdir)
 		$ \ismounted -> if ismounted
-			then ensureProperty $
+			then ensureProperty w $
 				syncDirFiltered (filtersfor mnt) (chrootdir ++ mnt) tmpdir
 			else return FailedChange
 
-	filtersfor mnt = 
+	filtersfor mnt =
 		let childmnts = map (drop (length (dropTrailingPathSeparator mnt))) $
 			filter (\m -> m /= mnt && addTrailingPathSeparator mnt `isPrefixOf` m)
 				(catMaybes mnts)
-		in concatMap (\m -> 
+		in concatMap (\m ->
 			-- Include the child mount point, but exclude its contents.
 			[ Include (Pattern m)
 			, Exclude (filesUnder m)
@@ -169,8 +185,8 @@ fitChrootSize tt l basesizes = (mounts, mountopts, parttable)
 	(mounts, mountopts, sizers) = unzip3 l
 	parttable = PartTable tt (zipWith id sizers basesizes)
 
--- | Generates a map of the sizes of the contents of 
--- every directory in a filesystem tree. 
+-- | Generates a map of the sizes of the contents of
+-- every directory in a filesystem tree.
 --
 -- (Hard links are counted multiple times for simplicity)
 --
@@ -185,7 +201,7 @@ dirSizes top = go M.empty top [top]
 		if isDirectory s
 			then do
 				subm <- go M.empty i =<< dirContents i
-				let sz' = M.foldr' (+) sz 
+				let sz' = M.foldr' (+) sz
 					(M.filterWithKey (const . subdirof i) subm)
 				go (M.insertWith (+) i sz' (M.union m subm)) dir is
 			else go (M.insertWith (+) dir sz m) dir is
@@ -193,21 +209,21 @@ dirSizes top = go M.empty top [top]
 
 getMountSz :: (M.Map FilePath PartSize) -> [Maybe MountPoint] -> Maybe MountPoint -> Maybe PartSize
 getMountSz _ _ Nothing = Nothing
-getMountSz szm l (Just mntpt) = 
+getMountSz szm l (Just mntpt) =
 	fmap (`reducePartSize` childsz) (M.lookup mntpt szm)
   where
 	childsz = mconcat $ mapMaybe (getMountSz szm l) (filter (isChild mntpt) l)
 
 -- | Ensures that a disk image file of the specified size exists.
--- 
+--
 -- If the file doesn't exist, or is too small, creates a new one, full of 0's.
 --
 -- If the file is too large, truncates it down to the specified size.
-imageExists :: FilePath -> ByteSize -> Property NoInfo
+imageExists :: FilePath -> ByteSize -> Property Linux
 imageExists img sz = property ("disk image exists" ++ img) $ liftIO $ do
 	ms <- catchMaybeIO $ getFileStatus img
 	case ms of
-		Just s 
+		Just s
 			| toInteger (fileSize s) == toInteger sz -> return NoChange
 			| toInteger (fileSize s) > toInteger sz -> do
 				setFileSize img (fromInteger sz)
@@ -223,28 +239,28 @@ imageExists img sz = property ("disk image exists" ++ img) $ liftIO $ do
 -- with its populated partition tree mounted in the provided
 -- location from the provided loop devices. This will typically
 -- take care of installing the boot loader to the image.
--- 
+--
 -- It's ok if the second property leaves additional things mounted
 -- in the partition tree.
-type Finalization = (Property NoInfo, (FilePath -> [LoopDev] -> Property NoInfo))
+type Finalization = (Property Linux, (FilePath -> [LoopDev] -> Property Linux))
 
-imageFinalized :: Finalization -> [Maybe MountPoint] -> [MountOpts] -> [LoopDev] -> PartTable -> Property NoInfo
-imageFinalized (_, final) mnts mntopts devs (PartTable _ parts) = 
-	property "disk image finalized" $ 
-		withTmpDir "mnt" $ \top -> 
-			go top `finally` liftIO (unmountall top)
+imageFinalized :: Finalization -> [Maybe MountPoint] -> [MountOpts] -> [LoopDev] -> PartTable -> Property Linux
+imageFinalized (_, final) mnts mntopts devs (PartTable _ parts) =
+	property' "disk image finalized" $ \w ->
+		withTmpDir "mnt" $ \top ->
+			go w top `finally` liftIO (unmountall top)
   where
-	go top = do
+	go w top = do
 		liftIO $ mountall top
 		liftIO $ writefstab top
 		liftIO $ allowservices top
-		ensureProperty $ final top devs
-	
+		ensureProperty w $ final top devs
+
 	-- Ordered lexographically by mount point, so / comes before /usr
 	-- comes before /usr/local
 	orderedmntsdevs :: [(Maybe MountPoint, (MountOpts, LoopDev))]
 	orderedmntsdevs = sortBy (compare `on` fst) $ zip mnts (zip mntopts devs)
-	
+
 	swaps = map (SwapPartition . partitionLoopDev . snd) $
 		filter ((== LinuxSwap) . partFs . fst) $
 			zip parts devs
@@ -260,7 +276,7 @@ imageFinalized (_, final) mnts mntopts devs (PartTable _ parts) =
 	unmountall top = do
 		unmountBelow top
 		umountLazy top
-	
+
 	writefstab top = do
 		let fstab = top ++ "/etc/fstab"
 		old <- catchDefaultIO [] $ filter (not . unconfigured) . lines
@@ -280,27 +296,26 @@ noFinalization = (doNothing, \_ _ -> doNothing)
 grubBooted :: Grub.BIOS -> Finalization
 grubBooted bios = (Grub.installed' bios, boots)
   where
-	boots mnt loopdevs = combineProperties "disk image boots using grub"
+	boots mnt loopdevs = combineProperties "disk image boots using grub" $ props
 		-- bind mount host /dev so grub can access the loop devices
-		[ bindMount "/dev" (inmnt "/dev")
-		, mounted "proc" "proc" (inmnt "/proc") mempty
-		, mounted "sysfs" "sys" (inmnt "/sys") mempty
+		& bindMount "/dev" (inmnt "/dev")
+		& mounted "proc" "proc" (inmnt "/proc") mempty
+		& mounted "sysfs" "sys" (inmnt "/sys") mempty
 		-- update the initramfs so it gets the uuid of the root partition
-		, inchroot "update-initramfs" ["-u"]
+		& inchroot "update-initramfs" ["-u"]
 			`assume` MadeChange
 		-- work around for http://bugs.debian.org/802717
-		, check haveosprober $ inchroot "chmod" ["-x", osprober]
-		, inchroot "update-grub" []
+		& check haveosprober (inchroot "chmod" ["-x", osprober])
+		& inchroot "update-grub" []
 			`assume` MadeChange
-		, check haveosprober $ inchroot "chmod" ["+x", osprober]
-		, inchroot "grub-install" [wholediskloopdev]
+		& check haveosprober (inchroot "chmod" ["+x", osprober])
+		& inchroot "grub-install" [wholediskloopdev]
 			`assume` MadeChange
 		-- sync all buffered changes out to the disk image
 		-- may not be necessary, but seemed needed sometimes
 		-- when using the disk image right away.
-		, cmdProperty "sync" []
+		& cmdProperty "sync" []
 			`assume` NoChange
-		]
 	  where
 	  	-- cannot use </> since the filepath is absolute
 		inmnt f = mnt ++ f

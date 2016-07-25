@@ -7,13 +7,13 @@ import qualified Propellor.Property.File as File
 --
 -- signedPrimary uses this, so this property does not normally need to be
 -- used directly.
-keysInstalled :: Domain -> RevertableProperty HasInfo
+keysInstalled :: Domain -> RevertableProperty (HasInfo + UnixLike) UnixLike
 keysInstalled domain = setup <!> cleanup
   where
-	setup = propertyList "DNSSEC keys installed" $
+	setup = propertyList "DNSSEC keys installed" $ toProps $
 		map installkey keys
 
-	cleanup = propertyList "DNSSEC keys removed" $
+	cleanup = propertyList "DNSSEC keys removed" $ toProps $
 		map (File.notPresent . keyFn domain) keys
 
 	installkey k = writer (keysrc k) (keyFn domain k) (Context domain)
@@ -37,12 +37,14 @@ keysInstalled domain = setup <!> cleanup
 --
 -- signedPrimary uses this, so this property does not normally need to be
 -- used directly.
-zoneSigned :: Domain -> FilePath -> RevertableProperty HasInfo
+zoneSigned :: Domain -> FilePath -> RevertableProperty (HasInfo + UnixLike) UnixLike
 zoneSigned domain zonefile = setup <!> cleanup
   where
+	setup :: Property (HasInfo + UnixLike)
 	setup = check needupdate (forceZoneSigned domain zonefile)
 		`requires` keysInstalled domain
 	
+	cleanup :: Property UnixLike
 	cleanup = File.notPresent (signedZoneFile zonefile)
 		`before` File.notPresent dssetfile
 		`before` revert (keysInstalled domain)
@@ -63,7 +65,7 @@ zoneSigned domain zonefile = setup <!> cleanup
 		t2 <- getModificationTime f
 		return (t2 >= t1)
 
-forceZoneSigned :: Domain -> FilePath -> Property NoInfo
+forceZoneSigned :: Domain -> FilePath -> Property UnixLike
 forceZoneSigned domain zonefile = property ("zone signed for " ++ domain) $ liftIO $ do
 	salt <- take 16 <$> saltSha1
  	let p = proc "dnssec-signzone"

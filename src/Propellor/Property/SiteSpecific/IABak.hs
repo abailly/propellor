@@ -15,14 +15,14 @@ repo = "https://github.com/ArchiveTeam/IA.BAK/"
 userrepo :: String
 userrepo = "git@gitlab.com:archiveteam/IA.bak.users.git"
 
-publicFace :: Property HasInfo
+publicFace :: Property DebianLike
 publicFace = propertyList "iabak public face" $ props
 	& Git.cloned (User "root") repo "/usr/local/IA.BAK" (Just "server")
 	& Apt.serviceInstalledRunning "apache2"
 	& Cron.niceJob "graph-gen" (Cron.Times "*/10 * * * *") (User "root") "/"
 		"/usr/local/IA.BAK/web/graph-gen.sh"
 
-gitServer :: [Host] -> Property HasInfo
+gitServer :: [Host] -> Property (HasInfo + DebianLike)
 gitServer knownhosts = propertyList "iabak git server" $ props
 	& Git.cloned (User "root") repo "/usr/local/IA.BAK" (Just "server")
 	& Git.cloned (User "root") repo "/usr/local/IA.BAK/client" (Just "master")
@@ -42,7 +42,7 @@ gitServer knownhosts = propertyList "iabak git server" $ props
 		"/usr/local/IA.BAK"
 		"./expireemailer"
 
-registrationServer :: [Host] -> Property HasInfo
+registrationServer :: [Host] -> Property (HasInfo + DebianLike)
 registrationServer knownhosts = propertyList "iabak registration server" $ props
 	& User.accountFor (User "registrar")
 	& Ssh.userKeys (User "registrar") (Context "IA.bak.users.git") sshKeys
@@ -66,7 +66,7 @@ sshKeys =
 	[ (SshRsa, "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCoiE+CPiIQyfWnl/E9iKG3eo4QzlH30vi7xAgKolGaTu6qKy4XPtl+8MNm2Dqn9QEYRVyyOT/XH0yP5dRc6uyReT8dBy03MmLkVbj8Q+nKCz5YOMTxrY3sX6RRXU1zVGjeVd0DtC+rKRT7reoCxef42LAJTm8nCyZu/enAuso5qHqBbqulFz2YXEKfU1SEEXLawtvgGck1KmCyg+pqazeI1eHWXrojQf5isTBKfPQLWVppBkWAf5cA4wP5U1vN9dVirIdw66ds1M8vnGlkTBjxP/HLGBWGYhZHE7QXjXRsk2RIXlHN9q6GdNu8+F3HXS22mst47E4UAeRoiXSMMtF5")
 	]
 
-graphiteServer :: Property HasInfo
+graphiteServer :: Property (HasInfo + DebianLike)
 graphiteServer = propertyList "iabak graphite server" $ props
 	& Apt.serviceInstalledRunning "apache2"
 	& Apt.installed ["libapache2-mod-wsgi", "graphite-carbon", "graphite-web"]
@@ -114,7 +114,8 @@ graphiteServer = propertyList "iabak graphite server" $ props
 		, "</VirtualHost>"
 		]
   where
+	graphiteCSRF :: Property (HasInfo + DebianLike)
 	graphiteCSRF = withPrivData (Password "csrf-token") (Context "iabak.archiveteam.org") $
-		\gettoken -> property "graphite-web CSRF token" $
-			gettoken $ \token -> ensureProperty $ File.containsLine
+		\gettoken -> property' "graphite-web CSRF token" $ \w ->
+			gettoken $ \token -> ensureProperty w $ File.containsLine
 				"/etc/graphite/local_settings.py" ("SECRET_KEY = '"++ privDataVal token ++"'")

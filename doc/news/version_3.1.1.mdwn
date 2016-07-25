@@ -1,0 +1,4 @@
+propellor 3.1.1 released with [[!toggle text="these changes"]]
+[[!toggleable text="""
+   * Haddock build fix.
+     Thanks, Sean Whitton"""]]

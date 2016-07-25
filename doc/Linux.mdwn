@@ -6,4 +6,4 @@ Indeed, Propellor has been ported to [[FreeBSD]] now!
 See [[forum/Supported_OS]] for porting tips.
 
 Note that you can run Propellor on a OSX laptop and have it manage Linux
-systems.
+and other systems.

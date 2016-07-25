@@ -6,7 +6,7 @@ import Utility.FileSystemEncoding
 
 import System.PosixCompat
 
-installed :: Property NoInfo
+installed :: Property DebianLike
 installed = Apt.installed ["gnupg"]
 
 -- A numeric id, or a description of the key, in a form understood by gpg.
@@ -22,11 +22,12 @@ data GpgKeyType = GpgPubKey | GpgPrivKey
 --
 -- Recommend only using this for low-value dedicated role keys.
 -- No attempt has been made to scrub the key out of memory once it's used.
-keyImported :: GpgKeyId -> User -> Property HasInfo
+keyImported :: GpgKeyId -> User -> Property (HasInfo + DebianLike)
 keyImported key@(GpgKeyId keyid) user@(User u) = prop
 	`requires` installed
   where
 	desc = u ++ " has gpg key " ++ show keyid
+	prop :: Property (HasInfo + DebianLike)
 	prop = withPrivData src (Context keyid) $ \getkey ->
 		property desc $ getkey $ \key' -> do
 			let keylines = privDataLines key'

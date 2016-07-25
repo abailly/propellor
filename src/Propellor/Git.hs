@@ -2,8 +2,8 @@ module Propellor.Git where
 
 import Utility.Process
 import Utility.Exception
+import Utility.Directory
 
-import System.Directory
 import Control.Applicative
 import Prelude
 

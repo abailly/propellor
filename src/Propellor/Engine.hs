@@ -1,11 +1,10 @@
 {-# LANGUAGE PackageImports #-}
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE DataKinds #-}
 
 module Propellor.Engine (
 	mainProperties,
 	runPropellor,
-	ensureProperty,
-	ensureProperties,
+	ensureChildProperties,
 	fromHost,
 	fromHost',
 	onlyProcess,
@@ -18,29 +17,31 @@ import "mtl" Control.Monad.RWS.Strict
 import System.PosixCompat
 import System.Posix.IO
 import System.FilePath
-import System.Directory
 import Control.Applicative
 import Prelude
 
 import Propellor.Types
+import Propellor.Types.MetaTypes
+import Propellor.Types.Core
 import Propellor.Message
 import Propellor.Exception
 import Propellor.Info
-import Propellor.Property
 import Utility.Exception
+import Utility.Directory
 
 -- | Gets the Properties of a Host, and ensures them all,
 -- with nice display of what's being done.
 mainProperties :: Host -> IO ()
 mainProperties host = do
-	ret <- runPropellor host $
-		ensureProperties [ignoreInfo $ infoProperty "overall" (ensureProperties ps) mempty mempty]
+	ret <- runPropellor host $ ensureChildProperties [toChildProperty overall]
 	messagesDone
 	case ret of
 		FailedChange -> exitWith (ExitFailure 1)
 		_ -> exitWith ExitSuccess
   where
-	ps = map ignoreInfo $ hostProperties host
+	overall :: Property (MetaTypes '[])
+	overall = property "overall" $
+		ensureChildProperties (hostProperties host)
 
 -- | Runs a Propellor action with the specified host.
 --
@@ -58,14 +59,14 @@ runEndAction host res (EndAction desc a) = actionMessageOn (hostName host) desc 
 	(ret, _s, _) <- runRWST (runWithHost (catchPropellor (a res))) host ()
 	return ret
 
--- | Ensures a list of Properties, with a display of each as it runs.
-ensureProperties :: [Property NoInfo] -> Propellor Result
-ensureProperties ps = ensure ps NoChange
+-- | Ensures the child properties, with a display of each as it runs.
+ensureChildProperties :: [ChildProperty] -> Propellor Result
+ensureChildProperties ps = ensure ps NoChange
   where
 	ensure [] rs = return rs
 	ensure (p:ls) rs = do
 		hn <- asks hostName
-		r <- actionMessageOn hn (propertyDesc p) (ensureProperty p)
+		r <- actionMessageOn hn (getDesc p) (catchPropellor $ getSatisfy p)
 		ensure ls (r <> rs)
 
 -- | Lifts an action into the context of a different host.

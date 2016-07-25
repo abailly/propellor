@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeFamilies #-}
+
 module Propellor.Property.Tor where
 
 import Propellor.Base
@@ -19,7 +21,7 @@ type NodeName = String
 -- | Sets up a tor bridge. (Not a relay or exit node.)
 --
 -- Uses port 443
-isBridge :: Property NoInfo
+isBridge :: Property DebianLike
 isBridge = configured
 	[ ("BridgeRelay", "1")
 	, ("Exitpolicy", "reject *:*")
@@ -31,7 +33,7 @@ isBridge = configured
 -- | Sets up a tor relay.
 --
 -- Uses port 443
-isRelay :: Property NoInfo
+isRelay :: Property DebianLike
 isRelay = configured
 	[ ("BridgeRelay", "0")
 	, ("Exitpolicy", "reject *:*")
@@ -44,21 +46,21 @@ isRelay = configured
 --
 -- This can be moved to a different IP without needing to wait to
 -- accumulate trust.
-named :: NodeName -> Property HasInfo
+named :: NodeName -> Property (HasInfo + DebianLike)
 named n = configured [("Nickname", n')]
 	`describe` ("tor node named " ++ n')
 	`requires` torPrivKey (Context ("tor " ++ n))
   where
 	n' = saneNickname n
 
-torPrivKey :: Context -> Property HasInfo
+torPrivKey :: Context -> Property (HasInfo + DebianLike)
 torPrivKey context = f `File.hasPrivContent` context
 	`onChange` File.ownerGroup f user (userGroup user)
 	`requires` torPrivKeyDirExists
   where
 	f = torPrivKeyDir </> "secret_id_key"
 
-torPrivKeyDirExists :: Property NoInfo
+torPrivKeyDirExists :: Property DebianLike
 torPrivKeyDirExists = File.dirExists torPrivKeyDir
 	`onChange` setperms
 	`requires` installed
@@ -71,20 +73,20 @@ torPrivKeyDir = "/var/lib/tor/keys"
 
 -- | A tor server (bridge, relay, or exit)
 -- Don't use if you just want to run tor for personal use.
-server :: Property NoInfo
+server :: Property DebianLike
 server = configured [("SocksPort", "0")]
 	`requires` installed
 	`requires` Apt.installed ["ntp"]
 	`describe` "tor server"
 
-installed :: Property NoInfo
+installed :: Property DebianLike
 installed = Apt.installed ["tor"]
 
 -- | Specifies configuration settings. Any lines in the config file
 -- that set other values for the specified settings will be removed,
 -- while other settings are left as-is. Tor is restarted when
 -- configuration is changed.
-configured :: [(String, String)] -> Property NoInfo
+configured :: [(String, String)] -> Property DebianLike
 configured settings = File.fileProperty "tor configured" go mainConfig
 	`onChange` restarted
   where
@@ -105,19 +107,19 @@ data BwLimit
 --
 -- For example, PerSecond "30 kibibytes" is the minimum limit
 -- for a useful relay.
-bandwidthRate :: BwLimit -> Property NoInfo
+bandwidthRate :: BwLimit -> Property DebianLike
 bandwidthRate (PerSecond s) = bandwidthRate' s 1
 bandwidthRate (PerDay s) = bandwidthRate' s (24*60*60)
 bandwidthRate (PerMonth s) = bandwidthRate' s (31*24*60*60)
 
-bandwidthRate' :: String -> Integer -> Property NoInfo
+bandwidthRate' :: String -> Integer -> Property DebianLike
 bandwidthRate' s divby = case readSize dataUnits s of
 	Just sz -> let v = show (sz `div` divby) ++ " bytes"
 		in configured [("BandwidthRate", v)]
 			`describe` ("tor BandwidthRate " ++ v)
 	Nothing -> property ("unable to parse " ++ s) noChange
 
-hiddenServiceAvailable :: HiddenServiceName -> Int -> Property NoInfo
+hiddenServiceAvailable :: HiddenServiceName -> Int -> Property DebianLike
 hiddenServiceAvailable hn port = hiddenServiceHostName $ hiddenService hn port
   where
 	hiddenServiceHostName p =  adjustPropertySatisfy p $ \satisfy -> do
@@ -126,7 +128,7 @@ hiddenServiceAvailable hn port = hiddenServiceHostName $ hiddenService hn port
 		warningMessage $ unwords ["hidden service hostname:", h]
 		return r
 
-hiddenService :: HiddenServiceName -> Int -> Property NoInfo
+hiddenService :: HiddenServiceName -> Int -> Property DebianLike
 hiddenService hn port = ConfFile.adjustSection
 	(unwords ["hidden service", hn, "available on port", show port])
 	(== oniondir)
@@ -139,18 +141,18 @@ hiddenService hn port = ConfFile.adjustSection
 	oniondir = unwords ["HiddenServiceDir", varLib </> hn]
 	onionport = unwords ["HiddenServicePort", show port, "127.0.0.1:" ++ show port]
 
-hiddenServiceData :: IsContext c => HiddenServiceName -> c -> Property HasInfo
-hiddenServiceData hn context = combineProperties desc
-	[ installonion "hostname"
-	, installonion "private_key"
-	]
+hiddenServiceData :: IsContext c => HiddenServiceName -> c -> Property (HasInfo + DebianLike)
+hiddenServiceData hn context = combineProperties desc $ props
+	& installonion "hostname"
+	& installonion "private_key"
   where
 	desc = unwords ["hidden service data available in", varLib </> hn]
+	installonion :: FilePath -> Property (HasInfo + DebianLike)
 	installonion f = withPrivData (PrivFile $ varLib </> hn </> f) context $ \getcontent ->
-		property desc $ getcontent $ install $ varLib </> hn </> f
-	install f privcontent = ifM (liftIO $ doesFileExist f)
+		property' desc $ \w -> getcontent $ install w $ varLib </> hn </> f
+	install w f privcontent = ifM (liftIO $ doesFileExist f)
 		( noChange
-		, ensureProperties
+		, ensureProperty w $ propertyList desc $ toProps
 			[ property desc $ makeChange $ do
 				createDirectoryIfMissing True (takeDirectory f)
 				writeFileProtected f (unlines (privDataLines privcontent))
@@ -161,7 +163,7 @@ hiddenServiceData hn context = combineProperties desc
 			]
 		)
 
-restarted :: Property NoInfo
+restarted :: Property DebianLike
 restarted = Service.restarted "tor"
 
 mainConfig :: FilePath

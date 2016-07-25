@@ -119,19 +119,17 @@ debianMirrorKeyring k m = m { _debianMirrorKeyring = k }
 debianMirrorRsyncExtra :: [RsyncExtra] -> DebianMirror -> DebianMirror
 debianMirrorRsyncExtra r m = m { _debianMirrorRsyncExtra = r }
 
-mirror :: DebianMirror -> Property NoInfo
-mirror mirror' = propertyList
-	("Debian mirror " ++ dir)
-	[ Apt.installed ["debmirror"]
-	, User.accountFor (User "debmirror")
-	, File.dirExists dir
-	, File.ownerGroup dir (User "debmirror") (Group "debmirror")
-	, check (not . and <$> mapM suitemirrored suites)
+mirror :: DebianMirror -> Property DebianLike
+mirror mirror' = propertyList ("Debian mirror " ++ dir) $ props
+	& Apt.installed ["debmirror"]
+	& User.accountFor (User "debmirror")
+	& File.dirExists dir
+	& File.ownerGroup dir (User "debmirror") (Group "debmirror")
+	& check (not . and <$> mapM suitemirrored suites)
 		(cmdProperty "debmirror" args)
 			`describe` "debmirror setup"
-	, Cron.niceJob ("debmirror_" ++ dir) (_debianMirrorCronTimes mirror') (User "debmirror") "/" $
-		unwords ("/usr/bin/debmirror" : args)
-	]
+	& Cron.niceJob ("debmirror_" ++ dir) (_debianMirrorCronTimes mirror') (User "debmirror") "/"
+		(unwords ("/usr/bin/debmirror" : args))
   where
 	dir = _debianMirrorDir mirror'
 	suites = _debianMirrorSuites mirror'
@@ -143,7 +141,7 @@ mirror mirror' = propertyList
 	rsyncextraarg res = intercalate "," $ map showRsyncExtra res
 	args =
 		[ "--dist" , suitearg
-		, "--arch", architecturearg $ _debianMirrorArchitectures mirror'
+		, "--arch", architecturearg $ map architectureToDebianArchString (_debianMirrorArchitectures mirror')
 		, "--section", intercalate "," $ _debianMirrorSections mirror'
 		, "--limit-priority", "\"" ++ priorityRegex (_debianMirrorPriorities mirror') ++ "\""
 		]

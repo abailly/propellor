@@ -1,5 +1,0 @@
-propellor 2.15.3 released with [[!toggle text="these changes"]]
-[[!toggleable text="""
-   * Added Git.bareRepoDefaultBranch property
-     Thanks, Sean Whitton.
-   * Add missing Control.Applicative imports needed by older versions of ghc."""]]

@@ -34,25 +34,25 @@ keyTabPath = maybe defaultKeyTab id
 principal :: String -> Maybe String -> Maybe Realm -> Principal
 principal p i r = p ++ maybe "" ("/"++) i ++ maybe "" ("@" ++) r
 
-installed :: Property NoInfo
+installed :: Property DebianLike
 installed = Apt.installed ["krb5-user"]
 
-kdcInstalled :: Property NoInfo
+kdcInstalled :: Property DebianLike
 kdcInstalled = Apt.serviceInstalledRunning "krb5-kdc"
 
-adminServerInstalled :: Property NoInfo
+adminServerInstalled :: Property DebianLike
 adminServerInstalled = Apt.serviceInstalledRunning "krb5-admin-server"
 
-kpropServerInstalled :: Property HasInfo
+kpropServerInstalled :: Property DebianLike
 kpropServerInstalled = propertyList "kprop server installed" $ props
 	& kdcInstalled
 	& Apt.installed ["openbsd-inetd"]
 	& "/etc/inetd.conf" `File.containsLines`
-	[ "krb5_prop\tstream\ttcp\tnowait\troot\t/usr/sbin/kpropd kpropd"
-	, "krb5_prop\tstream\ttcp6\tnowait\troot\t/usr/sbin/kpropd kpropd"
-	]
+		[ "krb5_prop\tstream\ttcp\tnowait\troot\t/usr/sbin/kpropd kpropd"
+		, "krb5_prop\tstream\ttcp6\tnowait\troot\t/usr/sbin/kpropd kpropd"
+		]
 
-kpropAcls :: [String] -> Property NoInfo
+kpropAcls :: [String] -> Property UnixLike
 kpropAcls ps = kpropdAclPath `File.hasContent` ps `describe` "kprop server ACLs"
 
 k5srvutil :: (Maybe FilePath) -> [String] -> IO String
@@ -82,13 +82,14 @@ k5loginPath user = do
 	h <- homedir user
 	return $ h </> ".k5login"
 
-k5login :: User -> [Principal] -> Property NoInfo
-k5login user@(User u) ps = property (u ++ " has k5login") $ do
+k5login :: User -> [Principal] -> Property UnixLike
+k5login user@(User u) ps = property' desc $ \w -> do
 	f <- liftIO $ k5loginPath user
 	liftIO $ do
 		createDirectoryIfMissing True (takeDirectory f)
 		writeFile f (unlines ps)
-	ensureProperties
-		[ File.ownerGroup f user (userGroup user)
-		, File.ownerGroup (takeDirectory f) user (userGroup user)
-		]
+	ensureProperty w $ combineProperties desc $ props
+		& File.ownerGroup f user (userGroup user)
+		& File.ownerGroup (takeDirectory f) user (userGroup user)
+  where
+	desc = u ++ " has k5login"

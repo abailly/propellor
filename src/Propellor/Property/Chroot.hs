@@ -19,9 +19,11 @@ module Propellor.Property.Chroot (
 ) where
 
 import Propellor.Base
+import Propellor.Container
 import Propellor.Types.CmdLine
 import Propellor.Types.Chroot
 import Propellor.Types.Info
+import Propellor.Types.Core
 import Propellor.Property.Chroot.Util
 import qualified Propellor.Property.Debootstrap as Debootstrap
 import qualified Propellor.Property.Systemd.Core as Systemd
@@ -40,16 +42,16 @@ import System.Console.Concurrent
 data Chroot where
 	Chroot :: ChrootBootstrapper b => FilePath -> b -> Host -> Chroot
 
+instance IsContainer Chroot where
+	containerProperties (Chroot _ _ h) = containerProperties h
+	containerInfo (Chroot _ _ h) = containerInfo h
+	setContainerProperties (Chroot loc b h) ps = Chroot loc b (setContainerProperties h ps)
+
 chrootSystem :: Chroot -> Maybe System
-chrootSystem (Chroot _ _ h) = fromInfoVal (getInfo (hostInfo h))
+chrootSystem = fromInfoVal . fromInfo . containerInfo
 
 instance Show Chroot where
 	show c@(Chroot loc _ _) = "Chroot " ++ loc ++ " " ++ show (chrootSystem c)
-
-instance PropAccum Chroot where
-	(Chroot l c h) `addProp` p = Chroot l c (h & p)
-	(Chroot l c h) `addPropFront` p = Chroot l c (h `addPropFront` p)
-	getProperties (Chroot _ _ h) = hostProperties h
 
 -- | Class of things that can do initial bootstrapping of an operating
 -- System in a chroot.
@@ -57,7 +59,7 @@ class ChrootBootstrapper b where
 	-- | Do initial bootstrapping of an operating system in a chroot.
 	-- If the operating System is not supported, return
 	-- Left error message.
-	buildchroot :: b -> Maybe System -> FilePath -> Either String (Property HasInfo)
+	buildchroot :: b -> Maybe System -> FilePath -> Either String (Property Linux)
 
 -- | Use this to bootstrap a chroot by extracting a tarball.
 --
@@ -68,14 +70,14 @@ class ChrootBootstrapper b where
 data ChrootTarball = ChrootTarball FilePath
 
 instance ChrootBootstrapper ChrootTarball where
-	buildchroot (ChrootTarball tb) _ loc = Right $ extractTarball loc tb
+	buildchroot (ChrootTarball tb) _ loc = Right $
+		tightenTargets $ extractTarball loc tb
 
-extractTarball :: FilePath -> FilePath -> Property HasInfo
-extractTarball target src = toProp .
-	check (unpopulated target) $
-		cmdProperty "tar" params
-			`assume` MadeChange
-			`requires` File.dirExists target
+extractTarball :: FilePath -> FilePath -> Property UnixLike
+extractTarball target src = check (unpopulated target) $
+	cmdProperty "tar" params
+		`assume` MadeChange
+		`requires` File.dirExists target
   where
 	params =
 		[ "-C"
@@ -89,31 +91,30 @@ data Debootstrapped = Debootstrapped Debootstrap.DebootstrapConfig
 
 instance ChrootBootstrapper Debootstrapped where
 	buildchroot (Debootstrapped cf) system loc = case system of
-		(Just s@(System (Debian _) _)) -> Right $ debootstrap s
+		(Just s@(System (Debian _ _) _)) -> Right $ debootstrap s
 		(Just s@(System (Buntish _) _)) -> Right $ debootstrap s
 		(Just (System (FreeBSD _) _)) -> Left "FreeBSD not supported by debootstrap."
-		Nothing -> Left "Cannot debootstrap; `os` property not specified"
+		Nothing -> Left "Cannot debootstrap; OS not specified"
 	  where
 		debootstrap s = Debootstrap.built loc s cf
 
 -- | Defines a Chroot at the given location, built with debootstrap.
 --
 -- Properties can be added to configure the Chroot. At a minimum,
--- add the `os` property to specify the operating system to bootstrap.
+-- add a property such as `osDebian` to specify the operating system
+-- to bootstrap.
 --
--- > debootstrapped Debootstrap.BuildD "/srv/chroot/ghc-dev"
--- >	& os (System (Debian Unstable) "amd64")
+-- > debootstrapped Debootstrap.BuildD "/srv/chroot/ghc-dev" $ props
+-- >	& osDebian Unstable X86_64
 -- >	& Apt.installed ["ghc", "haskell-platform"]
 -- >	& ...
-debootstrapped :: Debootstrap.DebootstrapConfig -> FilePath -> Chroot
+debootstrapped :: Debootstrap.DebootstrapConfig -> FilePath -> Props metatypes -> Chroot
 debootstrapped conf = bootstrapped (Debootstrapped conf)
 
 -- | Defines a Chroot at the given location, bootstrapped with the
 -- specified ChrootBootstrapper.
-bootstrapped :: ChrootBootstrapper b => b -> FilePath -> Chroot
-bootstrapped bootstrapper location = Chroot location bootstrapper h
-  where
-	h = Host location [] mempty
+bootstrapped :: ChrootBootstrapper b => b -> FilePath -> Props metatypes -> Chroot
+bootstrapped bootstrapper location ps = Chroot location bootstrapper (host location ps)
 
 -- | Ensures that the chroot exists and is provisioned according to its
 -- properties.
@@ -121,43 +122,44 @@ bootstrapped bootstrapper location = Chroot location bootstrapper h
 -- Reverting this property removes the chroot. Anything mounted inside it
 -- is first unmounted. Note that it does not ensure that any processes
 -- that might be running inside the chroot are stopped.
-provisioned :: Chroot -> RevertableProperty HasInfo
+provisioned :: Chroot -> RevertableProperty (HasInfo + Linux) Linux
 provisioned c = provisioned' (propagateChrootInfo c) c False
 
-provisioned' :: (Property HasInfo -> Property HasInfo) -> Chroot -> Bool -> RevertableProperty HasInfo
+provisioned'
+	:: (Property Linux -> Property (HasInfo + Linux))
+	-> Chroot
+	-> Bool
+	-> RevertableProperty (HasInfo + Linux) Linux
 provisioned' propigator c@(Chroot loc bootstrapper _) systemdonly =
-	(propigator $ propertyList (chrootDesc c "exists") [setup])
+	(propigator $ setup `describe` chrootDesc c "exists")
 		<!>
-	(propertyList (chrootDesc c "removed") [teardown])
+	(teardown `describe` chrootDesc c "removed")
   where
+	setup :: Property Linux
 	setup = propellChroot c (inChrootProcess (not systemdonly) c) systemdonly
-		`requires` toProp built
+		`requires` built
 
 	built = case buildchroot bootstrapper (chrootSystem c) loc of
 		Right p -> p
 		Left e -> cantbuild e
 
-	cantbuild e = infoProperty (chrootDesc c "built") (error e) mempty []
+	cantbuild e = property (chrootDesc c "built") (error e)
 
+	teardown :: Property Linux
 	teardown = check (not <$> unpopulated loc) $
 		property ("removed " ++ loc) $
 			makeChange (removeChroot loc)
 
-propagateChrootInfo :: (IsProp (Property i)) => Chroot -> Property i -> Property HasInfo
-propagateChrootInfo c@(Chroot location _ _) p = propagateContainer location c p'
-  where
-	p' = infoProperty
-		(propertyDesc p)
-		(propertySatisfy p)
-		(propertyInfo p <> chrootInfo c)
-		(propertyChildren p)
+propagateChrootInfo :: Chroot -> Property Linux -> Property (HasInfo + Linux)
+propagateChrootInfo c@(Chroot location _ _) p = propagateContainer location c $
+	p `setInfoProperty` chrootInfo c
 
 chrootInfo :: Chroot -> Info
 chrootInfo (Chroot loc _ h) = mempty `addInfo`
 	mempty { _chroots = M.singleton loc h }
 
 -- | Propellor is run inside the chroot to provision it.
-propellChroot :: Chroot -> ([String] -> IO (CreateProcess, IO ())) -> Bool -> Property NoInfo
+propellChroot :: Chroot -> ([String] -> IO (CreateProcess, IO ())) -> Bool -> Property UnixLike
 propellChroot c@(Chroot loc _ _) mkproc systemdonly = property (chrootDesc c "provisioned") $ do
 	let d = localdir </> shimdir c
 	let me = localdir </> "propellor"
@@ -205,7 +207,7 @@ chain :: [Host] -> CmdLine -> IO ()
 chain hostlist (ChrootChain hn loc systemdonly onconsole) =
 	case findHostNoAlias hostlist hn of
 		Nothing -> errorMessage ("cannot find host " ++ hn)
-		Just parenthost -> case M.lookup loc (_chroots $ getInfo $ hostInfo parenthost) of
+		Just parenthost -> case M.lookup loc (_chroots $ fromInfo $ hostInfo parenthost) of
 			Nothing -> errorMessage ("cannot find chroot " ++ loc ++ " on host " ++ hn)
 			Just h -> go h
   where
@@ -213,11 +215,10 @@ chain hostlist (ChrootChain hn loc systemdonly onconsole) =
 		changeWorkingDirectory localdir
 		when onconsole forceConsole
 		onlyProcess (provisioningLock loc) $ do
-			r <- runPropellor (setInChroot h) $ ensureProperties $
+			r <- runPropellor (setInChroot h) $ ensureChildProperties $
 				if systemdonly
-					then [Systemd.installed]
-					else map ignoreInfo $
-						hostProperties h
+					then [toChildProperty Systemd.installed]
+					else hostProperties h
 			flushConcurrentOutput
 			putStrLn $ "\n" ++ show r
 chain _ _ = errorMessage "bad chain command"
@@ -255,15 +256,17 @@ chrootDesc (Chroot loc _ _) desc = "chroot " ++ loc ++ " " ++ desc
 -- from being started, which is often something you want to prevent when
 -- building a chroot.
 --
--- This is accomplished by installing a </usr/sbin/policy-rc.d> script
--- that does not let any daemons be started by packages that use
+-- On Debian, this is accomplished by installing a </usr/sbin/policy-rc.d>
+-- script that does not let any daemons be started by packages that use
 -- invoke-rc.d. Reverting the property removes the script.
-noServices :: RevertableProperty NoInfo
+--
+-- This property has no effect on non-Debian systems.
+noServices :: RevertableProperty UnixLike UnixLike
 noServices = setup <!> teardown
   where
 	f = "/usr/sbin/policy-rc.d"
 	script = [ "#!/bin/sh", "exit 101" ]
-	setup = combineProperties "no services started"
+	setup = combineProperties "no services started" $ toProps
 		[ File.hasContent f script
 		, File.mode f (combineModes (readModes ++ executeModes))
 		]

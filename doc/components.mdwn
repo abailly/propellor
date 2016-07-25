@@ -28,12 +28,8 @@ then copy in `~/.propellor/src/Propellor/` and it will be used. See
 ## minimal .propellor repository
 
 All that really needs to be in `~/.propellor/` though, is a `config.hs`
-file, and a cabal file. To use propellor this way, you can first
-install propellor, and then copy the two files from the
-[mininalconfig branch](http://source.propellor.branchable.com/?p=source.git;a=tree;h=refs/heads/minimalconfig;hb=refs/heads/minimalconfig),
-or clone it:
-
-	git clone git://propellor.branchable.com/ .propellor --branch minimalconfig --single-branch
+file, and a cabal file. Running propellor when `~/.propellor/` doesn't exist
+will ask you if you want a minimal config, and create those files.
 
 In this configuration, when propellor is deploying itself to a new host,
 it will automatically install the version of the propellor library

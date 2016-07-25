@@ -2,6 +2,8 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DataKinds #-}
 
 module Propellor.PrivData (
 	withPrivData,
@@ -24,7 +26,6 @@ module Propellor.PrivData (
 ) where
 
 import System.IO
-import System.Directory
 import Data.Maybe
 import Data.List
 import Data.Typeable
@@ -40,6 +41,7 @@ import Prelude
 
 import Propellor.Types
 import Propellor.Types.PrivData
+import Propellor.Types.MetaTypes
 import Propellor.Types.Info
 import Propellor.Message
 import Propellor.Info
@@ -56,6 +58,7 @@ import Utility.FileMode
 import Utility.Env
 import Utility.Table
 import Utility.FileSystemEncoding
+import Utility.Directory
 
 -- | Allows a Property to access the value of a specific PrivDataField,
 -- for use in a specific Context or HostContext.
@@ -75,29 +78,41 @@ import Utility.FileSystemEncoding
 -- being used, which is necessary to ensure that the privdata is sent to
 -- the remote host by propellor.
 withPrivData
-	:: (IsContext c, IsPrivDataSource s, IsProp (Property i))
+	::
+		( IsContext c
+		, IsPrivDataSource s
+		, IncludesInfo metatypes ~ 'True
+		)
 	=> s
 	-> c
-	-> (((PrivData -> Propellor Result) -> Propellor Result) -> Property i)
-	-> Property HasInfo
+	-> (((PrivData -> Propellor Result) -> Propellor Result) -> Property metatypes)
+	-> Property metatypes
 withPrivData s = withPrivData' snd [s]
 
 -- Like withPrivData, but here any one of a list of PrivDataFields can be used.
 withSomePrivData
-	:: (IsContext c, IsPrivDataSource s, IsProp (Property i))
+	::
+		( IsContext c
+		, IsPrivDataSource s
+		, IncludesInfo metatypes ~ 'True
+		)
 	=> [s]
 	-> c
-	-> ((((PrivDataField, PrivData) -> Propellor Result) -> Propellor Result) -> Property i)
-	-> Property HasInfo
+	-> ((((PrivDataField, PrivData) -> Propellor Result) -> Propellor Result) -> Property metatypes)
+	-> Property metatypes
 withSomePrivData = withPrivData' id
 
 withPrivData' 
-	:: (IsContext c, IsPrivDataSource s, IsProp (Property i))
+	::
+		( IsContext c
+		, IsPrivDataSource s
+		, IncludesInfo metatypes ~ 'True
+		)
 	=> ((PrivDataField, PrivData) -> v)
 	-> [s]
 	-> c
-	-> (((v -> Propellor Result) -> Propellor Result) -> Property i)
-	-> Property HasInfo
+	-> (((v -> Propellor Result) -> Propellor Result) -> Property metatypes)
+	-> Property metatypes
 withPrivData' feed srclist c mkprop = addinfo $ mkprop $ \a ->
 	maybe missing (a . feed) =<< getM get fieldlist
   where
@@ -112,11 +127,7 @@ withPrivData' feed srclist c mkprop = addinfo $ mkprop $ \a ->
 			"Fix this by running:" :
 			showSet (map (\s -> (privDataField s, Context cname, describePrivDataSource s)) srclist)
 		return FailedChange
-	addinfo p = infoProperty
-		(propertyDesc p)
-		(propertySatisfy p)
-		(propertyInfo p `addInfo` privset)
-		(propertyChildren p)
+	addinfo p = p `addInfoProperty` (toInfo privset)
 	privset = PrivInfo $ S.fromList $
 		map (\s -> (privDataField s, describePrivDataSource s, hc)) srclist
 	fieldnames = map show fieldlist
@@ -132,7 +143,7 @@ showSet = concatMap go
 		, Just ""
 		]
 
-addPrivData :: (PrivDataField, Maybe PrivDataSourceDesc, HostContext) -> Property HasInfo
+addPrivData :: (PrivDataField, Maybe PrivDataSourceDesc, HostContext) -> Property (HasInfo + UnixLike)
 addPrivData v = pureInfoProperty (show v) (PrivInfo (S.singleton v))
 
 {- Gets the requested field's value, in the specified context if it's
@@ -150,7 +161,7 @@ filterPrivData :: Host -> PrivMap -> PrivMap
 filterPrivData host = M.filterWithKey (\k _v -> S.member k used)
   where
 	used = S.map (\(f, _, c) -> (f, mkHostContext c (hostName host))) $
-		fromPrivInfo $ getInfo $ hostInfo host
+		fromPrivInfo $ fromInfo $ hostInfo host
 
 getPrivData :: PrivDataField -> Context -> PrivMap -> Maybe PrivData
 getPrivData field context m = do
@@ -234,7 +245,7 @@ mkUsedByMap = M.unionsWith (++) . map (\h -> mkPrivDataMap h $ const [hostName h
 mkPrivDataMap :: Host -> (Maybe PrivDataSourceDesc -> a) -> M.Map (PrivDataField, Context) a
 mkPrivDataMap host mkv = M.fromList $
 	map (\(f, d, c) -> ((f, mkHostContext c (hostName host)), mkv d))
-		(S.toList $ fromPrivInfo $ getInfo $ hostInfo host)
+		(S.toList $ fromPrivInfo $ fromInfo $ hostInfo host)
 
 setPrivDataTo :: PrivDataField -> Context -> PrivData -> IO ()
 setPrivDataTo field context (PrivData value) = do

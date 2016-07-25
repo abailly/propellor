@@ -3,8 +3,4 @@ should be converted to a dependency.
 
 Waiting on concurrent-output reaching Debian stable.
 
-Once this is done, can switch GHC-Options back to -O0 from -O.
--O is only needed to get stream fusion in the concurrent-output code;
--O0 is better because ghc takes less memory to build propellor.
-
 [[!tag user/joey]]

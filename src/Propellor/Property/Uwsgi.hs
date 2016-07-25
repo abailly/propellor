@@ -11,7 +11,7 @@ type ConfigFile = [String]
 
 type AppName = String
 
-appEnabled :: AppName -> ConfigFile -> RevertableProperty NoInfo
+appEnabled :: AppName -> ConfigFile -> RevertableProperty DebianLike DebianLike
 appEnabled an cf = enable <!> disable
   where
 	enable = appVal an `File.isSymlinkedTo` appValRelativeCfg an
@@ -24,9 +24,9 @@ appEnabled an cf = enable <!> disable
 		`requires` installed
 		`onChange` reloaded
 
-appAvailable :: AppName -> ConfigFile -> Property NoInfo
+appAvailable :: AppName -> ConfigFile -> Property DebianLike
 appAvailable an cf = ("uwsgi app available " ++ an) ==>
-	appCfg an `File.hasContent` (comment : cf)
+	tightenTargets (appCfg an `File.hasContent` (comment : cf))
   where
 	comment = "# deployed with propellor, do not modify"
 
@@ -39,11 +39,11 @@ appVal an = "/etc/uwsgi/apps-enabled/" </> an <.> "ini"
 appValRelativeCfg :: AppName -> File.LinkTarget
 appValRelativeCfg an = File.LinkTarget $ "../apps-available" </> an <.> "ini"
 
-installed :: Property NoInfo
+installed :: Property DebianLike
 installed = Apt.installed ["uwsgi"]
 
-restarted :: Property NoInfo
+restarted :: Property DebianLike
 restarted = Service.restarted "uwsgi"
 
-reloaded :: Property NoInfo
+reloaded :: Property DebianLike
 reloaded = Service.reloaded "uwsgi"

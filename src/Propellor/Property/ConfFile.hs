@@ -9,6 +9,7 @@ module Propellor.Property.ConfFile (
 	IniSection,
 	IniKey,
 	containsIniSetting,
+	hasIniSection,
 	lacksIniSection,
 ) where
 
@@ -24,7 +25,7 @@ type SectionStart  = Line -> Bool
 type SectionPast   = Line -> Bool
 -- | run on all lines in the section, including the SectionStart line;
 -- can add, delete, and modify lines, or even delete entire section
-type AdjustSection = [Line] -> [Line] 
+type AdjustSection = [Line] -> [Line]
 -- | if SectionStart does not find the section in the file, this is used to
 -- insert the section somewhere within it
 type InsertSection = [Line] -> [Line]
@@ -37,13 +38,13 @@ adjustSection
 	-> AdjustSection
 	-> InsertSection
 	-> FilePath
-	-> Property NoInfo
+	-> Property UnixLike
 adjustSection desc start past adjust insert = fileProperty desc go
   where
 	go ls = let (pre, wanted, post) = foldl' find ([], [], []) ls
 		in if null wanted
 			then insert ls
-			else pre ++ (adjust wanted) ++ post
+			else pre ++ adjust wanted ++ post
 	find (pre, wanted, post) l
 		| null wanted && null post && (not . start) l =
 			(pre ++ [l], wanted, post)
@@ -68,7 +69,7 @@ adjustIniSection
 	-> AdjustSection
 	-> InsertSection
 	-> FilePath
-	-> Property NoInfo
+	-> Property UnixLike
 adjustIniSection desc header =
 	adjustSection
 	desc
@@ -77,9 +78,8 @@ adjustIniSection desc header =
 
 -- | Ensures that a .ini file exists and contains a section
 -- with a key=value setting.
-containsIniSetting :: FilePath -> (IniSection, IniKey, String) -> Property NoInfo
-containsIniSetting f (header, key, value) =
-	adjustIniSection
+containsIniSetting :: FilePath -> (IniSection, IniKey, String) -> Property UnixLike
+containsIniSetting f (header, key, value) = adjustIniSection
 	(f ++ " section [" ++ header ++ "] contains " ++ key ++ "=" ++ value)
 	header
 	go
@@ -89,13 +89,26 @@ containsIniSetting f (header, key, value) =
 	confheader = iniHeader header
 	confline   = key ++ "=" ++ value
 	go []      = [confline]
-	go (l:ls)  = if isKeyVal l then confline : ls else l : (go ls)
+	go (l:ls)  = if isKeyVal l then confline : ls else l : go ls
 	isKeyVal x = (filter (/= ' ') . takeWhile (/= '=')) x `elem` [key, '#':key]
 
+-- | Ensures that a .ini file exists and contains a section
+-- with a given key=value list of settings.
+hasIniSection :: FilePath -> IniSection -> [(IniKey, String)] -> Property UnixLike
+hasIniSection f header keyvalues = adjustIniSection
+	("set " ++ f ++ " section [" ++ header ++ "]")
+	header
+	go
+	(++ confheader : conflines) -- add missing section at end
+	f
+  where
+	confheader = iniHeader header
+	conflines  = map (\(key, value) -> key ++ "=" ++ value) keyvalues
+	go _       = confheader : conflines
+
 -- | Ensures that a .ini file does not contain the specified section.
-lacksIniSection :: FilePath -> IniSection -> Property NoInfo
-lacksIniSection f header =
-	adjustIniSection
+lacksIniSection :: FilePath -> IniSection -> Property UnixLike
+lacksIniSection f header = adjustIniSection
 	(f ++ " lacks section [" ++ header ++ "]")
 	header
 	(const []) -- remove all lines of section

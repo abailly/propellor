@@ -28,9 +28,9 @@ defaultPrefix = "^\\w{3} [ :[:digit:]]{11} [._[:alnum:]-]+ "
 ignoreFilePath :: ReportLevel -> Service -> FilePath
 ignoreFilePath t n = "/etc/logcheck/ignore.d." ++ (show t) </> n
 
-ignoreLines :: ReportLevel -> Service -> [String] -> Property NoInfo
+ignoreLines :: ReportLevel -> Service -> [String] -> Property UnixLike
 ignoreLines t n ls = (ignoreFilePath t n) `File.containsLines` ls
 	`describe` ("logcheck ignore lines for " ++ n ++ "(" ++ (show t) ++ ")")
 
-installed :: Property NoInfo
+installed :: Property DebianLike
 installed = Apt.installed ["logcheck"]

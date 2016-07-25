@@ -26,10 +26,10 @@ import Propellor.Base
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.Network as Network
 
-installed :: Property NoInfo
+installed :: Property DebianLike
 installed = Apt.installed ["iptables"]
 
-rule :: Chain -> Table -> Target -> Rules -> Property NoInfo
+rule :: Chain -> Table -> Target -> Rules -> Property Linux
 rule c tb tg rs = property ("firewall rule: " <> show r) addIpTable
   where
 	r = Rule c tb tg rs
@@ -79,12 +79,23 @@ toIpTableArg (TCPFlags m c) =
 	, intercalate "," (map show c)
 	]
 toIpTableArg TCPSyn = ["--syn"]
+toIpTableArg (GroupOwner (Group g)) =
+	[ "-m"
+	, "owner"
+	, "--gid-owner"
+	, g
+	]
 toIpTableArg (Source ipwm) =
 	[ "-s"
 	, intercalate "," (map fromIPWithMask ipwm)
 	]
 toIpTableArg (Destination ipwm) =
 	[ "-d"
+	, intercalate "," (map fromIPWithMask ipwm)
+	]
+toIpTableArg (NotDestination ipwm) =
+	[ "!"
+	, "-d"
 	, intercalate "," (map fromIPWithMask ipwm)
 	]
 toIpTableArg (NatDestination ip mport) =
@@ -179,8 +190,10 @@ data Rules
 	| RateLimit Frequency
 	| TCPFlags TCPFlagMask TCPFlagComp
 	| TCPSyn
+	| GroupOwner Group
 	| Source [ IPWithMask ]
 	| Destination [ IPWithMask ]
+	| NotDestination [ IPWithMask ]
 	| NatDestination IPAddr (Maybe Port)
 	| Rules :- Rules   -- ^Combine two rules
 	deriving (Eq, Show)

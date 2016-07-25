@@ -3,3 +3,5 @@ parameters, like --minimal to clone the minimal config repo instead of the
 full one, or --stack to set up ~/.propellor to use stack.  --[[Joey]]
 
 > Or, it could be an interactive setup process. --[[Joey]]
+
+>> Made it interactive. [[done]] --[[Joey]]

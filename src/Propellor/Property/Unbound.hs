@@ -41,13 +41,13 @@ type UnboundValue = String
 
 type ZoneType = String
 
-installed :: Property NoInfo
+installed :: Property DebianLike
 installed = Apt.installed ["unbound"]
 
-restarted :: Property NoInfo
+restarted :: Property DebianLike
 restarted = Service.restarted "unbound"
 
-reloaded :: Property NoInfo
+reloaded :: Property DebianLike
 reloaded = Service.reloaded "unbound"
 
 dValue :: BindDomain -> String
@@ -90,7 +90,7 @@ config = "/etc/unbound/unbound.conf.d/propellor.conf"
 -- >      , (AbsDomain "myrouter.example.com", PTR $ reverseIP $ IPv4 "192.168.1.1")
 -- >      , (AbsDomain "mylaptop.example.com", PTR $ reverseIP $ IPv4 "192.168.1.2")
 -- >      ]
-cachingDnsServer :: [UnboundSection] -> [UnboundZone] -> [UnboundHost] -> Property NoInfo
+cachingDnsServer :: [UnboundSection] -> [UnboundZone] -> [UnboundHost] -> Property DebianLike
 cachingDnsServer sections zones hosts =
 	config `hasContent` (comment : otherSections ++ serverSection)
 	`onChange` restarted

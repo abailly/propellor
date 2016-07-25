@@ -58,10 +58,10 @@ import Utility.Process (createProcess, CreateProcess, waitForProcess)
 -- | A property that can be satisfied by running a command.
 --
 -- The command must exit 0 on success.
-cmdProperty :: String -> [String] -> UncheckedProperty NoInfo
+cmdProperty :: String -> [String] -> UncheckedProperty UnixLike
 cmdProperty cmd params = cmdProperty' cmd params id
 
-cmdProperty' :: String -> [String] -> (CreateProcess -> CreateProcess) -> UncheckedProperty NoInfo
+cmdProperty' :: String -> [String] -> (CreateProcess -> CreateProcess) -> UncheckedProperty UnixLike
 cmdProperty' cmd params mkprocess = unchecked $ property desc $ liftIO $
 	cmdResult <$> boolSystem' cmd (map Param params) mkprocess
   where
@@ -74,7 +74,7 @@ cmdResult True = NoChange
 -- | A property that can be satisfied by running a command,
 -- with added environment variables in addition to the standard
 -- environment.
-cmdPropertyEnv :: String -> [String] -> [(String, String)] -> UncheckedProperty NoInfo
+cmdPropertyEnv :: String -> [String] -> [(String, String)] -> UncheckedProperty UnixLike
 cmdPropertyEnv cmd params env = unchecked $ property desc $ liftIO $ do
 	env' <- addEntries env <$> getEnvironment
 	cmdResult <$> boolSystemEnv cmd (map Param params) (Just env')
@@ -85,14 +85,14 @@ cmdPropertyEnv cmd params env = unchecked $ property desc $ liftIO $ do
 type Script = [String]
 
 -- | A property that can be satisfied by running a script.
-scriptProperty :: Script -> UncheckedProperty NoInfo
+scriptProperty :: Script -> UncheckedProperty UnixLike
 scriptProperty script = cmdProperty "sh" ["-c", shellcmd]
   where
 	shellcmd = intercalate " ; " ("set -e" : script)
 
 -- | A property that can satisfied by running a script
 -- as user (cd'd to their home directory).
-userScriptProperty :: User -> Script -> UncheckedProperty NoInfo
+userScriptProperty :: User -> Script -> UncheckedProperty UnixLike
 userScriptProperty (User user) script = cmdProperty "su" ["--shell", "/bin/sh", "-c", shellcmd, user]
   where
 	shellcmd = intercalate " ; " ("set -e" : "cd" : script)

@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstrainedClassMethods #-}
 -- | Types for ZFS Properties.
 --
 -- Copyright 2016 Evan Cofsky <evan@theunixman.com>

@@ -1,8 +1,0 @@
-propellor 2.17.1 released with [[!toggle text="these changes"]]
-[[!toggleable text="""
-   * Avoid generating excessively long paths to the unix socket file
-     used for ssh connection caching. Mostly. Can still generate a too long
-     one if $HOME is longer than 60 bytes.
-   * Uwsgi: add ".ini" extension to app config files.
-     Files without extensions were ignored by uwsgi.
-     Thanks, Félix Sipma."""]]

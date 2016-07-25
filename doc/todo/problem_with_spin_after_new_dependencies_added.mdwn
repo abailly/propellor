@@ -44,3 +44,5 @@ vs when propellor built ok, ran, and exited nonzero due to a failing property?
 
 (Note that the cron job runs the depsCommand if cabal configure fails,
 so deps do get installed that way, only --spin is a problem.)
+
+> [[done]] --[[Joey]]

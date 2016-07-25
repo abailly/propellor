@@ -1,0 +1,27 @@
+<https://downloads.haskell.org/~ghc/8.0.1/docs/html/users_guide/glasgow_exts.html#custom-errors>
+
+This could be used in propellor to improve compile time errors.
+
+For example, a RevertableProperty is sometimes used where only a regular
+Property is accepted. In this case, the error could suggest that the user
+apply `setupRevertableProperty` to extract the setup side of the RevertableProperty.
+
+And, when a Property HasInfo is provided to ensureProperty, propellor could
+explain, in the compile error, why it can't let the user do that.
+
+Custom errors need a type class to be used. So, could do something like this:
+
+	class NeedsProperty a where
+		withProperty :: (Property metatype -> b) -> b
+
+	instance NeedsProperty (Property metatype) where withProperty = id
+
+	instance TypeError (Text "Use setupRevertableProperty ...")
+        	 => NeedsProperty RevertableProperty where
+			withProperty = error "unreachable"
+
+(While propellor needs to be buildable with older versions of ghc,
+the `instance TypeError` can just be wrapped in an ifdef to make it only be
+used by the new ghc.)
+
+[[!tag user/joey]]

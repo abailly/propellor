@@ -9,7 +9,7 @@ import qualified Propellor.Property.Postfix as Postfix
 import qualified Propellor.Property.Gpg as Gpg
 import qualified Propellor.Property.Sudo as Sudo
 
-server :: [Host] -> Property HasInfo
+server :: [Host] -> Property (HasInfo + DebianLike)
 server hosts = propertyList "branchable server" $ props
 	& "/etc/timezone" `File.hasContent` ["Etc/UTC"]
 	& "/etc/locale.gen" `File.containsLines`

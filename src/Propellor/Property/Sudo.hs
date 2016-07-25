@@ -9,12 +9,13 @@ import Propellor.Property.User
 
 -- | Allows a user to sudo. If the user has a password, sudo is configured
 -- to require it. If not, NOPASSWORD is enabled for the user.
-enabledFor :: User -> Property NoInfo
-enabledFor user@(User u) = property desc go `requires` Apt.installed ["sudo"]
+enabledFor :: User -> Property DebianLike
+enabledFor user@(User u) = go `requires` Apt.installed ["sudo"]
   where
-	go = do
+	go :: Property UnixLike
+	go = property' desc $ \w -> do
 		locked <- liftIO $ isLockedPassword user
-		ensureProperty $
+		ensureProperty w $
 			fileProperty desc
 				(modify locked . filter (wanted locked))
 				"/etc/sudoers"

@@ -6,6 +6,7 @@ module Propellor.Bootstrap (
 ) where
 
 import           Propellor.Base
+import           Propellor.Git.Config
 import           Propellor.Types.Info
 
 import           Data.List
@@ -52,7 +53,10 @@ depsCommand msys = "( " ++ intercalate " ; " (concat [osinstall, stackinstall]) 
   where
 	osinstall = case msys of
 		Just (System (FreeBSD _) _) -> map pkginstall fbsddeps
-		_                           -> useapt
+		Just (System (Debian _ _) _) -> useapt
+		Just (System (Buntish _) _) -> useapt
+		-- assume a debian derived system when not specified
+		Nothing -> useapt
 
         useapt = "apt-get update" : map aptinstall debdeps
 
@@ -64,7 +68,7 @@ depsCommand msys = "( " ++ intercalate " ; " (concat [osinstall, stackinstall]) 
 		, "ln -s $(pwd)\"/\"$(find . -name stack) /usr/local/bin/stack"
 		]
 
-	aptinstall p = "DEBIAN_FRONTEND=noninteractive apt-get --no-upgrade --no-install-recommends -y install " ++ p
+	aptinstall p = "DEBIAN_FRONTEND=noninteractive apt-get -qq --no-upgrade --no-install-recommends -y install " ++ p
 	pkginstall p = "ASSUME_ALWAYS_YES=yes pkg install " ++ p
 
 	-- This is the same deps listed in debian/control.
@@ -83,7 +87,7 @@ depsCommand msys = "( " ++ intercalate " ; " (concat [osinstall, stackinstall]) 
 
 installGitCommand :: Maybe System -> ShellCommand
 installGitCommand msys = case msys of
-	(Just (System (Debian _) _)) -> use apt
+	(Just (System (Debian _ _) _)) -> use apt
 	(Just (System (Buntish _) _)) -> use apt
 	(Just (System (FreeBSD _) _)) -> use
 		[ "ASSUME_ALWAYS_YES=yes pkg update"
@@ -95,14 +99,14 @@ installGitCommand msys = case msys of
 	use cmds = "if ! git --version >/dev/null; then " ++ intercalate " && " cmds ++ "; fi"
 	apt =
 		[ "apt-get update"
-		, "DEBIAN_FRONTEND=noninteractive apt-get --no-install-recommends --no-upgrade -y install git"
+		, "DEBIAN_FRONTEND=noninteractive apt-get -qq --no-install-recommends --no-upgrade -y install git"
 		]
 
 buildPropellor :: Maybe Host -> IO ()
 buildPropellor mh = unlessM (actionMessage "Propellor build" (build msys)) $
 	errorMessage "Propellor build failed!"
   where
-	msys = case fmap (getInfo . hostInfo) mh of
+	msys = case fmap (fromInfo . hostInfo) mh of
 		Just (InfoVal sys) -> Just sys
 		_ -> Nothing
 
@@ -124,8 +128,7 @@ build msys = catchBoolIO $ do
 	unlessM (boolSystem "cp" [Param "-af", Param (stackDistPath </> stackbuiltbin), Param (tmpfor safetycopy)]) $
 		error "cp of binary failed"
 	rename (tmpfor safetycopy) safetycopy
-	createSymbolicLink safetycopy (tmpfor dest)
-	rename (tmpfor dest) dest
+	symlinkPropellorBin safetycopy
 	return True
   where
 	dest = "propellor"
@@ -136,3 +139,15 @@ build msys = catchBoolIO $ do
 
 stack :: [String] -> IO Bool
 stack = boolSystem "/usr/local/bin/stack" . map Param
+
+
+-- Atomic symlink creation/update.
+symlinkPropellorBin :: FilePath -> IO ()
+symlinkPropellorBin bin = do
+	createSymbolicLink bin (tmpfor dest)
+	rename (tmpfor dest) dest
+  where
+	dest = "propellor"
+
+tmpfor :: FilePath -> FilePath
+tmpfor f = f ++ ".propellortmp"

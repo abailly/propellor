@@ -1,0 +1,8 @@
+propellor 3.0.5 released with [[!toggle text="these changes"]]
+[[!toggleable text="""
+   * Modules added for Sbuild and Ccache.
+     Thanks, Sean Whitton
+   * Systemd: Added killUserProcesses property, which can be reverted
+     to return systemd to its default behavior before version 230 started
+     killing processes like screen sessions.
+   * Systemd: Added logindConfigured property."""]]

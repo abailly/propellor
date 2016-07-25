@@ -1,5 +1,9 @@
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE PolyKinds #-}
 
 module Propellor.Property (
 	-- * Property combinators
@@ -12,15 +16,20 @@ module Propellor.Property (
 	, check
 	, fallback
 	, revert
+	, applyToList
 	-- * Property descriptions
 	, describe
 	, (==>)
 	-- * Constructing properties
 	, Propellor
 	, property
+	, property'
+	, OuterMetaTypesWitness
 	, ensureProperty
+	, pickOS
 	, withOS
 	, unsupportedOS
+	, unsupportedOS'
 	, makeChange
 	, noChange
 	, doNothing
@@ -36,7 +45,6 @@ module Propellor.Property (
 	, assume
 ) where
 
-import System.Directory
 import System.FilePath
 import Control.Monad
 import Data.Monoid
@@ -44,21 +52,22 @@ import Control.Monad.IfElse
 import "mtl" Control.Monad.RWS.Strict
 import System.Posix.Files
 import qualified Data.Hash.MD5 as MD5
+import Data.List
 import Control.Applicative
+import Data.Foldable hiding (and, elem)
 import Prelude
 
 import Propellor.Types
+import Propellor.Types.Core
 import Propellor.Types.ResultCheck
+import Propellor.Types.MetaTypes
+import Propellor.Types.Singletons
 import Propellor.Info
-import Propellor.Exception
+import Propellor.EnsureProperty
 import Utility.Exception
 import Utility.Monad
 import Utility.Misc
-
--- | Constructs a Property, from a description and an action to run to
--- ensure the Property is met.
-property :: Desc -> Propellor Result -> Property NoInfo
-property d s = simpleProperty d s mempty
+import Utility.Directory
 
 -- | Makes a perhaps non-idempotent Property be idempotent by using a flag
 -- file to indicate whether it has run before.
@@ -74,7 +83,7 @@ flagFile' p getflagfile = adjustPropertySatisfy p $ \satisfy -> do
 	go _ _ True = return NoChange
 	go satisfy flagfile False = do
 		r <- satisfy
-		when (r == MadeChange) $ liftIO $ 
+		when (r == MadeChange) $ liftIO $
 			unlessM (doesFileExist flagfile) $ do
 				createDirectoryIfMissing True (takeDirectory flagfile)
 				writeFile flagfile ""
@@ -164,13 +173,6 @@ describe = setDesc
 (==>) = flip describe
 infixl 1 ==>
 
--- | For when code running in the Propellor monad needs to ensure a
--- Property.
---
--- This can only be used on a Property that has NoInfo.
-ensureProperty :: Property NoInfo -> Propellor Result
-ensureProperty = catchPropellor . propertySatisfy
-
 -- | Tries the first property, but if it fails to work, instead uses
 -- the second.
 fallback :: (Combines p1 p2) => p1 -> p2 -> CombinedType p1 p2
@@ -249,29 +251,105 @@ isNewerThan x y = do
   where
 	mtime f = catchMaybeIO $ modificationTimeHiRes <$> getFileStatus f
 
--- | Makes a property that is satisfied differently depending on the host's
--- operating system. 
+-- | Picks one of the two input properties to use,
+-- depending on the targeted OS.
 --
--- Note that the operating system may not be declared for all hosts.
+-- If both input properties support the targeted OS, then the
+-- first will be used.
 --
--- > myproperty = withOS "foo installed" $ \o -> case o of
--- > 	(Just (System (Debian suite) arch)) -> ...
--- > 	(Just (System (Buntish release) arch)) -> ...
--- >	Nothing -> unsupportedOS
-withOS :: Desc -> (Maybe System -> Propellor Result) -> Property NoInfo
-withOS desc a = property desc $ a =<< getOS
+-- The resulting property will use the description of the first property
+-- no matter which property is used in the end. So, it's often a good
+-- idea to change the description to something clearer.
+--
+-- For example:
+--
+-- > upgraded :: UnixLike
+-- > upgraded = (Apt.upgraded `pickOS` Pkg.upgraded)
+-- > 	`describe` "OS upgraded"
+--
+-- If neither input property supports the targeted OS, calls
+-- `unsupportedOS`. Using the example above on a Fedora system would
+-- fail that way.
+pickOS
+	::
+		( SingKind ('KProxy :: KProxy ka)
+		, SingKind ('KProxy :: KProxy kb)
+		, DemoteRep ('KProxy :: KProxy ka) ~ [MetaType]
+		, DemoteRep ('KProxy :: KProxy kb) ~ [MetaType]
+		, SingI c
+		-- Would be nice to have this constraint, but
+		-- union will not generate metatypes lists with the same
+		-- order of OS's as is used everywhere else. So,
+		-- would need a type-level sort.
+		--, Union a b ~ c
+		)
+	=> Property (MetaTypes (a :: ka))
+	-> Property (MetaTypes (b :: kb))
+	-> Property (MetaTypes c)
+pickOS a b = c `addChildren` [toChildProperty a, toChildProperty b]
+  where
+	-- This use of getSatisfy is safe, because both a and b
+	-- are added as children, so their info will propigate.
+	c = withOS (getDesc a) $ \_ o ->
+		if matching o a
+			then getSatisfy a
+			else if matching o b
+				then getSatisfy b
+				else unsupportedOS'
+	matching Nothing _ = False
+	matching (Just o) p =
+		Targeting (systemToTargetOS o)
+			`elem`
+		fromSing (proptype p)
+	proptype (Property t _ _ _ _) = t
+
+-- | Makes a property that is satisfied differently depending on specifics
+-- of the host's operating system.
+--
+-- > myproperty :: Property Debian
+-- > myproperty = withOS "foo installed" $ \w o -> case o of
+-- > 	(Just (System (Debian (Stable release)) arch)) -> ensureProperty w ...
+-- > 	(Just (System (Debian suite) arch)) -> ensureProperty w ...
+-- >	_ -> unsupportedOS'
+--
+-- Note that the operating system specifics may not be declared for all hosts,
+-- which is where Nothing comes in.
+withOS
+	:: (SingI metatypes)
+	=> Desc
+	-> (OuterMetaTypesWitness '[] -> Maybe System -> Propellor Result)
+	-> Property (MetaTypes metatypes)
+withOS desc a = property desc $ a dummyoutermetatypes =<< getOS
+  where
+	-- Using this dummy value allows ensureProperty to be used
+	-- even though the inner property probably doesn't target everything
+	-- that the outer withOS property targets.
+	dummyoutermetatypes :: OuterMetaTypesWitness ('[])
+	dummyoutermetatypes = OuterMetaTypesWitness sing
+
+-- | A property that always fails with an unsupported OS error.
+unsupportedOS :: Property UnixLike
+unsupportedOS = property "unsupportedOS" unsupportedOS'
 
 -- | Throws an error, for use in `withOS` when a property is lacking
 -- support for an OS.
-unsupportedOS :: Propellor a
-unsupportedOS = go =<< getOS
-  where
-	go Nothing = error "Unknown host OS is not supported by this property."
-	go (Just o) = error $ "This property is not implemented for " ++ show o
+unsupportedOS' :: Propellor Result
+unsupportedOS' = go =<< getOS
+	  where
+		go Nothing = error "Unknown host OS is not supported by this property."
+		go (Just o) = error $ "This property is not implemented for " ++ show o
 
 -- | Undoes the effect of a RevertableProperty.
-revert :: RevertableProperty i -> RevertableProperty i
+revert :: RevertableProperty setup undo -> RevertableProperty undo setup
 revert (RevertableProperty p1 p2) = RevertableProperty p2 p1
+
+-- | Apply a property to each element of a list.
+applyToList
+	:: (Foldable t, Functor t, IsProp p, Combines p p, p ~ CombinedType p p)
+	=> (b -> p)
+	-> t b
+	-> p
+prop `applyToList` xs = Data.Foldable.foldr1 before $ prop <$> xs
 
 makeChange :: IO () -> Propellor Result
 makeChange a = liftIO a >> return MadeChange
@@ -279,7 +357,7 @@ makeChange a = liftIO a >> return MadeChange
 noChange :: Propellor Result
 noChange = return NoChange
 
-doNothing :: Property NoInfo
+doNothing :: SingI t => Property (MetaTypes t)
 doNothing = property "noop property" noChange
 
 -- | Registers an action that should be run at the very end, after

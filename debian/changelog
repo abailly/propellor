@@ -1,3 +1,205 @@
+propellor (3.1.2) UNRELEASED; urgency=medium
+
+  * Ssh.knownHost: Bug fix: Only fix up the owner of the known_hosts
+    file after it exists.
+  * Sbuild.keypairInsecurelyGenerated: Improved to be more robust.
+    Thanks, Sean Whitton.
+
+ -- Joey Hess <id@joeyh.name>  Sun, 24 Jul 2016 13:34:37 -0400
+
+propellor (3.1.1) unstable; urgency=medium
+
+  * Haddock build fix.
+    Thanks, Sean Whitton
+
+ -- Joey Hess <id@joeyh.name>  Thu, 23 Jun 2016 08:12:57 -0400
+
+propellor (3.1.0) unstable; urgency=medium
+
+  * Architecture changed from String to an ADT. (API Change)
+    Transition guide: Change "amd64" to X86_64, "i386" to X86_32,
+    "armel" to ARMEL, etc.
+    Thanks, Félix Sipma.
+  * The Debian data type now includes a DebianKernel. (API Change)
+    This won't affect most config.hs, as osDebian defaults to
+    Linux. Added osDebian' can be used to specify a different kernel.
+    Thanks, Félix Sipma.
+  * Improve exception handling. A property that threw a non-IOException
+    used to stop the whole propellor run. Now, all non-async exceptions
+    only make the property that threw them fail. (Implicit API change)
+  * Added StopPropellorException and stopPropellorMessage which can be
+    used in the unusual case where a failure of one property should stop
+    propellor from trying to ensure any other properties.
+  * tryPropellor returns Either SomeException instead of Either IOException
+    (API change)
+  * Switch letsencrypt to certbot package name.
+  * Sbuild: Add keyringInsecurelyGenerated which is useful on throwaway
+    build VMs.
+    Thanks, Sean Whitton
+  * Added Propellor.Property.SiteSpecific.Exoscale.
+    Thanks, Sean Whitton
+  * Property.Reboot: Added toDistroKernel and toKernelNewerThan.
+    Thanks, Sean Whitton
+  * Added ConfFile.hasIniSection.
+    Thanks, Félix Sipma.
+  * Apt.install: When asked to install a package that apt does not know
+    about, it used to incorrectly succeed. Now it will fail.
+  * Property.Firejail: New module.
+    Thanks, Sean Whitton
+  * File: Write privdata files in binary rather than text, which avoids
+    failure when they do not contain valid unicode.
+    Thanks, Andrew Schurman
+  * Generalized fileProperty can now operate on a file as either a series
+    of lines, or a ByteString.
+
+  [ Sean Whitton ]
+  * New info property Schroot.useOverlays to indicate whether you want schroots
+    set up by propellor to use the Linux kernel's OverlayFS.
+  * Schroot.overlaysInTmpfs sets Schroot.useOverlays info property.
+  * If you have indicated that you want schroots to use OverlayFS and the
+    current kernel does not support it, Sbuild.built will attempt to reboot
+    into a kernel that does, or fail if it can't find one.
+  * Sbuild.built will no longer add duplicate `aliases=UNRELEASED,sid...` lines
+    to more than one schroot config. It will not remove any such lines that the
+    previous version of propellor added, though.
+  * Sbuild.keypairGenerated works around Debian bug #792100 by creating the
+    directory /root/.gnupg in advance.
+  * Ccache.hasCache now sets the setgid bit on the cache directory, as 
+    ccache requires.
+
+ -- Joey Hess <id@joeyh.name>  Wed, 22 Jun 2016 15:29:27 -0400
+
+propellor (3.0.5) unstable; urgency=medium
+
+  * Modules added for Sbuild and Ccache.
+    Thanks, Sean Whitton
+  * Systemd: Added killUserProcesses property, which can be reverted
+    to return systemd to its default behavior before version 230 started
+    killing processes like screen sessions.
+  * Systemd: Added logindConfigured property.
+
+ -- Joey Hess <id@joeyh.name>  Mon, 06 Jun 2016 17:13:21 -0400
+
+propellor (3.0.4) unstable; urgency=medium
+
+  * Run letsencrypt with --noninteractive.
+  * Fix build with ghc 8.0.1.
+    Thanks, davean.
+  * Module added for the Borg backup system.
+    Thanks, Félix Sipma.
+  * Fix build with directory-1.2.6.2.
+
+ -- Joey Hess <id@joeyh.name>  Sun, 22 May 2016 15:54:49 -0400
+
+propellor (3.0.3) unstable; urgency=medium
+
+  * Remove Propellor.DotDir from the propellor library, as its use of
+    Paths_propellor prevents use of the module out of propellor's tree.
+    This module is only needed for the wrapper program anyway, which
+    handles --init.
+
+ -- Joey Hess <id@joeyh.name>  Sun, 01 May 2016 17:51:37 -0400
+
+propellor (3.0.2) unstable; urgency=medium
+
+  * Added Apt.periodicUpdates.
+    Thanks, Félix Sipma.
+  * Apt.unattendedUpgrades: Enable mailing problem reports to root.
+    Thanks, Félix Sipma.
+  * Added Propellor.Property.Fstab, and moved the fstabbed property to there.
+  * Attic module added for the backup system.
+    Thanks, Félix Sipma.
+  * Fix build with directory-1.2.6.2.
+
+ -- Joey Hess <id@joeyh.name>  Sat, 30 Apr 2016 15:46:50 -0400
+
+propellor (3.0.1) unstable; urgency=medium
+
+  * propellor --init now runs cabal sandbox init if cabal has been
+    configured with require-sandbox: True.
+    Thanks, Sean Whitton
+  * Re-bundled concurrent-output so propellor can be deployed to Debian
+    stable systems without installing it (insecurely) from hackage.
+
+ -- Joey Hess <id@joeyh.name>  Tue, 05 Apr 2016 13:35:54 -0400
+
+propellor (3.0.0) unstable; urgency=medium
+
+  * Property types have been improved to indicate what systems they target.
+    This prevents using eg, Property FreeBSD on a Debian system.
+    Transition guide for this sweeping API change:
+    - First, upgrade to propellor 2.17.2 and deploy that to all your hosts.
+      Otherwise, propellor --spin will fail when you upgrade to
+      propellor 3.0.0.
+    - Change "host name & foo & bar"
+      to     "host name $ props & foo & bar"
+    - Similarly, `propertyList` and `combineProperties` need `props`
+      to be used to combine together properties; they no longer accept
+      lists of properties. (If you have such a list, use `toProps`.)
+    - And similarly, Chroot, Docker, and Systemd container need `props`
+      to be used to combine together the properies used inside them.
+    - The `os` property is removed. Instead use `osDebian`, `osBuntish`,
+      or `osFreeBSD`. These tell the type checker the target OS of a host.
+    - Change "Property NoInfo" to "Property UnixLike"
+    - Change "Property HasInfo" to "Property (HasInfo + UnixLike)"
+    - Change "RevertableProperty NoInfo" to
+      "RevertableProperty UnixLike UnixLike"
+    - Change "RevertableProperty HasInfo" to
+      "RevertableProperty (HasInfo + UnixLike) UnixLike"
+    - GHC needs {-# LANGUAGE TypeOperators #-} to use these fancy types.
+      This is enabled by default for all modules in propellor.cabal. But
+      if you are using propellor as a library, you may need to enable it
+      manually.
+    - If you know a property only works on a particular OS, like Debian
+      or FreeBSD, use that instead of "UnixLike". For example:
+      "Property Debian"
+    - It's also possible make a property support a set of OS's, for example:
+      "Property (Debian + FreeBSD)"
+    - Removed `infoProperty` and `simpleProperty` constructors, instead use
+      `property` to construct a Property.
+    - Due to the polymorphic type returned by `property`, additional type
+      signatures tend to be needed when using it. For example, this will
+      fail to type check, because the type checker cannot guess what type
+      you intend the intermediate property "go" to have:
+        foo :: Property UnixLike
+        foo = go `requires` bar
+ 	  where
+ 		go = property "foo" (return NoChange)
+      To fix, specify the type of go:
+ 	  	go :: Property UnixLike
+    - `ensureProperty` now needs to be passed a witness to the type of the 
+      property it's used in.
+      change this:  foo = property desc $ ... ensureProperty bar
+      to this:      foo = property' desc $ \w -> ... ensureProperty w bar
+    - General purpose properties like cmdProperty have type "Property UnixLike".
+      When using that to run a command only available on Debian, you can
+      tighten the type to only the OS that your more specific property works on.
+      For example:
+        upgraded :: Property Debian
+        upgraded = tightenTargets (cmdProperty "apt-get" ["upgrade"])
+    - Several utility functions have been renamed:
+      getInfo to fromInfo
+      propertyInfo to getInfo
+      propertyDesc to getDesc
+      propertyChildren to getChildren
+  * The new `pickOS` property combinator can be used to combine different
+    properties, supporting different OS's, into one Property that chooses
+    which to use based on the Host's OS.
+  * Re-enabled -O0 in propellor.cabal to reign in ghc's memory use handling
+    these complex new types.
+  * Added dependency on concurrent-output; removed embedded copy.
+  * Apt.PPA: New module, contributed by Evan Cofsky.
+  * Improved propellor's first run experience; propellor --init will
+    walk the user through setting up ~/.propellor, with a choice between
+    a clone of propellor's git repository, or a minimal config, and will
+    configure propellor to use a gpg key.
+  * Stack support. "git config propellor.buildsystem stack" will make
+    propellor build its config using stack.
+  * When propellor is installed using stack, propellor --init will
+    automatically set propellor.buildsystem=stack.
+
+ -- Joey Hess <id@joeyh.name>  Sat, 02 Apr 2016 15:33:26 -0400
+
 propellor (2.17.2) unstable; urgency=medium
 
   * When new dependencies are added to propellor or the propellor config,
@@ -492,12 +694,12 @@ propellor (2.0.0) unstable; urgency=medium
     This was done to make sure that ensureProperty is only used on
     properties that do not have Info.
     Transition guide:
-    - Change all "Property" to "Property NoInfo" or "Property WithInfo"
+    - Change all "Property" to "Property NoInfo" or "Property HasInfo"
       (The compiler can tell you if you got it wrong!)
     - To construct a RevertableProperty, it is useful to use the new
       (<!>) operator
     - Constructing a list of properties can be problimatic, since
-      Property NoInto and Property WithInfo are different types and cannot
+      Property NoInto and Property HasInfo are different types and cannot
       appear in the same list. To deal with this, "props" has been added,
       and can built up a list of properties of different types,
       using the same (&) and (!) operators that are used to build

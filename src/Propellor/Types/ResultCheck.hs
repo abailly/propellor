@@ -22,6 +22,9 @@ import Data.Monoid
 -- and `FailedChange` is still an error.
 data UncheckedProperty i = UncheckedProperty (Property i)
 
+instance TightenTargets UncheckedProperty where
+	tightenTargets (UncheckedProperty p) = UncheckedProperty (tightenTargets p)
+
 -- | Use to indicate that a Property is unchecked.
 unchecked :: Property i -> UncheckedProperty i
 unchecked = UncheckedProperty

@@ -2,6 +2,20 @@ If you do nothing else, avoid use of partial functions from the Prelude!
 `import Utility.PartialPrelude` helps avoid this by defining conflicting
 functions for all the common ones. Also avoid `!!`, it's partial too.
 
+The rest of this coding style is followed to keep the code in Propellor
+consistent. You don't have to follow these rules in your own config.hs, or
+in Propellor modules that you don't intend to get merged into mainstrain
+Propellor.
+
+Start a module with a comment indicating what software it provides
+properties for, and who maintains the module.
+
+	-- | Maintainer: Your Name Here <optional-email-address@example.org>
+	--
+	-- Support for the Foo daemon <https://foo.example.com/>
+
+	module Propellor.Property.Foo
+
 Use tabs for indentation.
 
 Code should make sense with any tab stop setting, but 8 space tabs are

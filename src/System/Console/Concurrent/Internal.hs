@@ -1,5 +1,8 @@
 {-# LANGUAGE BangPatterns, TypeSynonymInstances, FlexibleInstances, TupleSections #-}
 {-# LANGUAGE CPP #-}
+{-# OPTIONS_GHC -O2 #-}
+{- Building this module with -O0 causes streams not to fuse and too much
+ - memory to be used. -}
 
 -- | 
 -- Copyright: 2015 Joey Hess <id@joeyh.name>
@@ -31,7 +34,6 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Control.Applicative
 import Prelude
-import System.Log.Logger
 
 import Utility.Monad
 import Utility.Exception
@@ -287,30 +289,18 @@ fgProcess p = do
 	r@(_, _, _, h) <- P.createProcess p
 		`onException` dropOutputLock
 	registerOutputThread
-	debug ["fgProcess", showProc p]
 	-- Wait for the process to exit and drop the lock.
 	asyncProcessWaiter $ do
 		void $ tryIO $ P.waitForProcess h
 		unregisterOutputThread
 		dropOutputLock
-		debug ["fgProcess done", showProc p]
 	return (toConcurrentProcessHandle r)
-	
-debug :: [String] -> IO ()
-debug = debugM "concurrent-output" . unwords
-
-showProc :: P.CreateProcess -> String
-showProc = go . P.cmdspec
-  where
-	go (P.ShellCommand s) = s
-	go (P.RawCommand c ps) = show (c, ps)
 
 #ifndef mingw32_HOST_OS
 bgProcess :: P.CreateProcess -> IO (Maybe Handle, Maybe Handle, Maybe Handle, ConcurrentProcessHandle)
 bgProcess p = do
 	(toouth, fromouth) <- pipe
 	(toerrh, fromerrh) <- pipe
-	debug ["bgProcess", showProc p]
 	let p' = p
 		{ P.std_out = rediroutput (P.std_out p) toouth
 		, P.std_err = rediroutput (P.std_err p) toerrh

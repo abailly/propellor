@@ -153,18 +153,17 @@ data Eep = YesReallyDeleteDiskContents
 -- The FilePath can be a block device (eg, \/dev\/sda), or a disk image file.
 --
 -- This deletes any existing partitions in the disk! Use with EXTREME caution!
-partitioned :: Eep -> FilePath -> PartTable -> Property NoInfo
-partitioned eep disk (PartTable tabletype parts) = property desc $ do
+partitioned :: Eep -> FilePath -> PartTable -> Property DebianLike
+partitioned eep disk (PartTable tabletype parts) = property' desc $ \w -> do
 	isdev <- liftIO $ isBlockDevice <$> getFileStatus disk
-	ensureProperty $ combineProperties desc
-		[ parted eep disk partedparams
-		, if isdev
+	ensureProperty w $ combineProperties desc $ props
+		& parted eep disk partedparams
+		& if isdev
 			then formatl (map (\n -> disk ++ show n) [1 :: Int ..])
 			else Partition.kpartx disk (formatl . map Partition.partitionLoopDev)
-		]
   where
 	desc = disk ++ " partitioned"
-	formatl devs = combineProperties desc (map format (zip parts devs))
+	formatl devs = combineProperties desc (toProps $ map format (zip parts devs))
 	partedparams = concat $ mklabel : mkparts (1 :: Integer) mempty parts []
 	format (p, dev) = Partition.formatted' (partMkFsOpts p)
 		Partition.YesReallyFormatPartition (partFs p) dev
@@ -193,12 +192,12 @@ partitioned eep disk (PartTable tabletype parts) = property desc $ do
 --
 -- Parted is run in script mode, so it will never prompt for input.
 -- It is asked to use cylinder alignment for the disk.
-parted :: Eep -> FilePath -> [String] -> Property NoInfo
+parted :: Eep -> FilePath -> [String] -> Property DebianLike
 parted YesReallyDeleteDiskContents disk ps = p `requires` installed
   where
 	p = cmdProperty "parted" ("--script":"--align":"cylinder":disk:ps)
 		`assume` MadeChange
 
 -- | Gets parted installed.
-installed :: Property NoInfo
+installed :: Property DebianLike
 installed = Apt.installed ["parted"]

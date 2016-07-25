@@ -8,10 +8,12 @@
 {-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-tabs #-}
 
-module Utility.Directory where
+module Utility.Directory (
+	module Utility.Directory,
+	module Utility.SystemDirectory
+) where
 
 import System.IO.Error
-import System.Directory
 import Control.Monad
 import System.FilePath
 import Control.Applicative
@@ -28,6 +30,7 @@ import Utility.SafeCommand
 import Control.Monad.IfElse
 #endif
 
+import Utility.SystemDirectory
 import Utility.PosixFiles
 import Utility.Tmp
 import Utility.Exception
@@ -134,11 +137,13 @@ moveFile src dest = tryIO (rename src dest) >>= onrename
 				_ <- tryIO $ removeFile tmp
 				throwM e'
 
+#ifndef mingw32_HOST_OS	
 	isdir f = do
 		r <- tryIO $ getFileStatus f
 		case r of
 			(Left _) -> return False
 			(Right s) -> return $ isDirectory s
+#endif
 
 {- Removes a file, which may or may not exist, and does not have to
  - be a regular file.

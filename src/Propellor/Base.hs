@@ -20,7 +20,7 @@ module Propellor.Base (
 	, module Propellor.Utilities
 
 	-- * System modules
-	, module System.Directory
+	, module Utility.SystemDirectory
 	, module System.IO
 	, module System.FilePath
 	, module Data.Maybe
@@ -47,7 +47,7 @@ import Propellor.PropAccum
 import Propellor.Location
 import Propellor.Utilities
 
-import System.Directory
+import Utility.SystemDirectory
 import System.IO
 import System.FilePath
 import Data.Maybe

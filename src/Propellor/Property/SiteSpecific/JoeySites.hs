@@ -1,6 +1,8 @@
 -- | Specific configuration for Joey Hess's sites. Probably not useful to
 -- others except as an example.
 
+{-# LANGUAGE FlexibleContexts, TypeFamilies #-}
+
 module Propellor.Property.SiteSpecific.JoeySites where
 
 import Propellor.Base
@@ -18,13 +20,14 @@ import qualified Propellor.Property.Apache as Apache
 import qualified Propellor.Property.Postfix as Postfix
 import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.Fail2Ban as Fail2Ban
+import qualified Propellor.Property.LetsEncrypt as LetsEncrypt
 import Utility.FileMode
 
 import Data.List
 import System.Posix.Files
 import Data.String.Utils
 
-scrollBox :: Property HasInfo
+scrollBox :: Property (HasInfo + DebianLike)
 scrollBox = propertyList "scroll server" $ props
 	& User.accountFor (User "scroll")
 	& Git.cloned (User "scroll") "git://git.kitenet.net/scroll" (d </> "scroll") Nothing
@@ -94,17 +97,13 @@ scrollBox = propertyList "scroll server" $ props
 	s = d </> "login.sh"
 	g = d </> "game.sh"
 
-oldUseNetServer :: [Host] -> Property HasInfo
+oldUseNetServer :: [Host] -> Property (HasInfo + DebianLike)
 oldUseNetServer hosts = propertyList "olduse.net server" $ props
 	& Apt.installed ["leafnode"]
 	& oldUseNetInstalled "oldusenet-server"
 	& oldUseNetBackup
-	& check (not . isSymbolicLink <$> getSymbolicLinkStatus newsspool)
-		(property "olduse.net spool in place" $ makeChange $ do
-			removeDirectoryRecursive newsspool
-			createSymbolicLink (datadir </> "news") newsspool
-		)
-	& "/etc/news/leafnode/config" `File.hasContent` 
+	& spoolsymlink
+	& "/etc/news/leafnode/config" `File.hasContent`
 		[ "# olduse.net configuration (deployed by propellor)"
 		, "expire = 1000000" -- no expiry via texpire
 		, "server = " -- no upstream server
@@ -127,7 +126,7 @@ oldUseNetServer hosts = propertyList "olduse.net server" $ props
 		, "find -type d -empty | xargs --no-run-if-empty rmdir"
 		]
 	uucpcommand = "/usr/bin/uucp " ++ datadir
-	nntpcfg = apachecfg "nntp.olduse.net" False
+	nntpcfg = apachecfg "nntp.olduse.net"
 		[ "  DocumentRoot " ++ datadir ++ "/"
 		, "  <Directory " ++ datadir ++ "/>"
 		, "    Options Indexes FollowSymlinks"
@@ -136,6 +135,14 @@ oldUseNetServer hosts = propertyList "olduse.net server" $ props
 		, "  </Directory>"
 		]
 
+	spoolsymlink :: Property UnixLike
+	spoolsymlink = check (not . isSymbolicLink <$> getSymbolicLinkStatus newsspool)
+		(property "olduse.net spool in place" $ makeChange $ do
+			removeDirectoryRecursive newsspool
+			createSymbolicLink (datadir </> "news") newsspool
+		)
+
+	oldUseNetBackup :: Property (HasInfo + DebianLike)
 	oldUseNetBackup = Obnam.backup datadir (Cron.Times "33 4 * * *")
 		[ "--repository=sftp://2318@usw-s002.rsync.net/~/olduse.net"
 		, "--client-name=spool"
@@ -149,12 +156,12 @@ oldUseNetServer hosts = propertyList "olduse.net server" $ props
 		`requires` Ssh.knownHost hosts "usw-s002.rsync.net" (User "root")
 	keyfile = "/root/.ssh/olduse.net.key"
 
-oldUseNetShellBox :: Property HasInfo
+oldUseNetShellBox :: Property DebianLike
 oldUseNetShellBox = propertyList "olduse.net shellbox" $ props
 	& oldUseNetInstalled "oldusenet"
 	& Service.running "shellinabox"
 
-oldUseNetInstalled :: Apt.Package -> Property HasInfo
+oldUseNetInstalled :: Apt.Package -> Property DebianLike
 oldUseNetInstalled pkg = check (not <$> Apt.isInstalled pkg) $
 	propertyList ("olduse.net " ++ pkg) $ props
 		& Apt.installed (words "build-essential devscripts debhelper git libncursesw5-dev libpcre3-dev pkg-config bison libicu-dev libidn11-dev libcanlock2-dev libuu-dev ghc libghc-strptime-dev libghc-hamlet-dev libghc-ifelse-dev libghc-hxt-dev libghc-utf8-string-dev libghc-missingh-dev libghc-sha-dev")
@@ -171,24 +178,24 @@ oldUseNetInstalled pkg = check (not <$> Apt.isInstalled pkg) $
 			`assume` MadeChange
 			`describe` "olduse.net built"
 
-kgbServer :: Property HasInfo
+kgbServer :: Property (HasInfo + Debian)
 kgbServer = propertyList desc $ props
 	& installed
 	& File.hasPrivContent "/etc/kgb-bot/kgb.conf" anyContext
 		`onChange` Service.restarted "kgb-bot"
   where
 	desc = "kgb.kitenet.net setup"
-	installed = withOS desc $ \o -> case o of
-		(Just (System (Debian Unstable) _)) ->
-			ensureProperty $ propertyList desc
-				[ Apt.serviceInstalledRunning "kgb-bot"
-				, "/etc/default/kgb-bot" `File.containsLine` "BOT_ENABLED=1"
+	installed :: Property Debian
+	installed = withOS desc $ \w o -> case o of
+		(Just (System (Debian _ Unstable) _)) ->
+			ensureProperty w $ propertyList desc $ props
+				& Apt.serviceInstalledRunning "kgb-bot"
+				& "/etc/default/kgb-bot" `File.containsLine` "BOT_ENABLED=1"
 					`describe` "kgb bot enabled"
 					`onChange` Service.running "kgb-bot"
-				]
 		_ -> error "kgb server needs Debian unstable (for kgb-bot 1.31+)"
 
-mumbleServer :: [Host] -> Property HasInfo
+mumbleServer :: [Host] -> Property (HasInfo + DebianLike)
 mumbleServer hosts = combineProperties hn $ props
 	& Apt.serviceInstalledRunning "mumble-server"
 	& Obnam.backup "/var/lib/mumble-server" (Cron.Times "55 5 * * *")
@@ -209,7 +216,7 @@ mumbleServer hosts = combineProperties hn $ props
 	sshkey = "/root/.ssh/mumble.debian.net.key"
 
 -- git.kitenet.net and git.joeyh.name
-gitServer :: [Host] -> Property HasInfo
+gitServer :: [Host] -> Property (HasInfo + DebianLike)
 gitServer hosts = propertyList "git.kitenet.net setup" $ props
 	& Obnam.backupEncrypted "/srv/git" (Cron.Times "33 3 * * *")
 		[ "--repository=sftp://2318@usw-s002.rsync.net/~/git.kitenet.net"
@@ -246,14 +253,14 @@ gitServer hosts = propertyList "git.kitenet.net setup" $ props
 	& Apache.modEnabled "cgi"
   where
 	sshkey = "/root/.ssh/git.kitenet.net.key"
-	website hn = apacheSite hn True
-		[ "  DocumentRoot /srv/web/git.kitenet.net/"
+	website hn = Apache.httpsVirtualHost' hn "/srv/web/git.kitenet.net/" letos
+		[ Apache.iconDir
 		, "  <Directory /srv/web/git.kitenet.net/>"
 		, "    Options Indexes ExecCGI FollowSymlinks"
 		, "    AllowOverride None"
 		, "    AddHandler cgi-script .cgi"
 		, "    DirectoryIndex index.cgi"
-		, Apache.allowAll
+		,      Apache.allowAll
 		, "  </Directory>"
 		, ""
 		, "  ScriptAlias /cgi-bin/ /usr/lib/cgi-bin/"
@@ -266,7 +273,7 @@ gitServer hosts = propertyList "git.kitenet.net setup" $ props
 type AnnexUUID = String
 
 -- | A website, with files coming from a git-annex repository.
-annexWebSite :: Git.RepoUrl -> HostName -> AnnexUUID -> [(String, Git.RepoUrl)] -> Property HasInfo
+annexWebSite :: Git.RepoUrl -> HostName -> AnnexUUID -> [(String, Git.RepoUrl)] -> Property (HasInfo + DebianLike)
 annexWebSite origin hn uuid remotes = propertyList (hn ++" website using git-annex") $ props
 	& Git.cloned (User "joey") origin dir Nothing
 		`onChange` setup
@@ -282,7 +289,7 @@ annexWebSite origin hn uuid remotes = propertyList (hn ++" website using git-ann
 	postupdatehook = dir </> ".git/hooks/post-update"
 	setup = userScriptProperty (User "joey") setupscript
 		`assume` MadeChange
-	setupscript = 
+	setupscript =
 		[ "cd " ++ shellEscape dir
 		, "git annex reinit " ++ shellEscape uuid
 		] ++ map addremote remotes ++
@@ -290,65 +297,44 @@ annexWebSite origin hn uuid remotes = propertyList (hn ++" website using git-ann
 		, "git update-server-info"
 		]
 	addremote (name, url) = "git remote add " ++ shellEscape name ++ " " ++ shellEscape url
-	setupapache = apacheSite hn True
+	setupapache = Apache.httpsVirtualHost' hn dir letos
 		[ "  ServerAlias www."++hn
-		, ""
-		, "  DocumentRoot /srv/web/"++hn
-		, "  <Directory /srv/web/"++hn++">"
-		, "    Options FollowSymLinks"
-		, "    AllowOverride None"
-		, Apache.allowAll
-		, "  </Directory>"
-		, "  <Directory /srv/web/"++hn++">"
+		,    Apache.iconDir
+		, "  <Directory "++dir++">"
 		, "    Options Indexes FollowSymLinks ExecCGI"
 		, "    AllowOverride None"
 		, "    AddHandler cgi-script .cgi"
 		, "    DirectoryIndex index.html index.cgi"
-		, Apache.allowAll
+		,      Apache.allowAll
 		, "  </Directory>"
 		]
 
-apacheSite :: HostName -> Bool -> Apache.ConfigFile -> RevertableProperty NoInfo
-apacheSite hn withssl middle = Apache.siteEnabled hn $ apachecfg hn withssl middle
+letos :: LetsEncrypt.AgreeTOS
+letos = LetsEncrypt.AgreeTOS (Just "id@joeyh.name")
 
-apachecfg :: HostName -> Bool -> Apache.ConfigFile -> Apache.ConfigFile
-apachecfg hn withssl middle
-	| withssl = vhost False ++ vhost True
-	| otherwise = vhost False
-  where
-	vhost ssl = 
-		[ "<VirtualHost *:"++show port++">"
-		, "  ServerAdmin grue@joeyh.name"
-		, "  ServerName "++hn++":"++show port
-		]
-		++ mainhttpscert ssl
-		++ middle ++
-		[ ""
-		, "  ErrorLog /var/log/apache2/error.log"
-		, "  LogLevel warn"
-		, "  CustomLog /var/log/apache2/access.log combined"
-		, "  ServerSignature On"
-		, "  "
-		, "  <Directory \"/usr/share/apache2/icons\">"
-		, "      Options Indexes MultiViews"
-		, "      AllowOverride None"
-		, Apache.allowAll
-		, "  </Directory>"
-		, "</VirtualHost>"
-		]
-	  where
-		port = if ssl then 443 else 80 :: Int
+apacheSite :: HostName -> Apache.ConfigFile -> RevertableProperty DebianLike DebianLike
+apacheSite hn middle = Apache.siteEnabled hn $ apachecfg hn middle
 
-mainhttpscert :: Bool -> Apache.ConfigFile
-mainhttpscert False = []
-mainhttpscert True = 
-	[ "  SSLEngine on"
-	, "  SSLCertificateFile /etc/ssl/certs/web.pem"
-	, "  SSLCertificateKeyFile /etc/ssl/private/web.pem"
-	, "  SSLCertificateChainFile /etc/ssl/certs/startssl.pem"
+apachecfg :: HostName -> Apache.ConfigFile -> Apache.ConfigFile
+apachecfg hn middle =
+	[ "<VirtualHost *:"++show port++">"
+	, "  ServerAdmin grue@joeyh.name"
+	, "  ServerName "++hn++":"++show port
 	]
-		
-gitAnnexDistributor :: Property HasInfo
+	++ middle ++
+	[ ""
+	, "  ErrorLog /var/log/apache2/error.log"
+	, "  LogLevel warn"
+	, "  CustomLog /var/log/apache2/access.log combined"
+	, "  ServerSignature On"
+	, "  "
+	, Apache.iconDir
+	, "</VirtualHost>"
+	]
+	  where
+		port = 80 :: Int
+
+gitAnnexDistributor :: Property (HasInfo + DebianLike)
 gitAnnexDistributor = combineProperties "git-annex distributor, including rsync server and signer" $ props
 	& Apt.installed ["rsync"]
 	& File.hasPrivContent "/etc/rsyncd.conf" (Context "git-annex distributor")
@@ -364,56 +350,32 @@ gitAnnexDistributor = combineProperties "git-annex distributor, including rsync 
 	-- git-annex distribution signing key
 	& Gpg.keyImported (Gpg.GpgKeyId "89C809CB") (User "joey")
   where
-	endpoint d = combineProperties ("endpoint " ++ d)
-		[ File.dirExists d
-		, File.ownerGroup d (User "joey") (Group "joey")
-		]
+	endpoint d = combineProperties ("endpoint " ++ d) $ props
+		& File.dirExists d
+		& File.ownerGroup d (User "joey") (Group "joey")
 
-downloads :: [Host] -> Property HasInfo
+downloads :: [Host] -> Property (HasInfo + DebianLike)
 downloads hosts = annexWebSite "/srv/git/downloads.git"
 	"downloads.kitenet.net"
 	"840760dc-08f0-11e2-8c61-576b7e66acfd"
 	[("eubackup", "ssh://eubackup.kitenet.net/~/lib/downloads/")]
 	`requires` Ssh.knownHost hosts "eubackup.kitenet.net" (User "joey")
-	
-tmp :: Property HasInfo
-tmp = propertyList "tmp.kitenet.net" $ props
+
+tmp :: Property (HasInfo + DebianLike)
+tmp = propertyList "tmp.joeyh.name" $ props
 	& annexWebSite "/srv/git/joey/tmp.git"
-		"tmp.kitenet.net"
+		"tmp.joeyh.name"
 		"26fd6e38-1226-11e2-a75f-ff007033bdba"
 		[]
-	& twitRss
 	& pumpRss
 
--- Twitter, you kill us.
-twitRss :: Property HasInfo
-twitRss = combineProperties "twitter rss" $ props
-	& Git.cloned (User "joey") "git://git.kitenet.net/twitrss.git" dir Nothing
-	& check (not <$> doesFileExist (dir </> "twitRss")) compiled
-	& feed "http://twitter.com/search/realtime?q=git-annex" "git-annex-twitter"
-	& feed "http://twitter.com/search/realtime?q=olduse+OR+git-annex+OR+debhelper+OR+etckeeper+OR+ikiwiki+-ashley_ikiwiki" "twittergrep"
-  where
-	dir = "/srv/web/tmp.kitenet.net/twitrss"
-	crontime = Cron.Times "15 * * * *"
-	feed url desc = Cron.job desc crontime (User "joey") dir $
-		"./twitRss " ++ shellEscape url ++ " > " ++ shellEscape ("../" ++ desc ++ ".rss")
-	compiled = userScriptProperty (User "joey")
-		[ "cd " ++ dir
-		, "ghc --make twitRss" 
-		]
-		`assume` NoChange
-		`requires` Apt.installed
-			[ "libghc-xml-dev"
-			, "libghc-feed-dev"
-			, "libghc-tagsoup-dev"
-			]
-
 -- Work around for expired ssl cert.
-pumpRss :: Property NoInfo
-pumpRss = Cron.job "pump rss" (Cron.Times "15 * * * *") (User "joey") "/srv/web/tmp.kitenet.net/"
+-- (Obsolete; need to revert this.)
+pumpRss :: Property DebianLike
+pumpRss = Cron.job "pump rss" (Cron.Times "15 * * * *") (User "joey") "/srv/web/tmp.joeyh.name/"
 	"wget https://rss.io.jpope.org/feed/joeyh@identi.ca.atom -O pump.atom.new --no-check-certificate 2>/dev/null; sed 's/ & / /g' pump.atom.new > pump.atom"
 
-ircBouncer :: Property HasInfo
+ircBouncer :: Property (HasInfo + DebianLike)
 ircBouncer = propertyList "IRC bouncer" $ props
 	& Apt.installed ["znc"]
 	& User.accountFor (User "znc")
@@ -428,20 +390,19 @@ ircBouncer = propertyList "IRC bouncer" $ props
   where
 	conf = "/home/znc/.znc/configs/znc.conf"
 
-kiteShellBox :: Property NoInfo
-kiteShellBox = propertyList "kitenet.net shellinabox"
-	[ Apt.installed ["openssl", "shellinabox", "openssh-client"]
-	, File.hasContent "/etc/default/shellinabox"
+kiteShellBox :: Property DebianLike
+kiteShellBox = propertyList "kitenet.net shellinabox" $ props
+	& Apt.installed ["openssl", "shellinabox", "openssh-client"]
+	& File.hasContent "/etc/default/shellinabox"
 		[ "# Deployed by propellor"
 		, "SHELLINABOX_DAEMON_START=1"
 		, "SHELLINABOX_PORT=443"
 		, "SHELLINABOX_ARGS=\"--no-beep --service=/:SSH:kitenet.net\""
 		]
 		`onChange` Service.restarted "shellinabox"
-	, Service.running "shellinabox"
-	]
+	& Service.running "shellinabox"
 
-githubBackup :: Property HasInfo
+githubBackup :: Property (HasInfo + DebianLike)
 githubBackup = propertyList "github-backup box" $ props
 	& Apt.installed ["github-backup", "moreutils"]
 	& githubKeys
@@ -462,8 +423,8 @@ githubBackup = propertyList "github-backup box" $ props
 		] ++ map gitriddance githubMirrors
 	gitriddance (r, msg) = "(cd " ++ r ++ " && gitriddance " ++ shellEscape msg ++ ")"
 
-githubKeys :: Property HasInfo
-githubKeys = 
+githubKeys :: Property (HasInfo + UnixLike)
+githubKeys =
 	let f = "/home/joey/.github-keys"
 	in File.hasPrivContent f anyContext
 		`onChange` File.ownerGroup f (User "joey") (Group "joey")
@@ -482,12 +443,12 @@ githubMirrors =
   where
 	plzuseurl u = "Please submit changes to " ++ u ++ " instead of using github pull requests, which are not part of my workflow. Just open a todo item there and link to a git repository containing your changes. Did you know, git is a distributed system? The git repository doesn't even need to be on github! Please send any complaints to Github; they don't allow turning off pull requests or redirecting them elsewhere.  -- A robot acting on behalf of Joey Hess"
 
-rsyncNetBackup :: [Host] -> Property NoInfo
+rsyncNetBackup :: [Host] -> Property DebianLike
 rsyncNetBackup hosts = Cron.niceJob "rsync.net copied in daily" (Cron.Times "30 5 * * *")
 	(User "joey") "/home/joey/lib/backup" "mkdir -p rsync.net && rsync --delete -az 2318@usw-s002.rsync.net: rsync.net"
 	`requires` Ssh.knownHost hosts "usw-s002.rsync.net" (User "joey")
 
-backupsBackedupFrom :: [Host] -> HostName -> FilePath -> Property NoInfo
+backupsBackedupFrom :: [Host] -> HostName -> FilePath -> Property DebianLike
 backupsBackedupFrom hosts srchost destdir = Cron.niceJob desc
 	(Cron.Times "@reboot") (User "joey") "/" cmd
 	`requires` Ssh.knownHost hosts srchost (User "joey")
@@ -495,9 +456,9 @@ backupsBackedupFrom hosts srchost destdir = Cron.niceJob desc
 	desc = "backups copied from " ++ srchost ++ " on boot"
 	cmd = "sleep 30m && rsync -az --bwlimit=300K --partial --delete " ++ srchost ++ ":lib/backup/ " ++ destdir </> srchost
 
-obnamRepos :: [String] -> Property NoInfo
-obnamRepos rs = propertyList ("obnam repos for " ++ unwords rs)
-	(mkbase : map mkrepo rs)
+obnamRepos :: [String] -> Property UnixLike
+obnamRepos rs = propertyList ("obnam repos for " ++ unwords rs) $
+	toProps (mkbase : map mkrepo rs)
   where
 	mkbase = mkdir "/home/joey/lib/backup"
 		`requires` mkdir "/home/joey/lib"
@@ -505,13 +466,13 @@ obnamRepos rs = propertyList ("obnam repos for " ++ unwords rs)
 	mkdir d = File.dirExists d
 		`before` File.ownerGroup d (User "joey") (Group "joey")
 
-podcatcher :: Property NoInfo
+podcatcher :: Property DebianLike
 podcatcher = Cron.niceJob "podcatcher run hourly" (Cron.Times "55 * * * *")
 	(User "joey") "/home/joey/lib/sound/podcasts"
 	"xargs git-annex importfeed -c annex.genmetadata=true < feeds; mr --quiet update"
 	`requires` Apt.installed ["git-annex", "myrepos"]
 
-kiteMailServer :: Property HasInfo
+kiteMailServer :: Property (HasInfo + DebianLike)
 kiteMailServer = propertyList "kitenet.net mail server" $ props
 	& Postfix.installed
 	& Apt.installed ["postfix-pcre"]
@@ -527,14 +488,14 @@ kiteMailServer = propertyList "kitenet.net mail server" $ props
 		] `onChange` Service.restarted "spamassassin"
 		`describe` "spamd enabled"
 		`requires` Apt.serviceInstalledRunning "cron"
-	
+
 	& Apt.serviceInstalledRunning "spamass-milter"
 	-- Add -m to prevent modifying messages Subject or body.
 	& "/etc/default/spamass-milter" `File.containsLine`
 		"OPTIONS=\"-m -u spamass-milter -i 127.0.0.1\""
 		`onChange` Service.restarted "spamass-milter"
 		`describe` "spamass-milter configured"
-	
+
 	& Apt.serviceInstalledRunning "amavisd-milter"
 	& "/etc/default/amavisd-milter" `File.containsLines`
 		[ "# Propellor deployed"
@@ -658,7 +619,7 @@ kiteMailServer = propertyList "kitenet.net mail server" $ props
 		`onChange` Postfix.dedupMainCf
 		`onChange` Postfix.reloaded
 		`describe` "postfix configured"
-	
+
 	& Apt.serviceInstalledRunning "dovecot-imapd"
 	& Apt.serviceInstalledRunning "dovecot-pop3d"
 	& "/etc/dovecot/conf.d/10-mail.conf" `File.containsLine`
@@ -695,22 +656,27 @@ kiteMailServer = propertyList "kitenet.net mail server" $ props
 		, "inbox-path={localhost/novalidate-cert/NoRsh}inbox"
 		]
 		`describe` "pine configured to use local imap server"
-	
+
 	& Apt.serviceInstalledRunning "mailman"
+	-- Override the default http url. (Only affects new lists.)
+	& "/etc/mailman/mm_cfg.py" `File.containsLine`
+		"DEFAULT_URL_PATTERN = 'https://%s/cgi-bin/mailman/'"
 
 	& Postfix.service ssmtp
+
+	& Apt.installed ["fetchmail"]
   where
 	ctx = Context "kitenet.net"
 	pinescript = "/usr/local/bin/pine"
 	dovecotusers = "/etc/dovecot/users"
 
-	ssmtp = Postfix.Service 
+	ssmtp = Postfix.Service
 		(Postfix.InetService Nothing "ssmtp")
 		"smtpd" Postfix.defServiceOpts
 
 -- Configures postfix to relay outgoing mail to kitenet.net, with
 -- verification via tls cert.
-postfixClientRelay :: Context -> Property HasInfo
+postfixClientRelay :: Context -> Property (HasInfo + DebianLike)
 postfixClientRelay ctx = Postfix.mainCfFile `File.containsLines`
 	-- Using smtps not smtp because more networks firewall smtp
 	[ "relayhost = kitenet.net:smtps"
@@ -727,7 +693,7 @@ postfixClientRelay ctx = Postfix.mainCfFile `File.containsLines`
 	`requires` hasPostfixCert ctx
 
 -- Configures postfix to have the dkim milter, and no other milters.
-dkimMilter :: Property HasInfo
+dkimMilter :: Property (HasInfo + DebianLike)
 dkimMilter = Postfix.mainCfFile `File.containsLines`
 	[ "smtpd_milters = inet:localhost:8891"
 	, "non_smtpd_milters = inet:localhost:8891"
@@ -740,7 +706,7 @@ dkimMilter = Postfix.mainCfFile `File.containsLines`
 
 -- This does not configure postfix to use the dkim milter,
 -- nor does it set up domainkey DNS.
-dkimInstalled :: Property HasInfo
+dkimInstalled :: Property (HasInfo + DebianLike)
 dkimInstalled = go `onChange` Service.restarted "opendkim"
   where
 	go = propertyList "opendkim installed" $ props
@@ -763,36 +729,25 @@ dkimInstalled = go `onChange` Service.restarted "opendkim"
 domainKey :: (BindDomain, Record)
 domainKey = (RelDomain "mail._domainkey", TXT "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCc+/rfzNdt5DseBBmfB3C6sVM7FgVvf4h1FeCfyfwPpVcmPdW6M2I+NtJsbRkNbEICxiP6QY2UM0uoo9TmPqLgiCCG2vtuiG6XMsS0Y/gGwqKM7ntg/7vT1Go9vcquOFFuLa5PnzpVf8hB9+PMFdS4NPTvWL2c5xxshl/RJzICnQIDAQAB")
 
-hasJoeyCAChain :: Property HasInfo
+hasJoeyCAChain :: Property (HasInfo + UnixLike)
 hasJoeyCAChain = "/etc/ssl/certs/joeyca.pem" `File.hasPrivContentExposed`
 	Context "joeyca.pem"
 
-hasPostfixCert :: Context -> Property HasInfo
-hasPostfixCert ctx = combineProperties "postfix tls cert installed"
-	[ "/etc/ssl/certs/postfix.pem" `File.hasPrivContentExposed` ctx
-	, "/etc/ssl/private/postfix.pem" `File.hasPrivContent` ctx
-	]
-
-kitenetHttps :: Property HasInfo
-kitenetHttps = propertyList "kitenet.net https certs" $ props
-	& File.hasPrivContent "/etc/ssl/certs/web.pem" ctx
-	& File.hasPrivContent "/etc/ssl/private/web.pem" ctx
-	& File.hasPrivContent "/etc/ssl/certs/startssl.pem" ctx
-	& Apache.modEnabled "ssl"
-  where
-	ctx = Context "kitenet.net"
+hasPostfixCert :: Context -> Property (HasInfo + UnixLike)
+hasPostfixCert ctx = combineProperties "postfix tls cert installed" $ props
+	& "/etc/ssl/certs/postfix.pem" `File.hasPrivContentExposed` ctx
+	& "/etc/ssl/private/postfix.pem" `File.hasPrivContent` ctx
 
 -- Legacy static web sites and redirections from kitenet.net to newer
 -- sites.
-legacyWebSites :: Property HasInfo
+legacyWebSites :: Property (HasInfo + DebianLike)
 legacyWebSites = propertyList "legacy web sites" $ props
 	& Apt.serviceInstalledRunning "apache2"
 	& Apache.modEnabled "rewrite"
 	& Apache.modEnabled "cgi"
 	& Apache.modEnabled "speling"
 	& userDirHtml
-	& kitenetHttps
-	& apacheSite "kitenet.net" True
+	& Apache.httpsVirtualHost' "kitenet.net" "/var/www" letos
 		-- /var/www is empty
 		[ "DocumentRoot /var/www"
 		, "<Directory /var/www>"
@@ -852,7 +807,7 @@ legacyWebSites = propertyList "legacy web sites" $ props
 		, "RewriteRule ^/joey/index.html http://www.kitenet.net/joey/ [R]"
 		, "RewriteRule ^/wifi http://www.kitenet.net/wifi/ [R]"
 		, "RewriteRule ^/wifi/index.html http://www.kitenet.net/wifi/ [R]"
-		
+
 		, "# Old ikiwiki filenames for kitenet.net wiki."
 		, "rewritecond $1 !^/~"
 		, "rewritecond $1 !^/doc/"
@@ -880,7 +835,7 @@ legacyWebSites = propertyList "legacy web sites" $ props
 		, "rewriterule /~kyle/family/wiki(.*) http://macleawiki.branchable.com$1 [L]"
 		]
 	& alias "anna.kitenet.net"
-	& apacheSite "anna.kitenet.net" False
+	& apacheSite "anna.kitenet.net"
 		[ "DocumentRoot /home/anna/html"
 		, "<Directory /home/anna/html/>"
 		, "  Options Indexes ExecCGI"
@@ -890,7 +845,7 @@ legacyWebSites = propertyList "legacy web sites" $ props
 		]
 	& alias "sows-ear.kitenet.net"
 	& alias "www.sows-ear.kitenet.net"
-	& apacheSite "sows-ear.kitenet.net" False
+	& apacheSite "sows-ear.kitenet.net"
 		[ "ServerAlias www.sows-ear.kitenet.net"
 		, "DocumentRoot /srv/web/sows-ear.kitenet.net"
 		, "<Directory /srv/web/sows-ear.kitenet.net>"
@@ -903,7 +858,7 @@ legacyWebSites = propertyList "legacy web sites" $ props
 		]
 	& alias "wortroot.kitenet.net"
 	& alias "www.wortroot.kitenet.net"
-	& apacheSite "wortroot.kitenet.net" False
+	& apacheSite "wortroot.kitenet.net"
 		[ "ServerAlias www.wortroot.kitenet.net"
 		, "DocumentRoot /srv/web/wortroot.kitenet.net"
 		, "<Directory /srv/web/wortroot.kitenet.net>"
@@ -913,7 +868,7 @@ legacyWebSites = propertyList "legacy web sites" $ props
 		, "</Directory>"
 		]
 	& alias "creeksidepress.com"
-	& apacheSite "creeksidepress.com" False
+	& apacheSite "creeksidepress.com"
 		[ "ServerAlias www.creeksidepress.com"
 		, "DocumentRoot /srv/web/www.creeksidepress.com"
 		, "<Directory /srv/web/www.creeksidepress.com>"
@@ -923,7 +878,7 @@ legacyWebSites = propertyList "legacy web sites" $ props
 		, "</Directory>"
 		]
 	& alias "joey.kitenet.net"
-	& apacheSite "joey.kitenet.net" False
+	& apacheSite "joey.kitenet.net"
 		[ "DocumentRoot /var/www"
 		, "<Directory /var/www/>"
 		, "  Options Indexes ExecCGI"
@@ -939,12 +894,12 @@ legacyWebSites = propertyList "legacy web sites" $ props
 
 		, "rewritecond $1 !.*/index$"
 		, "rewriterule (.+).rss$ http://joeyh.name/$1/index.rss [l]"
-		
+
 		, "# Redirect all to joeyh.name."
 		, "rewriterule (.*) http://joeyh.name$1 [r]"
 		]
 
-userDirHtml :: Property NoInfo
+userDirHtml :: Property DebianLike
 userDirHtml = File.fileProperty "apache userdir is html" (map munge) conf
 	`onChange` Apache.reloaded
 	`requires` Apache.modEnabled "userdir"
@@ -956,10 +911,9 @@ userDirHtml = File.fileProperty "apache userdir is html" (map munge) conf
 -- <http://joeyh.name/blog/entry/a_programmable_alarm_clock_using_systemd/>
 --
 -- oncalendar example value: "*-*-* 7:30"
-alarmClock :: String -> User -> String -> Property NoInfo
-alarmClock oncalendar (User user) command = combineProperties
-	"goodmorning timer installed"
-	[ "/etc/systemd/system/goodmorning.timer" `File.hasContent`
+alarmClock :: String -> User -> String -> Property DebianLike
+alarmClock oncalendar (User user) command = combineProperties "goodmorning timer installed" $ props
+	& "/etc/systemd/system/goodmorning.timer" `File.hasContent`
 		[ "[Unit]"
 		, "Description=good morning"
 		, ""
@@ -974,7 +928,7 @@ alarmClock oncalendar (User user) command = combineProperties
 		]
 		`onChange` (Systemd.daemonReloaded
 			`before` Systemd.restarted "goodmorning.timer")
-	, "/etc/systemd/system/goodmorning.service" `File.hasContent`
+	& "/etc/systemd/system/goodmorning.service" `File.hasContent`
 		[ "[Unit]"
 		, "Description=good morning"
 		, "RefuseManualStart=true"
@@ -987,8 +941,7 @@ alarmClock oncalendar (User user) command = combineProperties
 		, "ExecStart=/bin/systemd-inhibit --what=handle-lid-switch --why=goodmorning /bin/su " ++ user ++ " -c \"" ++ command ++ "\""
 		]
 		`onChange` Systemd.daemonReloaded
-	, Systemd.enabled "goodmorning.timer"
-	, Systemd.started "goodmorning.timer"
-	, "/etc/systemd/logind.conf" `ConfFile.containsIniSetting`
+	& Systemd.enabled "goodmorning.timer"
+	& Systemd.started "goodmorning.timer"
+	& "/etc/systemd/logind.conf" `ConfFile.containsIniSetting`
 		("Login", "LidSwitchIgnoreInhibited", "no")
-	]

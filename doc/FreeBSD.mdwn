@@ -1,8 +1,10 @@
 Propellor is in the early stages of supporting FreeBSD. It should basically
 work, and there are some modules with FreeBSD-specific properties. 
 
-However, many other properties assume they're being run on a
-Debian Linux system, and need additional porting to support FreeBSD.
+However, many other properties only work on a Debian Linux system, and need
+additional porting to support FreeBSD. Such properties have types like 
+`Property DebianLike`. The type checker will detect and reject attempts
+to combine such properties with `Property FreeBSD`.
 
 [Sample config file](http://git.joeyh.name/?p=propellor.git;a=blob;f=config-freebsd.hs)
 which configures a FreeBSD system, as well as a Linux one.

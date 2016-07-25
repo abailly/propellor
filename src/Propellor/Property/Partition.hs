@@ -3,6 +3,7 @@
 module Propellor.Property.Partition where
 
 import Propellor.Base
+import Propellor.Types.Core
 import qualified Propellor.Property.Apt as Apt
 import Utility.Applicative
 
@@ -16,7 +17,7 @@ data Fs = EXT2 | EXT3 | EXT4 | BTRFS | REISERFS | XFS | FAT | VFAT | NTFS | Linu
 data Eep = YesReallyFormatPartition
 
 -- | Formats a partition.
-formatted :: Eep -> Fs -> FilePath -> Property NoInfo
+formatted :: Eep -> Fs -> FilePath -> Property DebianLike
 formatted = formatted' []
 
 -- | Options passed to a mkfs.* command when making a filesystem.
@@ -24,7 +25,7 @@ formatted = formatted' []
 -- Eg, ["-m0"]
 type MkfsOpts = [String]
 
-formatted' :: MkfsOpts -> Eep -> Fs -> FilePath -> Property NoInfo
+formatted' :: MkfsOpts -> Eep -> Fs -> FilePath -> Property DebianLike
 formatted' opts YesReallyFormatPartition fs dev = cmdProperty cmd opts'
 	`assume` MadeChange
 	`requires` Apt.installed [pkg]
@@ -64,17 +65,18 @@ isLoopDev' f
 -- within a disk image file. The resulting loop devices are passed to the
 -- property, which can operate on them. Always cleans up after itself,
 -- by removing the device maps after the property is run.
-kpartx :: FilePath -> ([LoopDev] -> Property NoInfo) -> Property NoInfo
+kpartx :: FilePath -> ([LoopDev] -> Property DebianLike) -> Property DebianLike
 kpartx diskimage mkprop = go `requires` Apt.installed ["kpartx"]
   where
-	go = property (propertyDesc (mkprop [])) $ do
+	go :: Property DebianLike
+	go = property' (getDesc (mkprop [])) $ \w -> do
 		cleanup -- idempotency
 		loopdevs <- liftIO $ kpartxParse
 			<$> readProcess "kpartx" ["-avs", diskimage]
 		bad <- liftIO $ filterM (not <$$> isLoopDev) loopdevs
 		unless (null bad) $
 			error $ "kpartx output seems to include non-loop-devices (possible parse failure): " ++ show bad
-		r <- ensureProperty (mkprop loopdevs)
+		r <- ensureProperty w (mkprop loopdevs)
 		cleanup
 		return r
 	cleanup = void $ liftIO $ boolSystem "kpartx" [Param "-d", File diskimage]

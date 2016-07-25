@@ -6,50 +6,50 @@ import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.Service as Service
 import qualified Propellor.Property.LetsEncrypt as LetsEncrypt
 
-installed :: Property NoInfo
+installed :: Property DebianLike
 installed = Apt.installed ["apache2"]
 
-restarted :: Property NoInfo
+restarted :: Property DebianLike
 restarted = Service.restarted "apache2"
 
-reloaded :: Property NoInfo
+reloaded :: Property DebianLike
 reloaded = Service.reloaded "apache2"
 
 type ConfigLine = String
 
 type ConfigFile = [ConfigLine]
 
-siteEnabled :: Domain -> ConfigFile -> RevertableProperty NoInfo
+siteEnabled :: Domain -> ConfigFile -> RevertableProperty DebianLike DebianLike
 siteEnabled domain cf = siteEnabled' domain cf <!> siteDisabled domain
 
-siteEnabled' :: Domain -> ConfigFile -> Property NoInfo
-siteEnabled' domain cf = combineProperties ("apache site enabled " ++ domain)
-	[ siteAvailable domain cf
+siteEnabled' :: Domain -> ConfigFile -> Property DebianLike
+siteEnabled' domain cf = combineProperties ("apache site enabled " ++ domain) $ props
+	& siteAvailable domain cf
 		`requires` installed
 		`onChange` reloaded
-	, check (not <$> isenabled)
+	& check (not <$> isenabled)
 		(cmdProperty "a2ensite" ["--quiet", domain])
 			`requires` installed
 			`onChange` reloaded
-	]
   where
 	isenabled = boolSystem "a2query" [Param "-q", Param "-s", Param domain]
 
-siteDisabled :: Domain -> Property NoInfo
+siteDisabled :: Domain -> Property DebianLike
 siteDisabled domain = combineProperties
 	("apache site disabled " ++ domain)
-	(map File.notPresent (siteCfg domain))
+	(toProps $ map File.notPresent (siteCfg domain))
 		`onChange` (cmdProperty "a2dissite" ["--quiet", domain] `assume` MadeChange)
 		`requires` installed
 		`onChange` reloaded
 
-siteAvailable :: Domain -> ConfigFile -> Property NoInfo
+siteAvailable :: Domain -> ConfigFile -> Property DebianLike
 siteAvailable domain cf = combineProperties ("apache site available " ++ domain) $
-	map (`File.hasContent` (comment:cf)) (siteCfg domain)
+	toProps $ map tightenTargets $
+		map (`File.hasContent` (comment:cf)) (siteCfg domain)
   where
 	comment = "# deployed with propellor, do not modify"
 
-modEnabled :: String -> RevertableProperty NoInfo
+modEnabled :: String -> RevertableProperty DebianLike DebianLike
 modEnabled modname = enable <!> disable
   where
 	enable = check (not <$> isenabled)
@@ -68,7 +68,7 @@ modEnabled modname = enable <!> disable
 --
 -- Note that ports are also specified inside a site's config file,
 -- so that also needs to be changed.
-listenPorts :: [Port] -> Property NoInfo
+listenPorts :: [Port] -> Property DebianLike
 listenPorts ps = "/etc/apache2/ports.conf" `File.hasContent` map portline ps
 	`onChange` restarted
   where
@@ -89,7 +89,7 @@ siteCfg domain =
 --
 -- This was off by default in apache 2.2.22. Newver versions enable
 -- it by default. This property uses the filename used by the old version.
-multiSSL :: Property NoInfo
+multiSSL :: Property DebianLike
 multiSSL = check (doesDirectoryExist "/etc/apache2/conf.d") $
 	"/etc/apache2/conf.d/ssl" `File.hasContent`
 		[ "NameVirtualHost *:443"
@@ -129,11 +129,11 @@ type WebRoot = FilePath
 
 -- | A basic virtual host, publishing a directory, and logging to
 -- the combined apache log file. Not https capable.
-virtualHost :: Domain -> Port -> WebRoot -> RevertableProperty NoInfo
+virtualHost :: Domain -> Port -> WebRoot -> RevertableProperty DebianLike DebianLike
 virtualHost domain port docroot = virtualHost' domain port docroot []
 
 -- | Like `virtualHost` but with additional config lines added.
-virtualHost' :: Domain -> Port -> WebRoot -> [ConfigLine] -> RevertableProperty NoInfo
+virtualHost' :: Domain -> Port -> WebRoot -> [ConfigLine] -> RevertableProperty DebianLike DebianLike
 virtualHost' domain port docroot addedcfg = siteEnabled domain $
 	[ "<VirtualHost *:" ++ fromPort port ++ ">"
 	, "ServerName " ++ domain ++ ":" ++ fromPort port
@@ -159,11 +159,11 @@ virtualHost' domain port docroot addedcfg = siteEnabled domain $
 --
 -- Note that reverting this property does not remove the certificate from
 -- letsencrypt's cert store.
-httpsVirtualHost :: Domain -> WebRoot -> LetsEncrypt.AgreeTOS -> RevertableProperty NoInfo
+httpsVirtualHost :: Domain -> WebRoot -> LetsEncrypt.AgreeTOS -> RevertableProperty DebianLike DebianLike
 httpsVirtualHost domain docroot letos = httpsVirtualHost' domain docroot letos []
 
 -- | Like `httpsVirtualHost` but with additional config lines added.
-httpsVirtualHost' :: Domain -> WebRoot -> LetsEncrypt.AgreeTOS -> [ConfigLine] -> RevertableProperty NoInfo
+httpsVirtualHost' :: Domain -> WebRoot -> LetsEncrypt.AgreeTOS -> [ConfigLine] -> RevertableProperty DebianLike DebianLike
 httpsVirtualHost' domain docroot letos addedcfg = setup <!> teardown
   where
 	setup = setuphttp
@@ -185,13 +185,13 @@ httpsVirtualHost' domain docroot letos addedcfg = setup <!> teardown
 			, "RewriteRule ^/(.*) https://" ++ domain ++ "/$1 [L,R,NE]"
 			]
 	setuphttps = LetsEncrypt.letsEncrypt letos domain docroot
-		`onChange` combineProperties (domain ++ " ssl cert installed")
-			[ File.dirExists (takeDirectory cf)
-			, File.hasContent cf sslvhost
-				`onChange` reloaded
-			-- always reload since the cert has changed
-			, reloaded
-			]
+		`onChange` postsetuphttps
+	postsetuphttps = combineProperties (domain ++ " ssl cert installed") $ props
+		& File.dirExists (takeDirectory cf)
+		& File.hasContent cf sslvhost
+			`onChange` reloaded
+		-- always reload since the cert has changed
+		& reloaded
 	  where
 		cf = sslconffile "letsencrypt"
 		sslvhost = vhost (Port 443)

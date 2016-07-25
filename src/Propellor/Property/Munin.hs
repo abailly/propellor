@@ -19,19 +19,19 @@ import qualified Propellor.Property.Service as Service
 nodePort :: Integer
 nodePort = 4949
 
-nodeInstalled :: Property NoInfo
+nodeInstalled :: Property DebianLike
 nodeInstalled = Apt.serviceInstalledRunning "munin-node"
 
-nodeRestarted :: Property NoInfo
+nodeRestarted :: Property DebianLike
 nodeRestarted = Service.restarted "munin-node"
 
 nodeConfPath :: FilePath
 nodeConfPath = "/etc/munin/munin-node.conf"
 
-masterInstalled :: Property NoInfo
+masterInstalled :: Property DebianLike
 masterInstalled = Apt.serviceInstalledRunning "munin"
 
-masterRestarted :: Property NoInfo
+masterRestarted :: Property DebianLike
 masterRestarted = Service.restarted "munin"
 
 masterConfPath :: FilePath
