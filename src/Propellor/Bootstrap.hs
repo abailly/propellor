@@ -6,7 +6,6 @@ module Propellor.Bootstrap (
 ) where
 
 import           Propellor.Base
-import           Propellor.Git.Config
 import           Propellor.Types.Info
 
 import           Data.List
@@ -49,7 +48,7 @@ checkDepsCommand sys = "if ! [ -x /usr/local/bin/stack ] ; then " ++ depsCommand
 --
 -- http://docs.haskellstack.org/en/stable/install_and_upgrade/#linux
 depsCommand :: Maybe System -> ShellCommand
-depsCommand msys = "( " ++ intercalate " ; " (concat [osinstall, stackinstall]) ++ " ) || true"
+depsCommand msys = "( " ++ intercalate " ; " (osinstall ++ stackinstall) ++ " ) || true"
   where
 	osinstall = case msys of
 		Just (System (FreeBSD _) _) -> map pkginstall fbsddeps
@@ -114,10 +113,10 @@ buildPropellor mh = unlessM (actionMessage "Propellor build" (build msys)) $
 -- leaves the built binary.
 --
 build :: Maybe System -> IO Bool
-build msys = catchBoolIO $ do
+build _ = catchBoolIO $ do
 	unlessM stack_build $ error "stack build failed"
         (stackDistPath,succeed) <- processTranscript "/usr/local/bin/stack" ["path", "--dist-dir"] Nothing
-        when (not succeed) $ error "stack failed to extract path to executable"
+        unless succeed $ error "stack failed to extract path to executable"
 	-- For safety against eg power loss in the middle of the build,
 	-- make a copy of the binary, and move it into place atomically.
 	-- This ensures that the propellor symlink only ever points at
@@ -131,10 +130,8 @@ build msys = catchBoolIO $ do
 	symlinkPropellorBin safetycopy
 	return True
   where
-	dest = "propellor"
 	stackbuiltbin = "propellor-config"
 	safetycopy = stackbuiltbin ++ ".built"
-	tmpfor f = f ++ ".propellortmp"
 	stack_build = stack ["build", "propellor-config"]
 
 stack :: [String] -> IO Bool
