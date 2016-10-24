@@ -80,7 +80,7 @@ buildDepsNoHaskellLibs :: Property DebianLike
 buildDepsNoHaskellLibs = Apt.installed
 	["git", "rsync", "moreutils", "ca-certificates",
 	"debhelper", "ghc", "curl", "openssh-client", "git-remote-gcrypt",
-	"liblockfile-simple-perl", "cabal-install", "vim", "less",
+	"liblockfile-simple-perl", "locales", "cabal-install", "vim", "less",
 	-- needed by haskell libs
 	"libxml2-dev", "libidn11-dev", "libgsasl7-dev", "libgnutls28-dev",
 	"libmagic-dev", "alex", "happy", "c2hs"

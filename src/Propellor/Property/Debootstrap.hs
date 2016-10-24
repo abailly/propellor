@@ -74,9 +74,7 @@ built' installprop target system@(System _ arch) config =
 		cmd <- fromMaybe "debootstrap" <$> programPath
 		de <- standardPathEnv
 		ifM (boolSystemEnv cmd params (Just de))
-			( do
-				fixForeignDev target
-				return MadeChange
+			( return MadeChange
 			, return FailedChange
 			)
 
@@ -102,7 +100,7 @@ extractSuite (System (FreeBSD _) _) = Nothing
 installed :: RevertableProperty Linux Linux
 installed = install <!> remove
   where
-	install = check (isJust <$> programPath) $
+	install = check (isNothing <$> programPath) $
 		(aptinstall `pickOS` sourceInstall)
 			`describe` "debootstrap installed"
 
@@ -165,10 +163,9 @@ sourceInstall' = withTmpDir "debootstrap" $ \tmpd -> do
 		case l of
 			(subdir:[]) -> do
 				changeWorkingDirectory subdir
-				makeDevicesTarball
 				makeWrapperScript (localInstallDir </> subdir)
 				return MadeChange
-			_ -> errorMessage "debootstrap tar file did not contain exactly one dirctory"
+			_ -> errorMessage "debootstrap tar file did not contain exactly one directory"
 
 sourceRemove :: Property Linux
 sourceRemove = property "debootstrap not installed from source" $ liftIO $
@@ -205,40 +202,6 @@ makeWrapperScript dir = do
 		, dir </> "debootstrap" ++ " \"$@\""
 		]
 	modifyFileMode wrapperScript (addModes $ readModes ++ executeModes)
-
--- Work around for <http://bugs.debian.org/770217>
-makeDevicesTarball :: IO ()
-makeDevicesTarball = do
-	-- TODO append to tarball; avoid writing to /dev
-	writeFile foreignDevFlag "1"
-	ok <- boolSystem "sh" [Param "-c", Param tarcmd]
-	nukeFile foreignDevFlag
-	unless ok $
-		errorMessage "Failed to tar up /dev to generate devices.tar.gz"
-  where
-	tarcmd = "(cd / && tar cf - dev) | gzip > devices.tar.gz"
-
-fixForeignDev :: FilePath -> IO ()
-fixForeignDev target = whenM (doesFileExist (target ++ foreignDevFlag)) $ do
-	de <- standardPathEnv
-	void $ boolSystemEnv "chroot"
-		[ File target
-		, Param "sh"
-		, Param "-c"
-		, Param $ intercalate " && "
-			[ "apt-get update"
-			, "apt-get -y install makedev"
-			, "rm -rf /dev"
-			, "mkdir /dev"
-			, "cd /dev"
-			, "mount -t proc proc /proc"
-			, "/sbin/MAKEDEV std ptmx fd consoleonly"
-			]
-		]
-		(Just de)
-
-foreignDevFlag :: FilePath
-foreignDevFlag = "/dev/.propellor-foreign-dev"
 
 localInstallDir :: FilePath
 localInstallDir = "/usr/local/debootstrap"

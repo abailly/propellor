@@ -51,9 +51,4 @@ dist/setup-config: propellor.cabal
 propellor.1: doc/usage.mdwn doc/mdwn2man
 	doc/mdwn2man propellor 1 < doc/usage.mdwn > propellor.1
 
-# Upload to hackage.
-hackage:
-	@cabal sdist
-	@cabal upload dist/*.tar.gz
-
 .PHONY: tags

@@ -71,12 +71,8 @@ scrollBox = propertyList "scroll server" $ props
 		, "fi"
 		, "echo Your game was recorded, as ID:$(basename \"$t\")"
 		, "echo if you would like to talk about how it went, email scroll@joeyh.name"
-		, "echo 'or, type comments below (finish with a dot on its own line)'"
-		, "echo"
-		, "echo Your comments:"
-		, "timeout --kill-after 1m --foreground 2h mail -E -s \"scroll test $t\" joey@kitenet.net"
+		, "read line"
 		] `onChange` (g `File.mode` (combineModes (ownerWriteMode:readModes ++ executeModes)))
-	& Apt.installed ["bsd-mailx"]
 	-- prevent port forwarding etc by not letting scroll log in via ssh
 	& Ssh.sshdConfig `File.containsLine` ("DenyUsers scroll")
 		`onChange` Ssh.restarted

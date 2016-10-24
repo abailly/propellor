@@ -41,7 +41,7 @@ You can add a central git repository to your existing propellor setup easily:
    it differs from the url above, by setting up a remote named "deploy":
    `cd ~/.propellor/; git remote add deploy git://git.example.com/propellor.git`
 
-3. Add a crom job property to your hosts, which will make them periodically
+3. Add a cron job property to your hosts, which will make them periodically
    check for changes that were committed to the central repository:
    `Cron.runPropellor (Cron.Times "*/30 * * * *")`
 

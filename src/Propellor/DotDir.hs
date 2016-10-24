@@ -401,7 +401,17 @@ setupUpstreamMaster newref = do
 		changeWorkingDirectory tmprepo
 		git ["fetch", distrepo, "--quiet"]
 		git ["reset", "--hard", oldref, "--quiet"]
-		git ["merge", newref, "-s", "recursive", "-Xtheirs", "--quiet", "-m", "merging upstream version"]
+		v <- gitVersion
+		let mergeparams =
+			[ "merge", newref
+			, "-s", "recursive"
+			, "-Xtheirs"
+			, "--quiet"
+			, "-m", "merging upstream version"
+			] ++ if v >= [2,9]
+				then [ "--allow-unrelated-histories" ]
+				else []
+		git mergeparams
 
 		void $ fetchUpstreamBranch tmprepo
 		cleantmprepo

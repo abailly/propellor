@@ -119,17 +119,12 @@ bandwidthRate' s divby = case readSize dataUnits s of
 			`describe` ("tor BandwidthRate " ++ v)
 	Nothing -> property ("unable to parse " ++ s) noChange
 
-hiddenServiceAvailable :: HiddenServiceName -> Int -> Property DebianLike
-hiddenServiceAvailable hn port = hiddenServiceHostName $ hiddenService hn port
-  where
-	hiddenServiceHostName p =  adjustPropertySatisfy p $ \satisfy -> do
-		r <- satisfy
-		h <- liftIO $ readFile (varLib </> hn </> "hostname")
-		warningMessage $ unwords ["hidden service hostname:", h]
-		return r
-
-hiddenService :: HiddenServiceName -> Int -> Property DebianLike
-hiddenService hn port = ConfFile.adjustSection
+-- | Enables a hidden service for a given port.
+--
+-- If used without `hiddenServiceData`, tor will generate a new
+-- private key.
+hiddenService :: HiddenServiceName -> Port -> Property DebianLike
+hiddenService hn (Port port) = ConfFile.adjustSection
 	(unwords ["hidden service", hn, "available on port", show port])
 	(== oniondir)
 	(not . isPrefixOf "HiddenServicePort")
@@ -141,6 +136,20 @@ hiddenService hn port = ConfFile.adjustSection
 	oniondir = unwords ["HiddenServiceDir", varLib </> hn]
 	onionport = unwords ["HiddenServicePort", show port, "127.0.0.1:" ++ show port]
 
+-- | Same as `hiddenService` but also causes propellor to display
+-- the onion address of the hidden service.
+hiddenServiceAvailable :: HiddenServiceName -> Port -> Property DebianLike
+hiddenServiceAvailable hn port = hiddenServiceHostName $ hiddenService hn port
+  where
+	hiddenServiceHostName p =  adjustPropertySatisfy p $ \satisfy -> do
+		r <- satisfy
+		mh <- liftIO $ tryIO $ readFile (varLib </> hn </> "hostname")
+		case mh of
+			Right h -> infoMessage ["hidden service hostname:", h]
+			Left _e -> warningMessage "hidden service hostname not available yet"
+		return r
+
+-- | Load the private key for a hidden service from the privdata.
 hiddenServiceData :: IsContext c => HiddenServiceName -> c -> Property (HasInfo + DebianLike)
 hiddenServiceData hn context = combineProperties desc $ props
 	& installonion "hostname"

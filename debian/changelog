@@ -1,11 +1,57 @@
-propellor (3.1.2) UNRELEASED; urgency=medium
+propellor (3.2.1) unstable; urgency=medium
 
+  * Simplify Debootstrap.sourceInstall since #770217 was fixed.
+  * Debootstap.installed: Fix inverted logic that made this never install
+    debootstrap. Thanks, mithrandi.
+
+ -- Joey Hess <id@joeyh.name>  Mon, 03 Oct 2016 18:06:31 -0400
+
+propellor (3.2.0) unstable; urgency=medium
+
+  [ Sean Whitton ]
+  * Using ccache with Sbuild.built & Sbuild.builtFor is now toggleable: these
+    properties now take a parameter of type Sbuild.UseCcache.  (API Change)
+  * Sbuild.piupartsConf: no longer takes an Apt.Url. (API Change)
+  * Sbuild.piupartsConf & Sbuild.piupartsConfFor: does nothing if corresponding
+    schroot not built.
+    Previously, these properties built the schroot if it was missing.
+  * Sbuild.built & Sbuild.piupartsConf: add an additional alias to sid chroots.
+    This is for compatibility with `dgit sbuild`.
+  * Further improvements to Sbuild.hs haddock.
+
+  [ Joey Hess ]
+  * Tor.hiddenService: Converted port parameter from Int to Port. (API change)
+  * Tor.hiddenServiceAvailable: The hidden service hostname file may not
+    be available immedaitely after configuring tor; avoid ugly error in
+    this case.
+
+ -- Joey Hess <id@joeyh.name>  Sat, 10 Sep 2016 11:39:40 -0400
+
+propellor (3.1.2) unstable; urgency=medium
+
+  [ Joey Hess ]
   * Ssh.knownHost: Bug fix: Only fix up the owner of the known_hosts
     file after it exists.
-  * Sbuild.keypairInsecurelyGenerated: Improved to be more robust.
-    Thanks, Sean Whitton.
 
- -- Joey Hess <id@joeyh.name>  Sun, 24 Jul 2016 13:34:37 -0400
+  [ Sean Whitton ]
+  * Sbuild.keypairInsecurelyGenerated: Improved to be more robust.
+  * Pass --allow-unrelated-histories to git merge when run with git 2.9 or
+    newer. This fixes the /usr/bin/propellor wrapper with this version of git.
+  * Sbuild.built & Sbuild.builtFor no longer require Sbuild.keypairGenerated.
+    Transition guide: If you are using sbuild 0.70.0 or newer, you should
+    `rm -r /var/lib/sbuild/apt-keys`.  Otherwise, you should add either
+    Sbuild.keypairGenerated or Sbuild.keypairInsecurelyGenerated to your host.
+  * Sbuild haddock improvements:
+    - State that we don't support squeeze and Buntish older than trusty.
+      This is due to our enhancements, such as eatmydata.
+    - State that you need sbuild 0.70.0 or newer to build for stretch.
+      This is due to gpg2 hitting Debian stretch.
+    - Explain when a keygen is required.
+    - Update sample ~/.sbuildrc for sbuild 0.71.0.
+    - Add hint for customising chroots with propellor.
+    - Update example usage of System type.
+
+ -- Joey Hess <id@joeyh.name>  Sun, 28 Aug 2016 14:39:23 -0400
 
 propellor (3.1.1) unstable; urgency=medium
 

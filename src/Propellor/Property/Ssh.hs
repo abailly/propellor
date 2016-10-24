@@ -362,7 +362,7 @@ modKnownHost user f p = p
 -- | Ensures that a local user's authorized_keys contains lines allowing
 -- logins from a remote user on the specified Host.
 --
--- The ssh keys of the remote user can be set using `keysImported`
+-- The ssh keys of the remote user can be set using `userKeys`
 --
 -- Any other lines in the authorized_keys file are preserved as-is.
 authorizedKeysFrom :: User -> (User, Host) -> Property UnixLike

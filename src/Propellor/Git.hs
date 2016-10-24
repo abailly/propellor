@@ -3,7 +3,10 @@ module Propellor.Git where
 import Utility.Process
 import Utility.Exception
 import Utility.Directory
+import Utility.Misc
+import Utility.PartialPrelude
 
+import Data.Maybe
 import Control.Applicative
 import Prelude
 
@@ -26,3 +29,13 @@ hasOrigin = catchDefaultIO False $ do
 
 hasGitRepo :: IO Bool
 hasGitRepo = doesFileExist ".git/HEAD"
+
+type Version = [Int]
+
+gitVersion :: IO Version
+gitVersion = extract <$> readProcess "git" ["--version"]
+  where
+	extract s = case lines s of
+		[] -> []
+		(l:_) -> mapMaybe readish $ segment (== '.') $
+			unwords $ drop 2 $ words l

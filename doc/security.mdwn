@@ -20,7 +20,7 @@ That is only done when privdata/keyring.gpg exists. To set it up:
 	propellor --add-key $MYKEYID
 
 In order to be secure from the beginning, when `propellor --spin` is used
-to bootstrap propellor on a new host, it transfers the local git repositry
+to bootstrap propellor on a new host, it transfers the local git repository
 to the remote host over ssh. After that, the host knows the gpg key, and
 will use it to verify git fetches.
 
