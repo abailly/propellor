@@ -74,6 +74,7 @@ Library
   Exposed-Modules:
     Propellor
     Propellor.Base
+    Propellor.Gpg
     Propellor.Location
     Propellor.Property
     Propellor.Property.Aiccu
@@ -187,7 +188,6 @@ Library
     Propellor.Git
     Propellor.Git.Config
     Propellor.Git.VerifiedBranch
-    Propellor.Gpg
     Propellor.Ssh
     Propellor.PrivData.Paths
     Propellor.Protocol
