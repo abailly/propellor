@@ -1,5 +1,6 @@
 Propellor was written to manage Linux systems.
-It supports Debian and Debian-derived distributions.
+It supports Debian and Debian-derived distributions,
+as well as Arch Linux.
 
 Support for other distributions should not be too hard to add.
 Indeed, Propellor has been ported to [[FreeBSD]] now!

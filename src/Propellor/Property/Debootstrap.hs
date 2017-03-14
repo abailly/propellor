@@ -51,18 +51,15 @@ built :: FilePath -> System -> DebootstrapConfig -> Property Linux
 built target system config = built' (setupRevertableProperty installed) target system config
 
 built' :: Property Linux -> FilePath -> System -> DebootstrapConfig -> Property Linux
-built' installprop target system@(System _ arch) config =
-	check (unpopulated target <||> ispartial) setupprop
-		`requires` installprop
+built' installprop target system@(System _ arch) config = 
+	go `before` oldpermfix
   where
+	go = check (unpopulated target <||> ispartial) setupprop
+		`requires` installprop
+
 	setupprop :: Property Linux
 	setupprop = property ("debootstrapped " ++ target) $ liftIO $ do
 		createDirectoryIfMissing True target
-		-- Don't allow non-root users to see inside the chroot,
-		-- since doing so can allow them to do various attacks
-		-- including hard link farming suid programs for later
-		-- exploitation.
-		modifyFileMode target (removeModes [otherReadMode, otherExecuteMode, otherWriteMode])
 		suite <- case extractSuite system of
 			Nothing -> errorMessage $ "don't know how to debootstrap " ++ show system
 			Just s -> pure s
@@ -86,10 +83,20 @@ built' installprop target system@(System _ arch) config =
 			return True
 		, return False
 		)
+	
+	-- May want to remove this after some appropriate length of time,
+	-- as it's a workaround for chroots set up with too tight
+	-- permissions.
+	oldpermfix :: Property Linux
+	oldpermfix = property ("fixed old chroot file mode") $ do
+		liftIO $ modifyFileMode target $
+			addModes [otherReadMode, otherExecuteMode]
+		return NoChange
 
 extractSuite :: System -> Maybe String
 extractSuite (System (Debian _ s) _) = Just $ Apt.showSuite s
 extractSuite (System (Buntish r) _) = Just r
+extractSuite (System (ArchLinux) _) = Nothing
 extractSuite (System (FreeBSD _) _) = Nothing
 
 -- | Ensures debootstrap is installed.
@@ -142,7 +149,7 @@ sourceInstall' = withTmpDir "debootstrap" $ \tmpd -> do
 		. filter ("debootstrap_" `isInfixOf`)
 		. filter (".tar." `isInfixOf`)
 		. extractUrls baseurl <$>
-		readFileStrictAnyEncoding indexfile
+		readFileStrict indexfile
 	nukeFile indexfile
 
 	tarfile <- case urls of

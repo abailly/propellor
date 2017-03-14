@@ -1,0 +1,9 @@
+propellor 3.2.3 released with [[!toggle text="these changes"]]
+[[!toggleable text="""
+   * Improve extraction of gpg secret key id list, to work with gpg 2.1.
+   * The propellor wrapper checks if ./config.hs exists; if so it runs
+     using the configuration in the current directory, rather than
+     ~/.propellor/config.hs
+   * Debootstap: Fix too tight permissions lock down of debootstrapped
+     chroots, which prevented non-root users from doing anything in the
+     chroot."""]]

@@ -1,6 +1,6 @@
 {- Simple IO exception handling (and some more)
  -
- - Copyright 2011-2015 Joey Hess <id@joeyh.name>
+ - Copyright 2011-2016 Joey Hess <id@joeyh.name>
  -
  - License: BSD-2-clause
  -}
@@ -10,6 +10,7 @@
 
 module Utility.Exception (
 	module X,
+	giveup,
 	catchBoolIO,
 	catchMaybeIO,
 	catchDefaultIO,
@@ -28,8 +29,10 @@ module Utility.Exception (
 import Control.Monad.Catch as X hiding (Handler)
 import qualified Control.Monad.Catch as M
 import Control.Exception (IOException, AsyncException)
-#if MIN_VERSION_base(4,7,0)
+#ifdef MIN_VERSION_GLASGOW_HASKELL
+#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
 import Control.Exception (SomeAsyncException)
+#endif
 #endif
 import Control.Monad
 import Control.Monad.IO.Class (liftIO, MonadIO)
@@ -37,6 +40,21 @@ import System.IO.Error (isDoesNotExistError, ioeGetErrorType)
 import GHC.IO.Exception (IOErrorType(..))
 
 import Utility.Data
+
+{- Like error, this throws an exception. Unlike error, if this exception
+ - is not caught, it won't generate a backtrace. So use this for situations
+ - where there's a problem that the user is excpected to see in some
+ - circumstances. -}
+giveup :: [Char] -> a
+#ifdef MIN_VERSION_base
+#if MIN_VERSION_base(4,9,0)
+giveup = errorWithoutStackTrace
+#else
+giveup = error
+#endif
+#else
+giveup = error
+#endif
 
 {- Catches IO errors and returns a Bool -}
 catchBoolIO :: MonadCatch m => m Bool -> m Bool
@@ -77,8 +95,10 @@ bracketIO setup cleanup = bracket (liftIO setup) (liftIO . cleanup)
 catchNonAsync :: MonadCatch m => m a -> (SomeException -> m a) -> m a
 catchNonAsync a onerr = a `catches`
 	[ M.Handler (\ (e :: AsyncException) -> throwM e)
-#if MIN_VERSION_base(4,7,0)
+#ifdef MIN_VERSION_GLASGOW_HASKELL
+#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
 	, M.Handler (\ (e :: SomeAsyncException) -> throwM e)
+#endif
 #endif
 	, M.Handler (\ (e :: SomeException) -> onerr e)
 	]

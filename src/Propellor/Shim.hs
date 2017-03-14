@@ -9,7 +9,6 @@ module Propellor.Shim (setup, cleanEnv, file) where
 import Propellor.Base
 import Utility.LinuxMkLibs
 import Utility.FileMode
-import Utility.FileSystemEncoding
 
 import Data.List
 import System.Posix.Files
@@ -57,7 +56,6 @@ shebang = "#!/bin/sh"
 checkAlreadyShimmed :: FilePath -> IO FilePath -> IO FilePath
 checkAlreadyShimmed f nope = ifM (doesFileExist f)
 	( withFile f ReadMode $ \h -> do
-		fileEncoding h
 		s <- hGetLine h
 		if s == shebang
 			then return f

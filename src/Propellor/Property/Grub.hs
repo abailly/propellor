@@ -69,7 +69,7 @@ chainPVGrub rootdev bootdev timeout = combineProperties desc $ props
 	& File.dirExists "/boot/grub"
 	& "/boot/grub/menu.lst" `File.hasContent`
 		[ "default 1" 
-		, "timeout " ++ show timeout
+		, "timeout " ++ val timeout
 		, ""
 		, "title grub-xen shim"
 		, "root (" ++ rootdev ++ ")"

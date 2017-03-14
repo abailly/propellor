@@ -13,17 +13,19 @@ and configured in haskell.
 
 # MODES OF OPERATION
 
-* propellor
+* propellor --init
 
-  The first time you run `propellor`, without any options,
-  it will set up a `~/.propellor/` repository. Edit `~/.propellor/config.hs`
-  to configure it.
+  Get started by initializing a `~/.propellor/` repository.
+
+  After this, you'll edit `~/.propellor/config.hs` to configure propellor.
+
+* propellor
 
   Once propellor is configured, running it without any options will take
   action as needed to satisfy the configured properties of the local host.
 
-  If there's a central git repository, it will first fetch from the
-  repository, check the gpg signature and merge, and rebuild propellor,
+  If there's a central git repository, it will first fetch from it,
+  check the gpg signature and merge, and rebuild propellor,
   so that any configuration changes will immediately take effect.
 
   If propellor is run by a non-root user without any options, this is
@@ -53,13 +55,28 @@ and configured in haskell.
   The hostname given to --spin can be a short name, which is
   then looked up in the DNS to find the FQDN.
 
+* propellor --build
+
+  Causes propellor to build itself, checking that your config.hs, etc are
+  valid.
+
+  You do not need to run this as a separate step; propellor automatically
+  builds itself when using things like --spin.
+
 * propellor --add-key keyid
 
   Adds a gpg key, which is used to encrypt the privdata.
 
+  Multiple gpg keys can be added; the privdata will be encrypted so that
+  all of them can decrypt it.
+
   If the gpg secret key is present, git is configured to sign commits
   using this key. Propellor requires signed commits when pulling from
   a central git repository.
+
+* propellor --rm-key keyid
+
+  Stops encrypting the privdata to a gpg key.
 
 * propellor --list-fields
 
@@ -114,6 +131,19 @@ and configured in haskell.
   This is useful when the local host doesn't yet have its hostname set
   correctly.
 
+# FILES
+
+* ~/.propellor/config.hs
+
+  This is the default config file used by propellor.
+
+* ./config.hs
+
+  If propellor is run in a directory containing a config.hs, it
+  assumes that the current directory is a propellor repository, and 
+  uses the configuration from the current directory, rather tnan
+  ~/.propellor/ 
+
 # ENVIRONMENT
 
 Set `PROPELLOR_DEBUG=1` to make propellor output each command it runs and
@@ -137,7 +167,7 @@ Additionally, the url of a remote named "deploy", if it exists
 in your ~/.propellor/ repository, is used as the origin url for
 the other repositories.
 
-# SH AUTHOR 
+# AUTHOR 
 
 Joey Hess <id@joeyh.name>
 

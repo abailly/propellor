@@ -124,22 +124,30 @@ bandwidthRate' s divby = case readSize dataUnits s of
 -- If used without `hiddenServiceData`, tor will generate a new
 -- private key.
 hiddenService :: HiddenServiceName -> Port -> Property DebianLike
-hiddenService hn (Port port) = ConfFile.adjustSection
-	(unwords ["hidden service", hn, "available on port", show port])
+hiddenService hn port = hiddenService' hn [port]
+
+hiddenService' :: HiddenServiceName -> [Port] -> Property DebianLike
+hiddenService' hn ports = ConfFile.adjustSection
+	(unwords ["hidden service", hn, "available on ports", intercalate "," (map val ports')])
 	(== oniondir)
 	(not . isPrefixOf "HiddenServicePort")
-	(const [oniondir, onionport])
-	(++ [oniondir, onionport])
+	(const (oniondir : onionports))
+	(++ oniondir : onionports)
 	mainConfig
 	`onChange` restarted
   where
 	oniondir = unwords ["HiddenServiceDir", varLib </> hn]
-	onionport = unwords ["HiddenServicePort", show port, "127.0.0.1:" ++ show port]
+	onionports = map onionport ports'
+	ports' = sort ports
+	onionport port = unwords ["HiddenServicePort", val port, "127.0.0.1:" ++ val port]
 
 -- | Same as `hiddenService` but also causes propellor to display
 -- the onion address of the hidden service.
 hiddenServiceAvailable :: HiddenServiceName -> Port -> Property DebianLike
-hiddenServiceAvailable hn port = hiddenServiceHostName $ hiddenService hn port
+hiddenServiceAvailable hn port = hiddenServiceAvailable' hn [port]
+
+hiddenServiceAvailable' :: HiddenServiceName -> [Port] -> Property DebianLike
+hiddenServiceAvailable' hn ports = hiddenServiceHostName $ hiddenService' hn ports
   where
 	hiddenServiceHostName p =  adjustPropertySatisfy p $ \satisfy -> do
 		r <- satisfy

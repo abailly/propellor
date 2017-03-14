@@ -137,11 +137,11 @@ backup' dir backupdir crontimes extraargs kp = cronjob
 -- passed to the `backup` property, they will run borg prune to clean out
 -- generations not specified here.
 keepParam :: KeepPolicy -> BorgParam
-keepParam (KeepHours n) = "--keep-hourly=" ++ show n
-keepParam (KeepDays n) = "--keep-daily=" ++ show n
-keepParam (KeepWeeks n) = "--keep-daily=" ++ show n
-keepParam (KeepMonths n) = "--keep-monthly=" ++ show n
-keepParam (KeepYears n) = "--keep-yearly=" ++ show n
+keepParam (KeepHours n) = "--keep-hourly=" ++ val n
+keepParam (KeepDays n) = "--keep-daily=" ++ val n
+keepParam (KeepWeeks n) = "--keep-daily=" ++ val n
+keepParam (KeepMonths n) = "--keep-monthly=" ++ val n
+keepParam (KeepYears n) = "--keep-yearly=" ++ val n
 
 -- | Policy for backup generations to keep. For example, KeepDays 30 will
 -- keep the latest backup for each day when a backup was made, and keep the

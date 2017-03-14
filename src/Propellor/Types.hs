@@ -24,6 +24,7 @@ module Propellor.Types (
 	, DebianLike
 	, Debian
 	, Buntish
+	, ArchLinux
 	, FreeBSD
 	, HasInfo
 	, type (+)
@@ -35,6 +36,7 @@ module Propellor.Types (
 	, adjustPropertySatisfy
 	-- * Other included types
 	, module Propellor.Types.OS
+	, module Propellor.Types.ConfigurableValue
 	, module Propellor.Types.Dns
 	, module Propellor.Types.Result
 	, module Propellor.Types.ZFS
@@ -45,6 +47,7 @@ import Data.Monoid
 import Propellor.Types.Core
 import Propellor.Types.Info
 import Propellor.Types.OS
+import Propellor.Types.ConfigurableValue
 import Propellor.Types.Dns
 import Propellor.Types.Result
 import Propellor.Types.MetaTypes

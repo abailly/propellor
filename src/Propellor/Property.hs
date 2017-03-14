@@ -222,7 +222,7 @@ changesFile p f = checkResult getstat comparestat p
 changesFileContent :: Checkable p i => p i -> FilePath -> Property i
 changesFileContent p f = checkResult getmd5 comparemd5 p
   where
-	getmd5 = catchMaybeIO $ MD5.md5 . MD5.Str <$> readFileStrictAnyEncoding f
+	getmd5 = catchMaybeIO $ MD5.md5 . MD5.Str <$> readFileStrict f
 	comparemd5 oldmd5 = do
 		newmd5 <- getmd5
 		return $ if oldmd5 == newmd5 then NoChange else MadeChange
@@ -263,7 +263,7 @@ isNewerThan x y = do
 --
 -- For example:
 --
--- > upgraded :: UnixLike
+-- > upgraded :: Property (DebianLike + FreeBSD)
 -- > upgraded = (Apt.upgraded `pickOS` Pkg.upgraded)
 -- > 	`describe` "OS upgraded"
 --
@@ -308,8 +308,8 @@ pickOS a b = c `addChildren` [toChildProperty a, toChildProperty b]
 --
 -- > myproperty :: Property Debian
 -- > myproperty = withOS "foo installed" $ \w o -> case o of
--- > 	(Just (System (Debian (Stable release)) arch)) -> ensureProperty w ...
--- > 	(Just (System (Debian suite) arch)) -> ensureProperty w ...
+-- > 	(Just (System (Debian kernel (Stable release)) arch)) -> ensureProperty w ...
+-- > 	(Just (System (Debian kernel suite) arch)) -> ensureProperty w ...
 -- >	_ -> unsupportedOS'
 --
 -- Note that the operating system specifics may not be declared for all hosts,
@@ -345,7 +345,7 @@ revert (RevertableProperty p1 p2) = RevertableProperty p2 p1
 
 -- | Apply a property to each element of a list.
 applyToList
-	:: (Foldable t, Functor t, IsProp p, Combines p p, p ~ CombinedType p p)
+	:: (Foldable t, Functor t, Combines p p, p ~ CombinedType p p)
 	=> (b -> p)
 	-> t b
 	-> p

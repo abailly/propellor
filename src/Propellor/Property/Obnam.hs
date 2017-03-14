@@ -150,7 +150,7 @@ keepParam ps = "--keep=" ++ intercalate "," (map go ps)
 	go (KeepWeeks n) = mk n 'w'
 	go (KeepMonths n) = mk n 'm'
 	go (KeepYears n) = mk n 'y'
-	mk n c = show n ++ [c]
+	mk n c = val n ++ [c]
 
 isKeepParam :: ObnamParam -> Bool
 isKeepParam p = "--keep=" `isPrefixOf` p

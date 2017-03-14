@@ -79,7 +79,7 @@ data DebianMirror = DebianMirror
 
 mkDebianMirror :: FilePath -> Cron.Times -> DebianMirror
 mkDebianMirror dir crontimes = DebianMirror
-	{ _debianMirrorHostName = "httpredir.debian.org"
+	{ _debianMirrorHostName = "deb.debian.org"
 	, _debianMirrorDir = dir
 	, _debianMirrorSuites = []
 	, _debianMirrorArchitectures = []

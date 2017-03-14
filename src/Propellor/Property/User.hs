@@ -43,7 +43,7 @@ systemAccountFor' (User u) mhome mgroup = tightenTargets $ check nouser go
 		]
 
 -- | Removes user home directory!! Use with caution.
-nuked :: User -> Eep -> Property DebianLike
+nuked :: User -> Eep -> Property Linux
 nuked user@(User u) _ = tightenTargets $ check hashomedir go
 	`describe` ("nuked user " ++ u)
   where

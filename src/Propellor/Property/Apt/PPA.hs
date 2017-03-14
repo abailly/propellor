@@ -25,8 +25,8 @@ data PPA = PPA
 	, ppaArchive :: String -- ^ The name of the archive.
 	} deriving (Eq, Ord)
 
-instance Show PPA where
-	show p = concat ["ppa:", ppaAccount p, "/", ppaArchive p]
+instance ConfigurableValue PPA where
+	val p = concat ["ppa:", ppaAccount p, "/", ppaArchive p]
 
 instance IsString PPA where
 	-- | Parse strings like "ppa:zfs-native/stable" into a PPA.
@@ -40,9 +40,9 @@ instance IsString PPA where
 -- | Adds a PPA to the local system repositories.
 addPpa :: PPA -> Property DebianLike
 addPpa p =
-	cmdPropertyEnv "apt-add-repository" ["--yes", show p] Apt.noninteractiveEnv
+	cmdPropertyEnv "apt-add-repository" ["--yes", val p] Apt.noninteractiveEnv
 	`assume` MadeChange
-	`describe` ("Added PPA " ++ (show p))
+	`describe` ("Added PPA " ++ (val p))
 	`requires` installed
 
 -- | A repository key ID to be downloaded with apt-key.
@@ -52,14 +52,11 @@ data AptKeyId = AptKeyId
 	, akiServer :: String
 	} deriving (Eq, Ord)
 
-instance Show AptKeyId where
-	show k = unwords ["Apt Key", akiName k, akiId k, "from", akiServer k]
-
 -- | Adds an 'AptKeyId' from the specified GPG server.
 addKeyId :: AptKeyId -> Property DebianLike
 addKeyId keyId =
 	check keyTrusted akcmd
-	`describe` (unwords ["Add third-party Apt key", show keyId])
+	`describe` (unwords ["Add third-party Apt key", desc keyId])
   where
 	akcmd =
 		tightenTargets $ cmdProperty "apt-key" ["adv", "--keyserver", akiServer keyId, "--recv-keys", akiId keyId]
@@ -72,10 +69,12 @@ addKeyId keyId =
 			nkid = take 8 (akiId keyId)
 		in
 			(isInfixOf [nkid] . pks) <$> readProcess "apt-key" ["list"]
+	desc k = unwords ["Apt Key", akiName k, akiId k, "from", akiServer k]
 
 -- | An Apt source line that apt-add-repository will just add to
--- sources.list. It's also an instance of both 'Show' and 'IsString' to make
--- using 'OverloadedStrings' in the configuration file easier.
+-- sources.list. It's also an instance of both 'ConfigurableValue'
+-- and 'IsString' to make using 'OverloadedStrings' in the configuration
+-- file easier.
 --
 -- | FIXME there's apparently an optional "options" fragment that I've
 -- definitely not parsed here.
@@ -85,8 +84,8 @@ data AptSource = AptSource
 	, asComponents :: [String] -- ^ The list of components to install from this repository.
 	} deriving (Eq, Ord)
 
-instance Show AptSource where
-	show asrc = unwords ["deb", asURL asrc, asSuite asrc, unwords . asComponents $ asrc]
+instance ConfigurableValue AptSource where
+	val asrc = unwords ["deb", asURL asrc, asSuite asrc, unwords . asComponents $ asrc]
 
 instance IsString AptSource where
 	fromString s =
@@ -103,7 +102,7 @@ addRepository :: AptRepository -> Property DebianLike
 addRepository (AptRepositoryPPA p) = addPpa p
 addRepository (AptRepositorySource src) =
 	check repoExists addSrc
-	`describe` unwords ["Adding APT repository", show src]
+	`describe` unwords ["Adding APT repository", val src]
 	`requires` installed
   where
 	allSourceLines =
@@ -112,4 +111,4 @@ addRepository (AptRepositorySource src) =
 		. filter (not . isPrefixOf "#")
 		. filter (/= "") . lines <$> allSourceLines
 	repoExists = isInfixOf [src] <$> activeSources
-	addSrc = cmdProperty "apt-add-source" [show src]
+	addSrc = cmdProperty "apt-add-source" [val src]

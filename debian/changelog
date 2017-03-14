@@ -1,3 +1,86 @@
+propellor (3.4.1) unstable; urgency=medium
+
+  * Fixed https url to propellor git repository.
+
+ -- Joey Hess <id@joeyh.name>  Wed, 01 Mar 2017 16:50:05 -0400
+
+propellor (3.4.0) unstable; urgency=medium
+
+  * Added ConfigurableValue type class, for values that can be used in a
+    config file, or to otherwise configure a program.
+  * The val function converts such values to String.
+  * Removed fromPort and fromIPAddr (use val instead). (API change)
+  * Removed several Show instances that were only used for generating
+    configuration, replacing with ConfigurableValue instances. (API change)
+  * The github mirror of propellor's git repository has been removed,
+    since github's terms of service has started imposing unwanted licensing
+    requirements.
+  * propellor --init: The option to clone propellor's git repository
+    used to use the github mirror, and has been changed to use a different
+    mirror.
+
+ -- Joey Hess <id@joeyh.name>  Wed, 01 Mar 2017 16:44:20 -0400
+
+propellor (3.3.1) unstable; urgency=medium
+
+  * Apt: Removed the mirrors.kernel.org line from stdSourcesList etc.
+    The mirror CDN has a new implementation that should avoid the problems
+    with httpredir that made an extra mirror sometimes be needed.
+  * Switch Debian CDN address to deb.debian.org.
+  * Tor.hiddenService: Fix bug in torrc's HiddenServicePort configuration.
+    Thanks, Félix Sipma
+
+ -- Joey Hess <id@joeyh.name>  Mon, 20 Feb 2017 13:49:26 -0400
+
+propellor (3.3.0) unstable; urgency=medium
+
+  * Arch Linux is now supported by Propellor!
+    Thanks to Zihao Wang for this port.
+  * Added Propellor.Property.Pacman for Arch's package manager.
+    Maintained by Zihao Wang.
+  * The types of some properties changed; eg from Property DebianLike
+    to Property (DebianLike + ArchLinux). Also, DebianLike and Linux
+    are no longer type synonyms; propellor now knows that Linux includes
+    ArchLinux. This could require updates to code, so is a minor API change.
+  * GHC's fileSystemEncoding is used for all String IO, to avoid
+    encoding-related crashes in eg, Propellor.Property.File.
+  * Add --build option to simply build config.hs.
+  * More informative usage message. Thanks, Daniel Brooks
+  * Tor.hiddenService' added to support multiple ports.
+    Thanks, Félix Sipma.
+  * Apt.noPDiffs added.
+    Thanks, Sean Whitton.
+  * stack.yaml: Compile with GHC 8.0.1 against lts-7.16.
+    Thanks, Andrew Cowie.
+  * Added Propellor.Property.File.configFileName and related functions
+    to generate good filenames for config directories.
+  * Added Apt.suiteAvailablePinned, Apt.pinnedTo.
+    Thanks, Sean Whitton.
+  * Added File.containsBlock
+    Thanks, Sean Whitton.
+
+ -- Joey Hess <id@joeyh.name>  Tue, 07 Feb 2017 12:09:24 -0400
+
+propellor (3.2.3) unstable; urgency=medium
+
+  * Improve extraction of gpg secret key id list, to work with gpg 2.1.
+  * The propellor wrapper checks if ./config.hs exists; if so it runs
+    using the configuration in the current directory, rather than
+    ~/.propellor/config.hs
+  * Debootstap: Fix too tight permissions lock down of debootstrapped
+    chroots, which prevented non-root users from doing anything in the
+    chroot.
+
+ -- Joey Hess <id@joeyh.name>  Tue, 22 Nov 2016 11:36:18 -0400
+
+propellor (3.2.2) unstable; urgency=medium
+
+  * Added Linode.serialGrub property.
+  * Clean up build warnings about redundant constraints when built with ghc 8.0.
+  * Added Group.hasUser property. Thanks, Daniel Brooks
+
+ -- Joey Hess <id@joeyh.name>  Fri, 11 Nov 2016 17:54:44 -0400
+
 propellor (3.2.1) unstable; urgency=medium
 
   * Simplify Debootstrap.sourceInstall since #770217 was fixed.

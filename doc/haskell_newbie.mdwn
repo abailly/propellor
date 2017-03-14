@@ -47,12 +47,12 @@ Finally, you need to define the configuration for each host in the list:
 
 [[!format haskell """
 mylaptop :: Host
-mylaptop = host "mylaptop.example.com"
+mylaptop = host "mylaptop.example.com" $ props
 	& osDebian Unstable X86_64
 	& Apt.stdSourcesList
 
 myserver :: Host
-myserver = host "server.example.com"
+myserver = host "server.example.com" $ props
 	& osDebian (Stable "jessie") X86_64
 	& Apt.stdSourcesList
 	& Apt.installed ["ssh"]

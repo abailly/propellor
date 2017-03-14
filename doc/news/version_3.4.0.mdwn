@@ -1,0 +1,14 @@
+propellor 3.4.0 released with [[!toggle text="these changes"]]
+[[!toggleable text="""
+   * Added ConfigurableValue type class, for values that can be used in a
+     config file, or to otherwise configure a program.
+   * The val function converts such values to String.
+   * Removed fromPort and fromIPAddr (use val instead). (API change)
+   * Removed several Show instances that were only used for generating
+     configuration, replacing with ConfigurableValue instances. (API change)
+   * The github mirror of propellor's git repository has been removed,
+     since github's terms of service has started imposing unwanted licensing
+     requirements.
+   * propellor --init: The option to clone propellor's git repository
+     used to use the github mirror, and has been changed to use a different
+     mirror."""]]

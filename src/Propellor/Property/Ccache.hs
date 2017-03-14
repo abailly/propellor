@@ -76,7 +76,7 @@ limitToParams NoLimit = []
 limitToParams (MaxSize s) = case maxSizeParam s of
 	Just param -> [Right param]
 	Nothing -> [Left $ "unable to parse data size " ++ s]
-limitToParams (MaxFiles f) = [Right $ "--max-files=" ++ show f]
+limitToParams (MaxFiles f) = [Right $ "--max-files=" ++ val f]
 limitToParams (l1 :+ l2) = limitToParams l1 <> limitToParams l2
 
 -- | Configures a ccache in /var/cache for a group

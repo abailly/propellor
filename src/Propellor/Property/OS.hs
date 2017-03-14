@@ -64,7 +64,7 @@ import Control.Exception (throw)
 -- > & User.accountFor "joey"
 -- > & User.hasSomePassword "joey"
 -- > -- rest of system properties here
-cleanInstallOnce :: Confirmation -> Property Linux
+cleanInstallOnce :: Confirmation -> Property DebianLike
 cleanInstallOnce confirmation = check (not <$> doesFileExist flagfile) $
 	go `requires` confirmed "clean install confirmed" confirmation
   where

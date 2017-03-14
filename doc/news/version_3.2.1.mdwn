@@ -1,5 +1,0 @@
-propellor 3.2.1 released with [[!toggle text="these changes"]]
-[[!toggleable text="""
-   * Simplify Debootstrap.sourceInstall since #770217 was fixed.
-   * Debootstap.installed: Fix inverted logic that made this never install
-     debootstrap. Thanks, mithrandi."""]]

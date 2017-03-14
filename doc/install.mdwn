@@ -1,4 +1,3 @@
-`git clone git://propellor.branchable.com/ propellor`  
-Or get it [from github](https://github.com/joeyh/propellor).
+`git clone git://propellor.branchable.com/propellor`  
 
-Propellor is recently available in Debian.
+Propellor is also available in Debian.

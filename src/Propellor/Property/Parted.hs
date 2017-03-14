@@ -23,20 +23,21 @@ module Propellor.Property.Parted (
 
 import Propellor.Base
 import qualified Propellor.Property.Apt as Apt
+import qualified Propellor.Property.Pacman as Pacman
 import qualified Propellor.Property.Partition as Partition
 import Utility.DataUnits
 import Data.Char
 import System.Posix.Files
 
 class PartedVal a where
-	val :: a -> String
+	pval :: a -> String
 
 -- | Types of partition tables supported by parted.
 data TableType = MSDOS | GPT | AIX | AMIGA | BSD | DVH | LOOP | MAC | PC98 | SUN
 	deriving (Show)
 
 instance PartedVal TableType where
-	val = map toLower . show
+	pval = map toLower . show
 
 -- | A disk's partition table.
 data PartTable = PartTable TableType [Partition]
@@ -81,9 +82,9 @@ data PartType = Primary | Logical | Extended
 	deriving (Show)
 
 instance PartedVal PartType where
-	val Primary = "primary"
-	val Logical = "logical"
-	val Extended = "extended"
+	pval Primary = "primary"
+	pval Logical = "logical"
+	pval Extended = "extended"
 
 -- | All partition sizing is done in megabytes, so that parted can
 -- automatically lay out the partitions.
@@ -93,11 +94,11 @@ newtype PartSize = MegaBytes Integer
 	deriving (Show)
 
 instance PartedVal PartSize where
-	val (MegaBytes n)
-		| n > 0 = show n ++ "MB"
+	pval (MegaBytes n)
+		| n > 0 = val n ++ "MB"
 		-- parted can't make partitions smaller than 1MB;
 		-- avoid failure in edge cases
-		| otherwise = show "1MB"
+		| otherwise = "1MB"
 
 -- | Rounds up to the nearest MegaByte.
 toPartSize :: ByteSize -> PartSize
@@ -118,33 +119,33 @@ data PartFlag = BootFlag | RootFlag | SwapFlag | HiddenFlag | RaidFlag | LvmFlag
 	deriving (Show)
 
 instance PartedVal PartFlag where
-	val BootFlag = "boot"
-	val RootFlag = "root"
-	val SwapFlag = "swap"
-	val HiddenFlag = "hidden"
-	val RaidFlag = "raid"
-	val LvmFlag = "lvm"
-	val LbaFlag = "lba"
-	val LegacyBootFlag = "legacy_boot"
-	val IrstFlag = "irst"
-	val EspFlag = "esp"
-	val PaloFlag = "palo"
+	pval BootFlag = "boot"
+	pval RootFlag = "root"
+	pval SwapFlag = "swap"
+	pval HiddenFlag = "hidden"
+	pval RaidFlag = "raid"
+	pval LvmFlag = "lvm"
+	pval LbaFlag = "lba"
+	pval LegacyBootFlag = "legacy_boot"
+	pval IrstFlag = "irst"
+	pval EspFlag = "esp"
+	pval PaloFlag = "palo"
 
 instance PartedVal Bool where
-	val True = "on"
-	val False = "off"
+	pval True = "on"
+	pval False = "off"
 
 instance PartedVal Partition.Fs where
-	val Partition.EXT2 = "ext2"
-	val Partition.EXT3 = "ext3"
-	val Partition.EXT4 = "ext4"
-	val Partition.BTRFS = "btrfs"
-	val Partition.REISERFS = "reiserfs"
-	val Partition.XFS = "xfs"
-	val Partition.FAT = "fat"
-	val Partition.VFAT = "vfat"
-	val Partition.NTFS = "ntfs"
-	val Partition.LinuxSwap = "linux-swap"
+	pval Partition.EXT2 = "ext2"
+	pval Partition.EXT3 = "ext3"
+	pval Partition.EXT4 = "ext4"
+	pval Partition.BTRFS = "btrfs"
+	pval Partition.REISERFS = "reiserfs"
+	pval Partition.XFS = "xfs"
+	pval Partition.FAT = "fat"
+	pval Partition.VFAT = "vfat"
+	pval Partition.NTFS = "ntfs"
+	pval Partition.LinuxSwap = "linux-swap"
 
 data Eep = YesReallyDeleteDiskContents
 
@@ -167,19 +168,19 @@ partitioned eep disk (PartTable tabletype parts) = property' desc $ \w -> do
 	partedparams = concat $ mklabel : mkparts (1 :: Integer) mempty parts []
 	format (p, dev) = Partition.formatted' (partMkFsOpts p)
 		Partition.YesReallyFormatPartition (partFs p) dev
-	mklabel = ["mklabel", val tabletype]
+	mklabel = ["mklabel", pval tabletype]
 	mkflag partnum (f, b) =
 		[ "set"
 		, show partnum
-		, val f
-		, val b
+		, pval f
+		, pval b
 		]
 	mkpart partnum offset p =
 		[ "mkpart"
-		, val (partType p)
-		, val (partFs p)
-		, val offset
-		, val (offset <> partSize p)
+		, pval (partType p)
+		, pval (partFs p)
+		, pval offset
+		, pval (offset <> partSize p)
 		] ++ case partName p of
 			Just n -> ["name", show partnum, n]
 			Nothing -> []
@@ -192,12 +193,12 @@ partitioned eep disk (PartTable tabletype parts) = property' desc $ \w -> do
 --
 -- Parted is run in script mode, so it will never prompt for input.
 -- It is asked to use cylinder alignment for the disk.
-parted :: Eep -> FilePath -> [String] -> Property DebianLike
+parted :: Eep -> FilePath -> [String] -> Property (DebianLike + ArchLinux)
 parted YesReallyDeleteDiskContents disk ps = p `requires` installed
   where
 	p = cmdProperty "parted" ("--script":"--align":"cylinder":disk:ps)
 		`assume` MadeChange
 
 -- | Gets parted installed.
-installed :: Property DebianLike
-installed = Apt.installed ["parted"]
+installed :: Property (DebianLike + ArchLinux)
+installed = Apt.installed ["parted"] `pickOS` Pacman.installed ["parted"]

@@ -69,11 +69,11 @@ setSshdConfigBool :: ConfigKeyword -> Bool -> Property DebianLike
 setSshdConfigBool setting allowed = setSshdConfig setting (sshBool allowed)
 
 setSshdConfig :: ConfigKeyword -> String -> Property DebianLike
-setSshdConfig setting val = File.fileProperty desc f sshdConfig
+setSshdConfig setting v = File.fileProperty desc f sshdConfig
 	`onChange` restarted
   where
-	desc = unwords [ "ssh config:", setting, val ]
-	cfgline = setting ++ " " ++ val
+	desc = unwords [ "ssh config:", setting, v ]
+	cfgline = setting ++ " " ++ v
 	wantedline s
 		| s == cfgline = True
 		| (setting ++ " ") `isPrefixOf` s = False
@@ -120,7 +120,7 @@ dotFile f user = do
 listenPort :: Port -> RevertableProperty DebianLike DebianLike
 listenPort port = enable <!> disable
   where
-	portline = "Port " ++ fromPort port
+	portline = "Port " ++ val port
 	enable = sshdConfig `File.containsLine` portline
 		`describe` ("ssh listening on " ++ portline)
 		`onChange` restarted

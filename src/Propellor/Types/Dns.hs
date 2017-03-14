@@ -5,6 +5,7 @@ module Propellor.Types.Dns where
 import Propellor.Types.OS (HostName)
 import Propellor.Types.Empty
 import Propellor.Types.Info
+import Propellor.Types.ConfigurableValue
 
 import Data.Word
 import qualified Data.Map as M
@@ -19,9 +20,9 @@ type Domain = String
 data IPAddr = IPv4 String | IPv6 String
 	deriving (Read, Show, Eq, Ord)
 
-fromIPAddr :: IPAddr -> String
-fromIPAddr (IPv4 addr) = addr
-fromIPAddr (IPv6 addr) = addr
+instance ConfigurableValue IPAddr where
+	val (IPv4 addr) = addr
+	val (IPv6 addr) = addr
 
 newtype AliasesInfo = AliasesInfo (S.Set HostName)
 	deriving (Show, Eq, Ord, Monoid, Typeable)
@@ -102,7 +103,7 @@ type ReverseIP = String
 
 reverseIP :: IPAddr -> ReverseIP
 reverseIP (IPv4 addr) = intercalate "." (reverse $ split "." addr) ++ ".in-addr.arpa"
-reverseIP addr@(IPv6 _) = reverse (intersperse '.' $ replace ":" "" $ fromIPAddr $ canonicalIP addr) ++ ".ip6.arpa"
+reverseIP addr@(IPv6 _) = reverse (intersperse '.' $ replace ":" "" $ val $ canonicalIP addr) ++ ".ip6.arpa"
 
 -- | Converts an IP address (particularly IPv6) to canonical, fully
 -- expanded form.

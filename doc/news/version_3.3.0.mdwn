@@ -1,0 +1,26 @@
+propellor 3.3.0 released with [[!toggle text="these changes"]]
+[[!toggleable text="""
+   * Arch Linux is now supported by Propellor!
+     Thanks to Zihao Wang for this port.
+   * Added Propellor.Property.Pacman for Arch's package manager.
+     Maintained by Zihao Wang.
+   * The types of some properties changed; eg from Property DebianLike
+     to Property (DebianLike + ArchLinux). Also, DebianLike and Linux
+     are no longer type synonyms; propellor now knows that Linux includes
+     ArchLinux. This could require updates to code, so is a minor API change.
+   * GHC's fileSystemEncoding is used for all String IO, to avoid
+     encoding-related crashes in eg, Propellor.Property.File.
+   * Add --build option to simply build config.hs.
+   * More informative usage message. Thanks, Daniel Brooks
+   * Tor.hiddenService' added to support multiple ports.
+     Thanks, Félix Sipma.
+   * Apt.noPDiffs added.
+     Thanks, Sean Whitton.
+   * stack.yaml: Compile with GHC 8.0.1 against lts-7.16.
+     Thanks, Andrew Cowie.
+   * Added Propellor.Property.File.configFileName and related functions
+     to generate good filenames for config directories.
+   * Added Apt.suiteAvailablePinned, Apt.pinnedTo.
+     Thanks, Sean Whitton.
+   * Added File.containsBlock
+     Thanks, Sean Whitton."""]]

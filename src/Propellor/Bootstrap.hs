@@ -52,6 +52,7 @@ depsCommand msys = "( " ++ intercalate " ; " (osinstall ++ stackinstall) ++ " ) 
   where
 	osinstall = case msys of
 		Just (System (FreeBSD _) _) -> map pkginstall fbsddeps
+		Just (System (ArchLinux) _) -> map pacmaninstall archlinuxdeps
 		Just (System (Debian _ _) _) -> useapt
 		Just (System (Buntish _) _) -> useapt
 		-- assume a debian derived system when not specified
@@ -69,6 +70,7 @@ depsCommand msys = "( " ++ intercalate " ; " (osinstall ++ stackinstall) ++ " ) 
 
 	aptinstall p = "DEBIAN_FRONTEND=noninteractive apt-get -qq --no-upgrade --no-install-recommends -y install " ++ p
 	pkginstall p = "ASSUME_ALWAYS_YES=yes pkg install " ++ p
+	pacmaninstall p = "pacman -S --noconfirm --needed " ++ p
 
 	-- This is the same deps listed in debian/control.
 	debdeps =
@@ -83,6 +85,25 @@ depsCommand msys = "( " ++ intercalate " ; " (osinstall ++ stackinstall) ++ " ) 
                 , "ca_root_nss"
                 , "wget"
 		]
+	archlinuxdeps =
+		[ "gnupg"
+		, "ghc"
+		, "cabal-install"
+		, "haskell-async"
+		, "haskell-missingh"
+		, "haskell-hslogger"
+		, "haskell-unix-compat"
+		, "haskell-ansi-terminal"
+		, "haskell-hackage-security"
+		, "haskell-ifelse"
+		, "haskell-network"
+		, "haskell-mtl"
+		, "haskell-transformers-base"
+		, "haskell-exceptions"
+		, "haskell-stm"
+		, "haskell-text"
+		, "make"
+		]
 
 installGitCommand :: Maybe System -> ShellCommand
 installGitCommand msys = case msys of
@@ -92,6 +113,8 @@ installGitCommand msys = case msys of
 		[ "ASSUME_ALWAYS_YES=yes pkg update"
 		, "ASSUME_ALWAYS_YES=yes pkg install git"
 		]
+	(Just (System (ArchLinux) _)) -> use
+		[ "pacman -S --noconfirm --needed git"]
 	-- assume a debian derived system when not specified
 	Nothing -> use apt
   where

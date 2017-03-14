@@ -1,0 +1,8 @@
+propellor 3.3.1 released with [[!toggle text="these changes"]]
+[[!toggleable text="""
+   * Apt: Removed the mirrors.kernel.org line from stdSourcesList etc.
+     The mirror CDN has a new implementation that should avoid the problems
+     with httpredir that made an extra mirror sometimes be needed.
+   * Switch Debian CDN address to deb.debian.org.
+   * Tor.hiddenService: Fix bug in torrc's HiddenServicePort configuration.
+     Thanks, Félix Sipma"""]]

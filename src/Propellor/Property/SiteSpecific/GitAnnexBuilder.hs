@@ -143,15 +143,15 @@ stackAutoBuilder suite arch flavor =
 stackInstalled :: Property Linux
 stackInstalled = withOS "stack installed" $ \w o ->
 	case o of
-		(Just (System (Debian Linux (Stable "jessie")) X86_32)) ->
-			ensureProperty w $ manualinstall X86_32
+		(Just (System (Debian Linux (Stable "jessie")) arch)) ->
+			ensureProperty w $ manualinstall arch
 		_ -> ensureProperty w $ Apt.installed ["haskell-stack"]
   where
 	-- Warning: Using a binary downloaded w/o validation.
 	manualinstall :: Architecture -> Property Linux
 	manualinstall arch = tightenTargets $ check (not <$> doesFileExist binstack) $
 		propertyList "stack installed from upstream tarball" $ props
-			& cmdProperty "wget" ["https://www.stackage.org/stack/linux-" ++ architectureToDebianArchString arch, "-O", tmptar]
+			& cmdProperty "wget" ["https://www.stackage.org/stack/linux-" ++ archname, "-O", tmptar]
 				`assume` MadeChange
 			& File.dirExists tmpdir
 			& cmdProperty "tar" ["xf", tmptar, "-C", tmpdir, "--strip-components=1"]
@@ -160,6 +160,15 @@ stackInstalled = withOS "stack installed" $ \w o ->
 				`assume` MadeChange
 			& cmdProperty "rm" ["-rf", tmpdir, tmptar]
 				`assume` MadeChange
+	  where
+	  	-- See https://www.stackage.org/stack/ for the list of
+		-- binaries.
+		archname = case arch of
+			X86_32 -> "i386"
+			X86_64 -> "x86_64"
+			ARMHF -> "arm"
+			-- Probably not available.
+			a -> architectureToDebianArchString a
 	binstack = "/usr/bin/stack"
 	tmptar = "/root/stack.tar.gz"
 	tmpdir = "/root/stack"

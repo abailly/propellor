@@ -15,7 +15,6 @@ module Propellor.Property.Firewall (
 	TCPFlag(..),
 	Frequency(..),
 	IPWithMask(..),
-	fromIPWithMask
 ) where
 
 import Data.Monoid
@@ -44,16 +43,16 @@ rule c tb tg rs = property ("firewall rule: " <> show r) addIpTable
 
 toIpTable :: Rule -> [CommandParam]
 toIpTable r =  map Param $
-	fromChain (ruleChain r) :
+	val (ruleChain r) :
 	toIpTableArg (ruleRules r) ++
-	["-t", fromTable (ruleTable r), "-j", fromTarget (ruleTarget r)]
+	["-t", val (ruleTable r), "-j", val (ruleTarget r)]
 
 toIpTableArg :: Rules -> [String]
 toIpTableArg Everything = []
 toIpTableArg (Proto proto) = ["-p", map toLower $ show proto]
-toIpTableArg (DPort port) = ["--dport", fromPort port]
+toIpTableArg (DPort port) = ["--dport", val port]
 toIpTableArg (DPortRange (portf, portt)) =
-	["--dport", fromPort portf ++ ":" ++ fromPort portt]
+	["--dport", val portf ++ ":" ++ val portt]
 toIpTableArg (InIFace iface) = ["-i", iface]
 toIpTableArg (OutIFace iface) = ["-o", iface]
 toIpTableArg (Ctstate states) =
@@ -64,12 +63,12 @@ toIpTableArg (Ctstate states) =
 toIpTableArg (ICMPType i) =
 	[ "-m"
 	, "icmp"
-	, "--icmp-type", fromICMPTypeMatch i
+	, "--icmp-type", val i
 	]
 toIpTableArg (RateLimit f) =
 	[ "-m"
 	, "limit"
-	, "--limit", fromFrequency f
+	, "--limit", val f
 	]
 toIpTableArg (TCPFlags m c) =
 	[ "-m"
@@ -87,30 +86,30 @@ toIpTableArg (GroupOwner (Group g)) =
 	]
 toIpTableArg (Source ipwm) =
 	[ "-s"
-	, intercalate "," (map fromIPWithMask ipwm)
+	, intercalate "," (map val ipwm)
 	]
 toIpTableArg (Destination ipwm) =
 	[ "-d"
-	, intercalate "," (map fromIPWithMask ipwm)
+	, intercalate "," (map val ipwm)
 	]
 toIpTableArg (NotDestination ipwm) =
 	[ "!"
 	, "-d"
-	, intercalate "," (map fromIPWithMask ipwm)
+	, intercalate "," (map val ipwm)
 	]
 toIpTableArg (NatDestination ip mport) =
 	[ "--to-destination"
-	, fromIPAddr ip ++ maybe "" (\p -> ":" ++ fromPort p) mport
+	, val ip ++ maybe "" (\p -> ":" ++ val p) mport
 	]
 toIpTableArg (r :- r') = toIpTableArg r <> toIpTableArg r'
 
 data IPWithMask = IPWithNoMask IPAddr | IPWithIPMask IPAddr IPAddr | IPWithNumMask IPAddr Int
 	deriving (Eq, Show)
 
-fromIPWithMask :: IPWithMask -> String
-fromIPWithMask (IPWithNoMask ip) = fromIPAddr ip
-fromIPWithMask (IPWithIPMask ip ipm) = fromIPAddr ip ++ "/" ++ fromIPAddr ipm
-fromIPWithMask (IPWithNumMask ip m) = fromIPAddr ip ++ "/" ++ show m
+instance ConfigurableValue IPWithMask where
+	val (IPWithNoMask ip) = val ip
+	val (IPWithIPMask ip ipm) = val ip ++ "/" ++ val ipm
+	val (IPWithNumMask ip m) = val ip ++ "/" ++ val m
 
 data Rule = Rule
 	{ ruleChain  :: Chain
@@ -122,33 +121,33 @@ data Rule = Rule
 data Table = Filter | Nat | Mangle | Raw | Security
 	deriving (Eq, Show)
 
-fromTable :: Table -> String
-fromTable Filter = "filter"
-fromTable Nat = "nat"
-fromTable Mangle = "mangle"
-fromTable Raw = "raw"
-fromTable Security = "security"
+instance ConfigurableValue Table where
+	val Filter = "filter"
+	val Nat = "nat"
+	val Mangle = "mangle"
+	val Raw = "raw"
+	val Security = "security"
 
 data Target = ACCEPT | REJECT | DROP | LOG | TargetCustom String
 	deriving (Eq, Show)
 
-fromTarget :: Target -> String
-fromTarget ACCEPT = "ACCEPT"
-fromTarget REJECT = "REJECT"
-fromTarget DROP = "DROP"
-fromTarget LOG = "LOG"
-fromTarget (TargetCustom t) = t
+instance ConfigurableValue Target where
+	val ACCEPT = "ACCEPT"
+	val REJECT = "REJECT"
+	val DROP = "DROP"
+	val LOG = "LOG"
+	val (TargetCustom t) = t
 
 data Chain = INPUT | OUTPUT | FORWARD | PREROUTING | POSTROUTING | ChainCustom String
 	deriving (Eq, Show)
 
-fromChain :: Chain -> String
-fromChain INPUT = "INPUT"
-fromChain OUTPUT = "OUTPUT"
-fromChain FORWARD = "FORWARD"
-fromChain PREROUTING = "PREROUTING"
-fromChain POSTROUTING = "POSTROUTING"
-fromChain (ChainCustom c) = c
+instance ConfigurableValue Chain where
+	val INPUT = "INPUT"
+	val OUTPUT = "OUTPUT"
+	val FORWARD = "FORWARD"
+	val PREROUTING = "PREROUTING"
+	val POSTROUTING = "POSTROUTING"
+	val (ChainCustom c) = c
 
 data Proto = TCP | UDP | ICMP
 	deriving (Eq, Show)
@@ -159,15 +158,15 @@ data ConnectionState = ESTABLISHED | RELATED | NEW | INVALID
 data ICMPTypeMatch = ICMPTypeName String | ICMPTypeCode Int
 	deriving (Eq, Show)
 
-fromICMPTypeMatch :: ICMPTypeMatch -> String
-fromICMPTypeMatch (ICMPTypeName t) = t
-fromICMPTypeMatch (ICMPTypeCode c) = show c
+instance ConfigurableValue ICMPTypeMatch where
+	val (ICMPTypeName t) = t
+	val (ICMPTypeCode c) = val c
 
 data Frequency = NumBySecond Int
 	deriving (Eq, Show)
 
-fromFrequency :: Frequency -> String
-fromFrequency (NumBySecond n) = show n ++ "/second"
+instance ConfigurableValue Frequency where
+	val (NumBySecond n) = val n ++ "/second"
 
 type TCPFlagMask = [TCPFlag]
 

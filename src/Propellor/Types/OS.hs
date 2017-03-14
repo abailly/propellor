@@ -18,9 +18,10 @@ module Propellor.Types.OS (
 	Group(..),
 	userGroup,
 	Port(..),
-	fromPort,
 	systemToTargetOS,
 ) where
+
+import Propellor.Types.ConfigurableValue
 
 import Network.BSD (HostName)
 import Data.Typeable
@@ -33,6 +34,7 @@ data System = System Distribution Architecture
 data Distribution
 	= Debian DebianKernel DebianSuite
 	| Buntish Release -- ^ A well-known Debian derivative founded by a space tourist. The actual name of this distribution is not used in Propellor per <http://joeyh.name/blog/entry/trademark_nonsense/>
+	| ArchLinux
 	| FreeBSD FreeBSDRelease
 	deriving (Show, Eq)
 
@@ -41,12 +43,14 @@ data Distribution
 data TargetOS
 	= OSDebian
 	| OSBuntish
+	| OSArchLinux
 	| OSFreeBSD
 	deriving (Show, Eq, Ord)
 
 systemToTargetOS :: System -> TargetOS
 systemToTargetOS (System (Debian _ _) _) = OSDebian
 systemToTargetOS (System (Buntish _) _) = OSBuntish
+systemToTargetOS (System (ArchLinux) _) = OSArchLinux
 systemToTargetOS (System (FreeBSD _) _) = OSFreeBSD
 
 -- | Most of Debian ports are based on Linux. There also exist hurd-i386,
@@ -72,10 +76,13 @@ instance IsString FBSDVersion where
 	fromString "9.3-RELEASE" = FBSD093
 	fromString _ = error "Invalid FreeBSD release"
 
+instance ConfigurableValue FBSDVersion where
+	val FBSD101 = "10.1-RELEASE"
+	val FBSD102 = "10.2-RELEASE"
+	val FBSD093 = "9.3-RELEASE"
+
 instance Show FBSDVersion where
-	show FBSD101 = "10.1-RELEASE"
-	show FBSD102 = "10.2-RELEASE"
-	show FBSD093 = "9.3-RELEASE"
+	show = val
 
 isStable :: DebianSuite -> Bool
 isStable (Stable _) = True
@@ -135,15 +142,21 @@ type UserName = String
 newtype User = User UserName
 	deriving (Eq, Ord, Show)
 
+instance ConfigurableValue User where
+	val (User n) = n
+
 newtype Group = Group String
 	deriving (Eq, Ord, Show)
+
+instance ConfigurableValue Group where
+	val (Group n) = n
 
 -- | Makes a Group with the same name as the User.
 userGroup :: User -> Group
 userGroup (User u) = Group u
 
 newtype Port = Port Int
-	deriving (Eq, Show)
+	deriving (Eq, Ord, Show)
 
-fromPort :: Port -> String
-fromPort (Port p) = show p
+instance ConfigurableValue Port where
+	val (Port p) = show p

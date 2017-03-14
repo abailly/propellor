@@ -2,7 +2,6 @@ module Propellor.Property.Gpg where
 
 import Propellor.Base
 import qualified Propellor.Property.Apt as Apt
-import Utility.FileSystemEncoding
 
 import System.PosixCompat
 
@@ -35,7 +34,6 @@ keyImported key@(GpgKeyId keyid) user@(User u) = prop
 				( return NoChange
 				, makeChange $ withHandle StdinHandle createProcessSuccess
 					(proc "su" ["-c", "gpg --import", u]) $ \h -> do
-						fileEncoding h
 						hPutStr h (unlines keylines)
 						hClose h
 				)

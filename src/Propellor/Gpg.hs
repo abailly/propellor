@@ -16,7 +16,6 @@ import Utility.Process.NonConcurrent
 import Utility.Monad
 import Utility.Misc
 import Utility.Tmp
-import Utility.FileSystemEncoding
 import Utility.Env
 import Utility.Directory
 
@@ -33,21 +32,42 @@ getGpgBin = do
 listPubKeys :: IO [KeyId]
 listPubKeys = do
 	keyring <- privDataKeyring
-	map fst <$> listKeys ("--list-public-keys" : useKeyringOpts keyring)
-
-listSecretKeys :: IO [(KeyId, String)]
-listSecretKeys = listKeys ["--list-secret-keys"]
-
-listKeys :: [String] -> IO [(KeyId, String)]
-listKeys ps = do
+	let listopts =
+		[ "--list-public-keys"
+		, "--with-colons"
+		, "--fixed-list-mode"
+		] ++ useKeyringOpts keyring
 	gpgbin <- getGpgBin
 	parse . lines <$> readProcess gpgbin listopts
   where
-	listopts = ps ++ ["--with-colons"]
-	parse = mapMaybe (keyIdField . split ":")
-	keyIdField (t:_:_:_:f:_:_:_:_:n:_)
-		| t == "pub" || t == "sec" = Just (f, n)
-	keyIdField _ = Nothing
+	parse = mapMaybe (extract . split ":")
+	extract ("pub":_:_:_:f:_) = Just f
+	extract _ = Nothing
+
+-- Lists all of the user's secret keys.
+listSecretKeys :: IO [(KeyId, String)]
+listSecretKeys = do
+	gpgbin <- getGpgBin
+	parse . lines <$> readProcess gpgbin
+		[ "--list-secret-keys"
+		, "--with-colons"
+		, "--fixed-list-mode"
+		]
+  where
+	parse = extract [] Nothing . map (split ":")
+	extract c (Just keyid) (("uid":_:_:_:_:_:_:_:_:userid:_):rest) =
+		extract ((keyid, userid):c) Nothing rest
+	extract c (Just keyid) rest@(("sec":_):_) =
+		extract ((keyid, ""):c) Nothing rest
+	extract c (Just keyid) rest@(("pub":_):_) =
+		extract ((keyid, ""):c) Nothing rest
+	extract c (Just keyid) (_:rest) =
+		extract c (Just keyid) rest
+	extract c _ [] = c
+	extract c _ (("sec":_:_:_:keyid:_):rest) =
+		extract c (Just keyid) rest
+	extract c k (_:rest) =
+		extract c k rest
 
 useKeyringOpts :: FilePath -> [String]
 useKeyringOpts keyring =
@@ -162,7 +182,7 @@ gpgDecrypt :: FilePath -> IO String
 gpgDecrypt f = do
 	gpgbin <- getGpgBin
 	ifM (doesFileExist f)
-		( writeReadProcessEnv gpgbin ["--decrypt", f] Nothing Nothing (Just fileEncoding)
+		( writeReadProcessEnv gpgbin ["--decrypt", f] Nothing Nothing Nothing
 		, return ""
 		)
 
@@ -180,6 +200,4 @@ gpgEncrypt f s = do
 	encrypted <- writeReadProcessEnv gpgbin opts Nothing (Just writer) Nothing
 	viaTmp writeFile f encrypted
   where
-	writer h = do
-		fileEncoding h
-		hPutStr h s
+	writer h = hPutStr h s

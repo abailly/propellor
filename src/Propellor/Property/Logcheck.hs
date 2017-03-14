@@ -16,21 +16,21 @@ import qualified Propellor.Property.File as File
 data ReportLevel = Workstation | Server | Paranoid
 type Service = String
 
-instance Show ReportLevel where
-	show Workstation = "workstation"
-	show Server = "server"
-	show Paranoid = "paranoid"
+instance ConfigurableValue ReportLevel where
+	val Workstation = "workstation"
+	val Server = "server"
+	val Paranoid = "paranoid"
 
 -- The common prefix used by default in syslog lines.
 defaultPrefix :: String
 defaultPrefix = "^\\w{3} [ :[:digit:]]{11} [._[:alnum:]-]+ "
 
 ignoreFilePath :: ReportLevel -> Service -> FilePath
-ignoreFilePath t n = "/etc/logcheck/ignore.d." ++ (show t) </> n
+ignoreFilePath t n = "/etc/logcheck/ignore.d." ++ (val t) </> n
 
 ignoreLines :: ReportLevel -> Service -> [String] -> Property UnixLike
 ignoreLines t n ls = (ignoreFilePath t n) `File.containsLines` ls
-	`describe` ("logcheck ignore lines for " ++ n ++ "(" ++ (show t) ++ ")")
+	`describe` ("logcheck ignore lines for " ++ n ++ "(" ++ val t ++ ")")
 
 installed :: Property DebianLike
 installed = Apt.installed ["logcheck"]

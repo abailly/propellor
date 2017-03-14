@@ -421,7 +421,7 @@ class Publishable a where
 	toPublish :: a -> String
 
 instance Publishable Port where
-	toPublish port = fromPort port
+	toPublish port = val port
 
 instance Publishable (Bound Port) where
 	toPublish v = toPublish (hostSide v) ++ ":" ++ toPublish (containerSide v)

@@ -1,5 +1,5 @@
 Name: propellor
-Version: 3.2.1
+Version: 3.4.1
 Cabal-Version: >= 1.8
 License: BSD2
 Maintainer: Joey Hess <id@joeyh.name>
@@ -38,6 +38,8 @@ Description:
 Executable propellor
   Main-Is: wrapper.hs
   GHC-Options: -threaded -Wall -fno-warn-tabs -O0
+  if impl(ghc >= 8.0)
+    GHC-Options: -fno-warn-redundant-constraints
   Extensions: TypeOperators
   Hs-Source-Dirs: src
   Build-Depends:
@@ -53,6 +55,8 @@ Executable propellor
 Executable propellor-config
   Main-Is: config.hs
   GHC-Options: -threaded -Wall -fno-warn-tabs -O0
+  if impl(ghc >= 8.0)
+    GHC-Options: -fno-warn-redundant-constraints
   Extensions: TypeOperators
   Hs-Source-Dirs: src
   Build-Depends:
@@ -63,6 +67,8 @@ Executable propellor-config
 
 Library
   GHC-Options: -Wall -fno-warn-tabs -O0
+  if impl(ghc >= 8.0)
+    GHC-Options: -fno-warn-redundant-constraints
   Extensions: TypeOperators
   Hs-Source-Dirs: src
   Build-Depends:
@@ -123,6 +129,7 @@ Library
     Propellor.Property.Obnam
     Propellor.Property.OpenId
     Propellor.Property.OS
+    Propellor.Property.Pacman
     Propellor.Property.Parted
     Propellor.Property.Partition
     Propellor.Property.Postfix
@@ -153,7 +160,6 @@ Library
     Propellor.Property.SiteSpecific.JoeySites
     Propellor.Property.SiteSpecific.GitAnnexBuilder
     Propellor.Property.SiteSpecific.Branchable
-    Propellor.Property.SiteSpecific.IABak
     Propellor.PropAccum
     Propellor.Utilities
     Propellor.CmdLine
@@ -167,6 +173,7 @@ Library
     Propellor.Exception
     Propellor.Spin
     Propellor.Types
+    Propellor.Types.ConfigurableValue
     Propellor.Types.Core
     Propellor.Types.Chroot
     Propellor.Types.CmdLine

@@ -19,6 +19,7 @@ poudriereConfigPath = "/usr/local/etc/poudriere.conf"
 
 newtype PoudriereConfigured = PoudriereConfigured String
 	deriving (Typeable, Monoid, Show)
+
 instance IsInfo PoudriereConfigured where
 	propagateInfo _ = False
 
@@ -68,7 +69,7 @@ jail j@(Jail name version arch) = tightenTargets $
 			nx <- liftIO $ not <$> jailExists j
 			return $ c && nx
 
-		(cmd, args) = poudriereCommand "jail"  ["-c", "-j", name, "-a", show arch, "-v", show version]
+		(cmd, args) = poudriereCommand "jail"  ["-c", "-j", name, "-a", val arch, "-v", val version]
 		createJail = cmdProperty cmd args
 	in
 		check chk createJail
@@ -101,9 +102,10 @@ data PoudriereZFS = PoudriereZFS ZFS.ZFS ZFS.ZFSProperties
 data Jail = Jail String FBSDVersion PoudriereArch
 
 data PoudriereArch = I386 | AMD64 deriving (Eq)
-instance Show PoudriereArch where
-	show I386 = "i386"
-	show AMD64 = "amd64"
+
+instance ConfigurableValue PoudriereArch where
+	val I386 = "i386"
+	val AMD64 = "amd64"
 
 fromArchitecture :: Architecture -> PoudriereArch
 fromArchitecture X86_64 = AMD64
@@ -127,7 +129,7 @@ instance ToShellConfigLines PoudriereZFS where
 	toAssoc (PoudriereZFS (ZFS.ZFS (ZFS.ZPool pool) dataset) _) =
 		[ ("NO_ZFS", "no")
 		, ("ZPOOL", pool)
-		, ("ZROOTFS", show dataset)
+		, ("ZROOTFS", val dataset)
 		]
 
 type ConfigLine = String

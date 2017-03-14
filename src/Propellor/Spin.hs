@@ -169,7 +169,7 @@ getSshTarget target hst
 					warningMessage $ "DNS seems out of date for " ++ target ++ " (" ++ why ++ "); using IP address from configuration instead."
 					return ip
 
-	configips = map fromIPAddr $ mapMaybe getIPAddr $
+	configips = map val $ mapMaybe getIPAddr $
 		S.toList $ fromDnsInfo $ fromInfo $ hostInfo hst
 
 -- Update the privdata, repo url, and git repo over the ssh

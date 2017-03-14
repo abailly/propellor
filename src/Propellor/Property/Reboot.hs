@@ -59,7 +59,7 @@ atEnd force resultok = property "scheduled reboot at end of propellor run" $ do
 -- See 'Propellor.Property.HostingProvider.DigitalOcean'
 -- for an example of how to do this.
 toDistroKernel :: Property DebianLike
-toDistroKernel = check (not <$> runningInstalledKernel) now
+toDistroKernel = tightenTargets $ check (not <$> runningInstalledKernel) now
 	`describe` "running installed kernel"
 
 -- | Given a kernel version string @v@, reboots immediately if the running

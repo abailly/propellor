@@ -1,0 +1,5 @@
+propellor 3.2.2 released with [[!toggle text="these changes"]]
+[[!toggleable text="""
+   * Added Linode.serialGrub property.
+   * Clean up build warnings about redundant constraints when built with ghc 8.0.
+   * Added Group.hasUser property. Thanks, Daniel Brooks"""]]

@@ -19,26 +19,41 @@ import Propellor.Types.CmdLine
 import qualified Propellor.Property.Docker as Docker
 import qualified Propellor.Property.Chroot as Chroot
 import qualified Propellor.Shim as Shim
+import Utility.FileSystemEncoding
 
 usage :: Handle -> IO ()
 usage h = hPutStrLn h $ unlines
 	[ "Usage:"
-	, "  propellor --init"
-	, "  propellor"
-	, "  propellor hostname"
-	, "  propellor --spin targethost [--via relayhost]"
-	, "  propellor --add-key keyid"
-	, "  propellor --rm-key keyid"
-	, "  propellor --list-fields"
-	, "  propellor --dump field context"
-	, "  propellor --edit field context"
-	, "  propellor --set field context"
-	, "  propellor --unset field context"
-	, "  propellor --unset-unused"
-	, "  propellor --merge"
-	, "  propellor --build"
-	, "  propellor --check"
-	]
+	, "  with no arguments, provision the current host"
+	, ""
+	, "  --init"
+	, "      initialize ~/.propellor"
+	, "  hostname"
+	, "      provision the current host as if it had the specified hostname"
+	, "  --spin targethost [--via relayhost]"
+	, "      provision the specified host"
+	, "  --build"
+	, "      recompile using your current config"
+	, "  --add-key keyid"
+	, "      add an additional signing key to the private data"
+	, "  --rm-key keyid"
+	, "      remove a signing key from the private data"
+	, "  --list-fields"
+	, "      list private data fields"
+	, "  --set field context"
+	, "      set a private data field"
+	, "  --unset field context"
+	, "      clear a private data field"
+	, "  --unset-unused"
+	, "      clear unused fields from the private data"
+	, "  --dump field context"
+	, "      show the content of a private data field"
+	, "  --edit field context"
+	, "      edit the content of a private data field"
+	, "  --merge"
+	, "      combine multiple spins into a single git commit"
+	, "  --check"
+	, "      double-check that propellor can actually run here"]
 
 usageError :: [String] -> IO a
 usageError ps = do
@@ -54,6 +69,7 @@ processCmdLine = go =<< getArgs
 			<$> mapM hostname (reverse hs)
 			<*> pure (Just r)
 		_ -> Spin <$> mapM hostname ps <*> pure Nothing
+	go ("--build":[]) = return Build
 	go ("--add-key":k:[]) = return $ AddKey k
 	go ("--rm-key":k:[]) = return $ RmKey k
 	go ("--set":f:c:[]) = withprivfield f c Set
@@ -94,6 +110,7 @@ data CanRebuild = CanRebuild | NoRebuild
 -- | Runs propellor on hosts, as controlled by command-line options.
 defaultMain :: [Host] -> IO ()
 defaultMain hostlist = withConcurrentOutput $ do
+	useFileSystemEncoding
 	Shim.cleanEnv
 	checkDebugMode
 	cmdline <- processCmdLine
@@ -102,6 +119,7 @@ defaultMain hostlist = withConcurrentOutput $ do
   where
 	go cr (Serialized cmdline) = go cr cmdline
 	go _ Check = return ()
+	go cr Build = buildFirst Nothing cr Build $ return ()
 	go _ (Set field context) = setPrivData field context
 	go _ (Unset field context) = unsetPrivData field context
 	go _ (UnsetUnused) = unsetPrivDataUnused hostlist
