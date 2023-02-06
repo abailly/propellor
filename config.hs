@@ -13,12 +13,12 @@ main = defaultMain hosts
 -- The hosts propellor knows about.
 hosts :: [Host]
 hosts =
-        [ mybox
+        [ cardano
         ]
 
 -- An example host.
-mybox :: Host
-mybox = host "cardano.hydra.bzh"
+cardano :: Host
+cardano = host "cardano.hydra.bzh"
         $ props
         & osDebian Unstable X86_64
         & Apt.stdSourcesList
