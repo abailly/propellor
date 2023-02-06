@@ -18,7 +18,8 @@ hosts =
 
 -- An example host.
 mybox :: Host
-mybox = host "cardano.hydra.bzh" $ props
+mybox = host "cardano.hydra.bzh"
+        $ props
         & osDebian Unstable X86_64
         & Apt.stdSourcesList
         & Apt.unattendedUpgrades
