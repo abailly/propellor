@@ -10,7 +10,7 @@ import qualified Propellor.Property.Git as Git
 import qualified Propellor.Property.Ssh as Ssh
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
-import Propellor.Utilities (doesFileExist, readProcess)
+import Propellor.Utilities (doesFileExist, readProcess, doesDirectoryExist)
 
 main :: IO ()
 main = defaultMain hosts
@@ -43,7 +43,9 @@ setupNode =
             & User.accountFor curry
             & Ssh.installed
             & Ssh.authorizedKeys curry hostContext
-            & Git.pulled curry "https://github.com/input-output-hk/cardano-configurations" "cardano-configurations" Nothing
+            & check
+                (not <$> doesDirectoryExist "/home/curry/cardano-configurations")
+                (Git.pulled curry "https://github.com/input-output-hk/cardano-configurations" "cardano-configurations" Nothing)
             & check
                 shouldDownload
                 ( cmdProperty
@@ -58,7 +60,6 @@ setupNode =
         hasFile <- doesFileExist "/home/curry/cardanode-node-1.35.5.tgz"
         sha <- head . words . head . lines <$> readProcess "sha256sum" ["/home/curry/cardanode-node-1.35.5.tgz"]
         pure $ not hasFile || sha /= sha256
-
 
     curry = User "curry"
     curryGrp = Group "curry"
