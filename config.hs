@@ -56,7 +56,7 @@ setupNode =
     sha256 = "bb9e9c3700ebdef4de3e34e5087a79dc30d27ca3c1c66af25957f9205dfe05aa"
     shouldDownload = liftPropellor $ do
         hasFile <- doesFileExist "/home/curry/cardanode-node-1.35.5.tgz"
-        sha <- head . words . head . lines <$> readProcess "sha256" ["/home/curry/cardanode-node-1.35.5.tgz"]
+        sha <- head . words . head . lines <$> readProcess "sha256cmd" ["/home/curry/cardanode-node-1.35.5.tgz"]
         pure $ not hasFile || sha /= sha256
 
 
