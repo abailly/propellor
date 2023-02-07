@@ -8,10 +8,10 @@ import qualified Propellor.Property.Cron as Cron
 import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Git as Git
 import qualified Propellor.Property.Ssh as Ssh
+import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess)
-import qualified Propellor.Property.Systemd as Systemd
 
 main :: IO ()
 main = defaultMain hosts
@@ -35,6 +35,7 @@ cardano =
             & User.hasSomePassword (User "root")
             & File.dirExists "/var/www"
             & Cron.runPropellor (Cron.Times "30 * * * *")
+            & Systemd.persistentJournal
             & setupNode
 
 setupNode :: Property (MetaTypes '[ 'WithInfo, 'Targeting 'OSDebian, 'Targeting 'OSBuntish])
