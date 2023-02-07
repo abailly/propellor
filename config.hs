@@ -11,6 +11,7 @@ import qualified Propellor.Property.Ssh as Ssh
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess)
+import qualified Propellor.Property.Systemd as Systemd
 
 main :: IO ()
 main = defaultMain hosts
@@ -50,31 +51,76 @@ setupNode =
                 shouldDownload
                 ( cmdProperty
                     "curl"
-                    ["-o", "/home/curry/cardano-node-1.35.5.tgz", "-L", "https://update-cardano-mainnet.iohk.io/cardano-node-releases/cardano-node-1.35.5-linux.tar.gz"]
-                    `changesFileContent` "/home/curry/cardano-node-1.35.5.tgz"
+                    ["-o", archivePath, "-L", "https://update-cardano-mainnet.iohk.io/cardano-node-releases/cardano-node-1.35.5-linux.tar.gz"]
+                    `changesFileContent` archivePath
                 )
-            & File.ownerGroup "/home/curry/cardano-node-1.35.5.tgz" curry curryGrp
+            & File.ownerGroup archivePath curry curryGrp
             & check
                 shouldUnpack
                 ( cmdProperty
                     "tar"
-                    ["xC", "/home/curry", "-f", "/home/curry/cardano-node-1.35.5.tgz"]
+                    ["xC", "/home/curry", "-f", archivePath]
                     `changesFileContent` "/home/curry/cardano-node"
                 )
+            & File.hasContent "/home/curry/cardano-node.environment" envFile
+            & File.hasContent "/etc/systemd/system/cardano-node.service" serviceNode
+            & Systemd.enabled "cardano-node"
+            & Systemd.started "cardano-node"
   where
     sha256 = "bb9e9c3700ebdef4de3e34e5087a79dc30d27ca3c1c66af25957f9205dfe05aa"
+
+    archivePath = "/home/curry/cardano-node-1.35.5.tgz"
+
     shouldUnpack =
-        liftPropellor $do
-           hasFile <- doesFileExist "/home/curry/cardano-node"
-           if not hasFile
-             then pure True
-             else not . ("1.35.5" `elem`) . words . head . lines <$> readProcess "/home/curry/cardano-node" ["--version"]
+        liftPropellor $ do
+            hasFile <- doesFileExist "/home/curry/cardano-node"
+            if not hasFile
+                then pure True
+                else not . ("1.35.5" `elem`) . words . head . lines <$> readProcess "/home/curry/cardano-node" ["--version"]
 
     shouldDownload = liftPropellor $ do
-        hasFile <- doesFileExist "/home/curry/cardano-node-1.35.5.tgz"
+        hasFile <- doesFileExist archivePath
         if not hasFile
             then pure True
-            else (/= sha256) . head . words . head . lines <$> readProcess "sha256sum" ["/home/curry/cardano-node-1.35.5.tgz"]
+            else (/= sha256) . head . words . head . lines <$> readProcess "sha256sum" [archivePath]
 
     curry = User "curry"
+
     curryGrp = Group "curry"
+
+    envFile =
+        [ "CONFIG=\"/home/curry/cardano-configurations/network/mainnet/cardano-node/config.json\""
+        , "TOPOLOGY=\"/home/curry/cardano-configurations/network/mainnet/cardano-node/topology.json\""
+        , "DBPATH=\"./db/\""
+        , "SOCKETPATH=\"./node.socket\""
+        , "HOSTADDR=\"0.0.0.0\""
+        , "PORT=\"3000\""
+        ]
+
+    serviceNode =
+        [ "[Unit]"
+        , "Description=Cardano node"
+        , "After=multi-user.target"
+        , ""
+        , "[Service]"
+        , "Type=simple"
+        , "EnvironmentFile=/home/curry/cardano-node.environment"
+        , "ExecStart=/home/curry/cardano-node run --config $CONFIG --topology $TOPOLOGY --database-path $DBPATH --socket-path $SOCKETPATH --host-addr $HOSTADDR --port $PORT"
+        , "KillSignal = SIGINT"
+        , "RestartKillSignal = SIGINT"
+        , "StandardOutput=journal"
+        , "StandardError=journal"
+        , "SyslogIdentifier=cardano-node"
+        , ""
+        , "LimitNOFILE=32768"
+        , ""
+        , "Restart=on-failure"
+        , "RestartSec=15s"
+        , "StartLimitIntervalSec=0"
+        , "WorkingDirectory=~"
+        , "User=curry"
+        , "Group=curry"
+        , ""
+        , "[Install]"
+        , "WantedBy=multi-user.target"
+        ]
