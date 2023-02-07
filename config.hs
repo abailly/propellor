@@ -54,17 +54,27 @@ setupNode =
                     `changesFileContent` "/home/curry/cardano-node-1.35.5.tgz"
                 )
             & File.ownerGroup "/home/curry/cardano-node-1.35.5.tgz" curry curryGrp
-            & cmdProperty
-                "tar"
-                ["xC", "/home/curry", "-f", "/home/curry/cardano-node-1.35.5.tgz"]
-                `changesFileContent` "/home/curry/cardano-node"
+            & check
+                shouldUnpack
+                ( cmdProperty
+                    "tar"
+                    ["xC", "/home/curry", "-f", "/home/curry/cardano-node-1.35.5.tgz"]
+                    `changesFileContent` "/home/curry/cardano-node"
+                )
   where
     sha256 = "bb9e9c3700ebdef4de3e34e5087a79dc30d27ca3c1c66af25957f9205dfe05aa"
+    shouldUnpack =
+        liftPropellor $do
+           hasFile <- doesFileExist "/home/curry/cardano-node"
+           if not hasFile
+             then pure True
+             else ("1.35.5" `elem`) . words . head . lines <$> readProcess "/home/curry/cardano-node" ["--version"]
+
     shouldDownload = liftPropellor $ do
         hasFile <- doesFileExist "/home/curry/cardano-node-1.35.5.tgz"
         if not hasFile
-          then pure True
-          else (/= sha256) . head . words . head . lines <$> readProcess "sha256sum" ["/home/curry/cardano-node-1.35.5.tgz"]
+            then pure True
+            else (/= sha256) . head . words . head . lines <$> readProcess "sha256sum" ["/home/curry/cardano-node-1.35.5.tgz"]
 
     curry = User "curry"
     curryGrp = Group "curry"
