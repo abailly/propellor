@@ -127,7 +127,7 @@ setupNode =
         , "WantedBy=multi-user.target"
         ]
 
-    randomPeers = " curl https://explorer.mainnet.cardano.org/relays/topology.json | jq -rc '(.Producers[] | {addr:.addr,port:.port,valency:1})' | shuf | head -20 | jq -s '(. | {Producers:.})'"
+    randomPeers = " curl https://explorer.mainnet.cardano.org/relays/topology.json | jq -rc '(.Producers[] | {addr:.addr,port:.port,valency:1})' | shuf | head -20 | jq -s '(. | {Producers:.})' > /home/curry/topology.json"
 
     generateTopologyFile =
         check
