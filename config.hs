@@ -68,7 +68,7 @@ setupNode =
            hasFile <- doesFileExist "/home/curry/cardano-node"
            if not hasFile
              then pure True
-             else ("1.35.5" `elem`) . words . head . lines <$> readProcess "/home/curry/cardano-node" ["--version"]
+             else not . ("1.35.5" `elem`) . words . head . lines <$> readProcess "/home/curry/cardano-node" ["--version"]
 
     shouldDownload = liftPropellor $ do
         hasFile <- doesFileExist "/home/curry/cardano-node-1.35.5.tgz"
