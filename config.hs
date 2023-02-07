@@ -6,8 +6,8 @@ import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.Cron as Cron
 import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Git as Git
-import qualified Propellor.Property.User as User
 import qualified Propellor.Property.Ssh as Ssh
+import qualified Propellor.Property.User as User
 
 main :: IO ()
 main = defaultMain hosts
@@ -41,13 +41,15 @@ setupNode =
             & Ssh.userKeys
                 curry
                 hostContext
-                [(SshEd25519,
-                  "ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFEfXqphXP4Ui4YlgaojFQwfgYEkiZl2XRx3PlPypcMdQr6GhgxeLn4hNprCO49VvCajH/wINUJ6WlNpi8JLM5Y=")]
-            & Git.installed
+                [
+                    ( SshEd25519
+                    , "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC8aDeQyneOJA8KJegRWsJyf7qWbyKet5j0GACCDw7KS"
+                    )
+                ]
             & Git.pulled curry "https://github.com/input-output-hk/cardano-configurations" "cardano-configurations" Nothing
-            & cmdProperty "curl"
-            ["-O", "cardanode-node-1.35.5.tgz", "-L", "https://update-cardano-mainnet.iohk.io/cardano-node-releases/cardano-node-1.35.5-linux.tar.gz" ]
-            `changesFile` "cardanode-node-1.35.5.tgz"
-
+            & cmdProperty
+                "curl"
+                ["-o", "cardanode-node-1.35.5.tgz", "-L", "https://update-cardano-mainnet.iohk.io/cardano-node-releases/cardano-node-1.35.5-linux.tar.gz"]
+                `changesFile` "cardanode-node-1.35.5.tgz"
   where
     curry = User "curry"
