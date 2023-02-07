@@ -63,6 +63,7 @@ setupNode =
                     ["xC", "/home/curry", "-f", archivePath]
                     `changesFileContent` "/home/curry/cardano-node"
                 )
+            & generateTopologyFile
             & File.hasContent "/home/curry/cardano-node.environment" envFile
             & File.hasContent "/etc/systemd/system/cardano-node.service" serviceNode
             & Systemd.enabled "cardano-node"
@@ -91,7 +92,7 @@ setupNode =
 
     envFile =
         [ "CONFIG=\"/home/curry/cardano-configurations/network/mainnet/cardano-node/config.json\""
-        , "TOPOLOGY=\"/home/curry/cardano-configurations/network/mainnet/cardano-node/topology.json\""
+        , "TOPOLOGY=\"/home/curry/topology.json\""
         , "DBPATH=\"./db/\""
         , "SOCKETPATH=\"./node.socket\""
         , "HOSTADDR=\"0.0.0.0\""
@@ -125,3 +126,11 @@ setupNode =
         , "[Install]"
         , "WantedBy=multi-user.target"
         ]
+
+    randomPeers = " curl https://explorer.mainnet.cardano.org/relays/topology.json | jq -rc '(.Producers[] | {addr:.addr,port:.port,valency:1})' | shuf | head -20 | jq -s '(. | {Producers:.})'"
+
+    generateTopologyFile =
+        check
+            (not <$> doesFileExist "/home/curry/topology.json")
+            (scriptProperty [randomPeers])
+            `requires` Apt.installed ["jq", "curl", "coreutils"]
