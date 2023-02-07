@@ -127,8 +127,6 @@ setupNode =
         , "WantedBy=multi-user.target"
         ]
 
-    randomPeers = " curl https://explorer.mainnet.cardano.org/relays/topology.json | jq -rc '(.Producers[] | {addr:.addr,port:.port,valency:1})' | shuf | head -20 | jq -s '(. | {Producers:.})' > /home/curry/topology.json"
-
     generateTopologyFile =
         propertyList "Random topology.json" $
             props
@@ -137,3 +135,14 @@ setupNode =
                     (not <$> doesFileExist "/home/curry/topology.json")
                     (scriptProperty [randomPeers])
                 & File.ownerGroup "/home/curry/topology.json" user userGrp
+
+    randomPeers =
+        concat
+            [ "curl https://explorer.mainnet.cardano.org/relays/topology.json | "
+            , "jq -rc '(.Producers[] | "
+            , "{addr:.addr,port:.port,valency:1})' | "
+            , "shuf | "
+            , "head -20 | "
+            , "jq -s '(. | {Producers:.})' > "
+            , "/home/curry/topology.json"
+            ]
