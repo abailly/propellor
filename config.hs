@@ -1,5 +1,6 @@
 -- This is the main configuration file for Propellor, and is used to build
 -- the propellor program.    https://propellor.branchable.com/
+{-# LANGUAGE DataKinds #-}
 
 import Propellor
 import qualified Propellor.Property.Apt as Apt
@@ -8,6 +9,7 @@ import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Git as Git
 import qualified Propellor.Property.Ssh as Ssh
 import qualified Propellor.Property.User as User
+import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 
 main :: IO ()
 main = defaultMain hosts
@@ -33,19 +35,13 @@ cardano =
             & Cron.runPropellor (Cron.Times "30 * * * *")
             & setupNode
 
+setupNode :: Property (MetaTypes '[ 'WithInfo, 'Targeting 'OSDebian, 'Targeting 'OSBuntish])
 setupNode =
     propertyList "Cardano node" $
         props
             & User.accountFor curry
             & Ssh.installed
-            & Ssh.userKeys
-                curry
-                hostContext
-                [
-                    ( SshEd25519
-                    , "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC8aDeQyneOJA8KJegRWsJyf7qWbyKet5j0GACCDw7KS"
-                    )
-                ]
+            & Ssh.authorizedKeys curry hostContext
             & Git.pulled curry "https://github.com/input-output-hk/cardano-configurations" "cardano-configurations" Nothing
             & cmdProperty
                 "curl"
