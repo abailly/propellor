@@ -45,7 +45,7 @@ setupNode =
             & Git.pulled curry "https://github.com/input-output-hk/cardano-configurations" "cardano-configurations" Nothing
             & cmdProperty
                 "curl"
-                ["-o", "cardanode-node-1.35.5.tgz", "-L", "https://update-cardano-mainnet.iohk.io/cardano-node-releases/cardano-node-1.35.5-linux.tar.gz"]
-                `changesFileContent` "cardanode-node-1.35.5.tgz"
+                ["-o", "/home/curry/cardanode-node-1.35.5.tgz", "-L", "https://update-cardano-mainnet.iohk.io/cardano-node-releases/cardano-node-1.35.5-linux.tar.gz"]
+                `changesFileContent` "/home/curry/cardanode-node-1.35.5.tgz"
   where
     curry = User "curry"
