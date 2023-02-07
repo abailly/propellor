@@ -42,12 +42,12 @@ setupNode :: Property (MetaTypes '[ 'WithInfo, 'Targeting 'OSDebian, 'Targeting 
 setupNode =
     propertyList "Cardano node" $
         props
-            & User.accountFor curry
+            & User.accountFor user
             & Ssh.installed
-            & Ssh.authorizedKeys curry hostContext
+            & Ssh.authorizedKeys user hostContext
             & check
                 (not <$> doesDirectoryExist "/home/curry/cardano-configurations")
-                (Git.pulled curry "https://github.com/input-output-hk/cardano-configurations" "cardano-configurations" Nothing)
+                (Git.pulled user "https://github.com/input-output-hk/cardano-configurations" "cardano-configurations" Nothing)
             & check
                 shouldDownload
                 ( cmdProperty
@@ -55,7 +55,7 @@ setupNode =
                     ["-o", archivePath, "-L", "https://update-cardano-mainnet.iohk.io/cardano-node-releases/cardano-node-1.35.5-linux.tar.gz"]
                     `changesFileContent` archivePath
                 )
-            & File.ownerGroup archivePath curry curryGrp
+            & File.ownerGroup archivePath user userGrp
             & check
                 shouldUnpack
                 ( cmdProperty
@@ -86,9 +86,9 @@ setupNode =
             then pure True
             else (/= sha256) . head . words . head . lines <$> readProcess "sha256sum" [archivePath]
 
-    curry = User "curry"
+    user = User "curry"
 
-    curryGrp = Group "curry"
+    userGrp = Group "curry"
 
     envFile =
         [ "CONFIG=\"/home/curry/cardano-configurations/network/mainnet/cardano-node/config.json\""
@@ -130,7 +130,10 @@ setupNode =
     randomPeers = " curl https://explorer.mainnet.cardano.org/relays/topology.json | jq -rc '(.Producers[] | {addr:.addr,port:.port,valency:1})' | shuf | head -20 | jq -s '(. | {Producers:.})' > /home/curry/topology.json"
 
     generateTopologyFile =
-        check
-            (not <$> doesFileExist "/home/curry/topology.json")
-            (scriptProperty [randomPeers])
-            `requires` Apt.installed ["jq", "curl", "coreutils"]
+        propertyList "Random topology.json" $
+            props
+                & Apt.installed ["jq", "curl", "coreutils"]
+                & check
+                    (not <$> doesFileExist "/home/curry/topology.json")
+                    (scriptProperty [randomPeers])
+                & File.ownerGroup "/home/curry/topology.json" user userGrp
