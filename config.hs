@@ -50,6 +50,6 @@ setupNode =
             & cmdProperty
                 "curl"
                 ["-o", "cardanode-node-1.35.5.tgz", "-L", "https://update-cardano-mainnet.iohk.io/cardano-node-releases/cardano-node-1.35.5-linux.tar.gz"]
-                `changesFile` "cardanode-node-1.35.5.tgz"
+                `changesFileContent` "cardanode-node-1.35.5.tgz"
   where
     curry = User "curry"
