@@ -46,6 +46,8 @@ setupNode =
             & cmdProperty
                 "curl"
                 ["-o", "/home/curry/cardanode-node-1.35.5.tgz", "-L", "https://update-cardano-mainnet.iohk.io/cardano-node-releases/cardano-node-1.35.5-linux.tar.gz"]
-                `changesFileContent` "/home/curry/cardanode-node-1.35.5.tgz"
+            `changesFileContent` "/home/curry/cardanode-node-1.35.5.tgz"
+            & File.ownerGroup "/home/curry/cardanode-node-1.35.5.tgz" curry curryGrp
   where
     curry = User "curry"
+    curryGrp = Group "curry"
