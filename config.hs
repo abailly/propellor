@@ -31,7 +31,7 @@ cardano =
             & Apt.stdSourcesList
             & Apt.unattendedUpgrades
             & Apt.installed ["etckeeper"]
-            & Apt.installed ["ssh", "jq"]
+            & Apt.installed ["ssh", "jq", "tmux"]
             & User.hasSomePassword (User "root")
             & File.dirExists "/var/www"
             & Cron.runPropellor (Cron.Times "30 * * * *")
