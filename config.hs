@@ -12,6 +12,7 @@ import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess)
+import qualified Propellor.Property.Tor as Tor
 
 main :: IO ()
 main = defaultMain hosts
@@ -31,7 +32,9 @@ cardano =
             & Apt.stdSourcesList
             & Apt.unattendedUpgrades
             & Apt.installed ["etckeeper"]
-            & Apt.installed ["ssh", "jq", "tmux"]
+            & Apt.installed ["ssh", "jq", "tmux", "dstat"]
+            & Tor.installed
+	    & Tor.hiddenServiceAvailable "ssh" (Port 22)
             & User.hasSomePassword (User "root")
             & File.dirExists "/var/www"
             & Cron.runPropellor (Cron.Times "30 * * * *")
