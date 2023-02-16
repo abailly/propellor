@@ -1,18 +1,21 @@
 -- This is the main configuration file for Propellor, and is used to build
 -- the propellor program.    https://propellor.branchable.com/
 {-# LANGUAGE DataKinds #-}
+{-# OPTIONS_GHC -Wno-deferred-out-of-scope-variables #-}
 
 import Propellor
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.Cron as Cron
 import qualified Propellor.Property.File as File
+import Propellor.Property.Firewall (Chain (..), ConnectionState (..), Proto (..), Rules (..), Table (..), Target (..), rule)
+import qualified Propellor.Property.Firewall as Firewall
 import qualified Propellor.Property.Git as Git
 import qualified Propellor.Property.Ssh as Ssh
 import qualified Propellor.Property.Systemd as Systemd
+import qualified Propellor.Property.Tor as Tor
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess)
-import qualified Propellor.Property.Tor as Tor
 
 main :: IO ()
 main = defaultMain hosts
@@ -33,20 +36,33 @@ cardano =
             & Apt.unattendedUpgrades
             & Apt.installed ["etckeeper"]
             & Apt.installed ["ssh", "jq", "tmux", "dstat"]
+            & Ssh.installed
             & Tor.installed
-	    & Tor.hiddenServiceAvailable "ssh" (Port 22)
+            & Tor.hiddenServiceAvailable "ssh" (Port 22)
             & User.hasSomePassword (User "root")
             & File.dirExists "/var/www"
             & Cron.runPropellor (Cron.Times "30 * * * *")
             & Systemd.persistentJournal
+            & firewall
             & setupNode
 
-setupNode :: Property (MetaTypes '[ 'WithInfo, 'Targeting 'OSDebian, 'Targeting 'OSBuntish])
+type OS = MetaTypes '[ 'WithInfo, 'Targeting 'OSDebian, 'Targeting 'OSBuntish]
+
+firewall :: Property OS
+firewall =
+    propertyList "firewall accepts ssh and Cardano relay " $
+        props
+            & flush INPUT
+            & firewallPreamble
+            & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 22))
+            & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 3001))
+            & dropEverything
+
+setupNode :: Property OS
 setupNode =
     propertyList "Cardano node" $
         props
             & User.accountFor user
-            & Ssh.installed
             & Ssh.authorizedKeys user hostContext
             & check
                 (not <$> doesDirectoryExist "/home/curry/cardano-configurations")
@@ -149,3 +165,36 @@ setupNode =
             , "jq -s '(. | {Producers:.})' > "
             , "/home/curry/topology.json"
             ]
+
+{- |A basic rule to drop every input packet
+
+ This should be used as last clause for a bunch of rules, like:
+-}
+dropEverything :: Property Linux
+dropEverything = rule INPUT Filter DROP Everything
+
+{- |Drop all rules for given chain.
+
+ Useful at start of configuration of firewall rules
+-}
+flush :: Chain -> Property OS
+flush chain =
+    property ("flushing all rules for chain " <> show chain) $
+        liftPropellor $
+            toResult <$> boolSystem "iptables" (map Param ["-F", show chain])
+
+firewallPreamble :: Property (MetaTypes '[ 'Targeting 'OSDebian, 'Targeting 'OSBuntish])
+firewallPreamble =
+    propertyList "standard firewall preamble rules (opens lo and docker0)" $
+        props
+            & Firewall.installed
+            & Firewall.rule INPUT Filter ACCEPT (Ctstate [ESTABLISHED, RELATED])
+            & Firewall.rule INPUT Filter ACCEPT (InIFace "lo")
+
+openCommonPorts :: Property Linux
+openCommonPorts =
+    propertyList "open common operating ports for web" $
+        props
+            & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 22))
+            & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 80))
+            & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 443))
