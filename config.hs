@@ -22,9 +22,7 @@ main = defaultMain hosts
 
 -- The hosts propellor knows about.
 hosts :: [Host]
-hosts =
-    [ cardano
-    ]
+hosts = [ cardano  ]
 
 -- An example host.
 cardano :: Host
@@ -56,6 +54,7 @@ firewall =
             & firewallPreamble
             & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 22))
             & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 3001))
+            & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 5001))
             & dropEverything
 
 setupNode :: Property OS
@@ -116,6 +115,7 @@ setupNode =
         , "SOCKETPATH=\"./node.socket\""
         , "HOSTADDR=\"0.0.0.0\""
         , "PORT=\"3000\""
+        , "LD_LIBRARY_PATH=\"/home/curry\""
         ]
 
     serviceNode =
