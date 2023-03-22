@@ -22,7 +22,7 @@ main = defaultMain hosts
 
 -- The hosts propellor knows about.
 hosts :: [Host]
-hosts = [ cardano  ]
+hosts = [cardano]
 
 -- An example host.
 cardano :: Host
@@ -43,6 +43,7 @@ cardano =
             & Systemd.persistentJournal
             & firewall
             & setupNode
+            & setupHydraNode
 
 type OS = MetaTypes '[ 'WithInfo, 'Targeting 'OSDebian, 'Targeting 'OSBuntish]
 
@@ -56,6 +57,41 @@ firewall =
             & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 3001))
             & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 5001))
             & dropEverything
+
+setupHydraNode =
+    propertyList "Cardano node" $
+        props
+            & File.hasContent "/etc/systemd/system/hydra-node.service" serviceFile
+            & Systemd.enabled "hydra-node"
+            & Systemd.started "hydra-node"
+  where
+    serviceFile =
+        [ "[Unit]"
+        , "Description=Hydra node"
+        , "After=multi-user.target"
+        , ""
+        , "[Service]"
+        , "Type=simple"
+        , "EnvironmentFile=/home/curry/hydra-node.environment"
+        , "ExecStart=/home/curry/run-hydra.sh"
+        , "KillSignal = SIGINT"
+        , "RestartKillSignal = SIGINT"
+        , "StandardOutput=journal"
+        , "StandardError=journal"
+        , "SyslogIdentifier=cardano-node"
+        , ""
+        , "LimitNOFILE=32768"
+        , ""
+        , "Restart=on-failure"
+        , "RestartSec=15s"
+        , "StartLimitIntervalSec=0"
+        , "WorkingDirectory=~"
+        , "User=curry"
+        , "Group=curry"
+        , ""
+        , "[Install]"
+        , "WantedBy=multi-user.target"
+        ]
 
 setupNode :: Property OS
 setupNode =
