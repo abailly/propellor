@@ -61,10 +61,17 @@ firewall =
 setupHydraNode =
     propertyList "Cardano node" $
         props
+            & File.hasContent "/home/curry/hydra-node.environment" envFile
             & File.hasContent "/etc/systemd/system/hydra-node.service" serviceFile
             & Systemd.enabled "hydra-node"
             & Systemd.started "hydra-node"
   where
+    envFile =
+      [  "SOCKETPATH=./node.socket"
+        , "LD_LIBRARY_PATH=/home/curry"
+        , "HYDRA_SCRIPTS_TX_ID=4a4f3e25887b40f1575a4b53815996145c994559bac1b5d85f7de0f82b8f4ed5"
+      ]
+
     serviceFile =
         [ "[Unit]"
         , "Description=Hydra node"
