@@ -85,7 +85,7 @@ setupHydraNode =
         , "RestartKillSignal = SIGINT"
         , "StandardOutput=journal"
         , "StandardError=journal"
-        , "SyslogIdentifier=cardano-node"
+        , "SyslogIdentifier=hydra-node"
         , ""
         , "LimitNOFILE=32768"
         , ""
