@@ -15,16 +15,27 @@ import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.Tor as Tor
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
-import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess)
+import Propellor.Utilities (readProcessEnv, doesDirectoryExist, doesFileExist, readProcess)
 
 main :: IO ()
 main = defaultMain hosts
 
 -- The hosts propellor knows about.
 hosts :: [Host]
-hosts = [cardano]
+hosts = [clermont, cardano]
 
--- An example host.
+clermont :: Host
+clermont =
+    host "cardano.hydra.bzh" $
+        props
+            & osDebian Unstable X86_64
+            & Apt.stdSourcesList
+            & Apt.unattendedUpgrades
+            & Apt.installed ["etckeeper"]
+            & Apt.installed ["ssh", "jq", "tmux", "dstat", "git"]
+            & Ssh.installed
+            & Systemd.persistentJournal
+
 cardano :: Host
 cardano =
     host "cardano.hydra.bzh" $
@@ -67,8 +78,7 @@ setupHydraNode =
             & Systemd.started "hydra-node"
   where
     envFile =
-      [  "SOCKETPATH=./node.socket"
-        , "LD_LIBRARY_PATH=/home/curry"
+      [  "SOCKETPATH=/home/curry/node.socket"
         , "HYDRA_SCRIPTS_TX_ID=4a4f3e25887b40f1575a4b53815996145c994559bac1b5d85f7de0f82b8f4ed5"
       ]
 
@@ -113,7 +123,7 @@ setupNode =
                 shouldDownload
                 ( cmdProperty
                     "curl"
-                    ["-o", archivePath, "-L", "https://update-cardano-mainnet.iohk.io/cardano-node-releases/cardano-node-1.35.5-linux.tar.gz"]
+                    ["-o", archivePath, "-L", "https://update-cardano-mainnet.iohk.io/cardano-node-releases/cardano-node-1.35.6-linux.tar.gz"]
                     `changesFileContent` archivePath
                 )
             & File.ownerGroup archivePath user userGrp
@@ -130,16 +140,16 @@ setupNode =
             & Systemd.enabled "cardano-node"
             & Systemd.started "cardano-node"
   where
-    sha256 = "bb9e9c3700ebdef4de3e34e5087a79dc30d27ca3c1c66af25957f9205dfe05aa"
+    sha256 = "478fb9a9b1f214b22fc076f9c7db93c4b0dd38f1700400eb8ca44fe9e4e7a011"
 
-    archivePath = "/home/curry/cardano-node-1.35.5.tgz"
+    archivePath = "/home/curry/cardano-node-1.35.6.tgz"
 
     shouldUnpack =
         liftPropellor $ do
             hasFile <- doesFileExist "/home/curry/cardano-node"
             if not hasFile
                 then pure True
-                else not . ("1.35.5" `elem`) . words . head . lines <$> readProcess "/home/curry/cardano-node" ["--version"]
+                else not . ("1.35.6" `elem`) . words . head . lines <$> readProcessEnv "/home/curry/cardano-node" ["--version"] (Just [("LD_LIBRARY_PATH","/home/curry")])
 
     shouldDownload = liftPropellor $ do
         hasFile <- doesFileExist archivePath
@@ -157,7 +167,7 @@ setupNode =
         , "DBPATH=\"./db/\""
         , "SOCKETPATH=\"./node.socket\""
         , "HOSTADDR=\"0.0.0.0\""
-        , "PORT=\"3000\""
+        , "PORT=\"3001\""
         , "LD_LIBRARY_PATH=\"/home/curry\""
         ]
 
