@@ -36,6 +36,7 @@ clermont =
             & Ssh.installed
             & Systemd.persistentJournal
             & User.accountFor user
+            & Ssh.authorizedKey user ""
             & Ssh.authorizedKeys user hostContext
  where
     user = User "curry"
