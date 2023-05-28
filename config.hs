@@ -35,6 +35,12 @@ clermont =
             & Apt.installed ["ssh", "jq", "tmux", "dstat", "git"]
             & Ssh.installed
             & Systemd.persistentJournal
+            & User.accountFor user
+            & Ssh.authorizedKeys user hostContext
+ where
+    user = User "curry"
+    userGrp = Group "curry"
+
 
 cardano :: Host
 cardano =
