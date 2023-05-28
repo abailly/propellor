@@ -26,7 +26,7 @@ hosts = [clermont, cardano]
 
 clermont :: Host
 clermont =
-    host "clermont" $
+    host "clermont.home" $
         props
             & osDebian Unstable X86_64
             & Apt.stdSourcesList
