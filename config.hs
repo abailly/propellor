@@ -45,7 +45,7 @@ clermont =
             & setupNode
   where
     user = User "curry"
-    nixGrp = Group "nix-users"
+    nixGrp = Group "nixbld"
     nixConf =
         [ "max-jobs = 6"
         , "cores = 0"
