@@ -16,7 +16,7 @@ import qualified Propellor.Property.Tor as Tor
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess, readProcessEnv)
-import System.FilePath((</>))
+import System.FilePath ((</>))
 
 main :: IO ()
 main = defaultMain hosts
@@ -33,7 +33,8 @@ clermont =
             & Apt.stdSourcesList
             & Apt.unattendedUpgrades
             & Apt.installed ["etckeeper"]
-            & Apt.installed ["ssh", "jq", "tmux", "dstat", "git", "nix"]
+            & Apt.installed ["ssh", "jq", "tmux", "dstat", "git"]
+            & check shouldInstallNix (scriptProperty installNix)
             & File.hasContent "/etc/nix/nix.conf" nixConf
             & Ssh.installed
             & Systemd.persistentJournal
@@ -45,16 +46,24 @@ clermont =
   where
     user = User "curry"
     nixGrp = Group "nix-users"
-    nixConf = [
-      "max-jobs = 6",
-      "cores = 0",
-      "trusted-users = root curry",
-      "keep-derivations = true",
-      "keep-outputs = true",
-      "experimental-features = nix-command flakes",
-      "substituters = https://cache.nixos.org https://hydra.iohk.io https://iohk.cachix.org https://cache.iog.io",
-      "trusted-public-keys = iohk.cachix.org-1:DpRUyj7h7V830dp/i6Nti+NEO2/nhblbov/8MW7Rqoo= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-      ]
+    nixConf =
+        [ "max-jobs = 6"
+        , "cores = 0"
+        , "trusted-users = root curry"
+        , "keep-derivations = true"
+        , "keep-outputs = true"
+        , "experimental-features = nix-command flakes"
+        , "substituters = https://cache.nixos.org https://hydra.iohk.io https://iohk.cachix.org https://cache.iog.io"
+        , "trusted-public-keys = iohk.cachix.org-1:DpRUyj7h7V830dp/i6Nti+NEO2/nhblbov/8MW7Rqoo= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+        ]
+    shouldInstallNix =
+        liftPropellor $
+            not . ("2.15.0" `elem`) . words <$> readProcess "nix" ["--version"]
+
+    installNix =
+        [ "curl -o install-nix-2.15.0 https://releases.nixos.org/nix/nix-2.15.0/install"
+        , "./install-nix-2.15.0 --daemon"
+        ]
 
 cardano :: Host
 cardano =
