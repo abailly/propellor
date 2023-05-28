@@ -63,7 +63,7 @@ clermont =
     installNix =
         [ "curl -o install-nix-2.15.0 https://releases.nixos.org/nix/nix-2.15.0/install"
         , "chmod +x ./install-nix-2.15.0"
-        , "./install-nix-2.15.0 --daemon"
+        , "./install-nix-2.15.0 --daemon < /dev/null"
         ]
 
 cardano :: Host
