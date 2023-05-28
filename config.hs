@@ -15,7 +15,8 @@ import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.Tor as Tor
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
-import Propellor.Utilities (readProcessEnv, doesDirectoryExist, doesFileExist, readProcess)
+import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess, readProcessEnv)
+import System.FilePath((</>))
 
 main :: IO ()
 main = defaultMain hosts
@@ -32,16 +33,15 @@ clermont =
             & Apt.stdSourcesList
             & Apt.unattendedUpgrades
             & Apt.installed ["etckeeper"]
-            & Apt.installed ["ssh", "jq", "tmux", "dstat", "git"]
+            & Apt.installed ["ssh", "jq", "tmux", "dstat", "git", "nix"]
             & Ssh.installed
             & Systemd.persistentJournal
             & User.accountFor user
             & Ssh.authorizedKey user ""
             & Ssh.authorizedKeys user hostContext
- where
+            & setupNode
+  where
     user = User "curry"
-    userGrp = Group "curry"
-
 
 cardano :: Host
 cardano =
@@ -85,9 +85,9 @@ setupHydraNode =
             & Systemd.started "hydra-node"
   where
     envFile =
-      [  "SOCKETPATH=/home/curry/node.socket"
+        [ "SOCKETPATH=/home/curry/node.socket"
         , "HYDRA_SCRIPTS_TX_ID=4a4f3e25887b40f1575a4b53815996145c994559bac1b5d85f7de0f82b8f4ed5"
-      ]
+        ]
 
     serviceFile =
         [ "[Unit]"
@@ -124,13 +124,16 @@ setupNode =
             & User.accountFor user
             & Ssh.authorizedKeys user hostContext
             & check
-                (not <$> doesDirectoryExist "/home/curry/cardano-configurations")
+                ( do
+                    d <- User.homedir user
+                    not <$> doesDirectoryExist (d </> "cardano-configurations")
+                )
                 (Git.pulled user "https://github.com/input-output-hk/cardano-configurations" "cardano-configurations" Nothing)
             & check
                 shouldDownload
                 ( cmdProperty
                     "curl"
-                    ["-o", archivePath, "-L", "https://update-cardano-mainnet.iohk.io/cardano-node-releases/cardano-node-1.35.6-linux.tar.gz"]
+                    ["-o", archivePath, "-L", "https://update-cardano-mainnet.iohk.io/cardano-node-releases/cardano-node-8.0.0-linux.tar.gz"]
                     `changesFileContent` archivePath
                 )
             & File.ownerGroup archivePath user userGrp
@@ -149,14 +152,15 @@ setupNode =
   where
     sha256 = "478fb9a9b1f214b22fc076f9c7db93c4b0dd38f1700400eb8ca44fe9e4e7a011"
 
-    archivePath = "/home/curry/cardano-node-1.35.6.tgz"
+    archivePath = "/home/curry/cardano-node-8.0.0.tgz"
 
     shouldUnpack =
         liftPropellor $ do
-            hasFile <- doesFileExist "/home/curry/cardano-node"
+            dir <- User.homedir user
+            hasFile <- doesFileExist (dir </> "cardano-node")
             if not hasFile
                 then pure True
-                else not . ("1.35.6" `elem`) . words . head . lines <$> readProcessEnv "/home/curry/cardano-node" ["--version"] (Just [("LD_LIBRARY_PATH","/home/curry")])
+                else not . ("8.0.0" `elem`) . words . head . lines <$> readProcessEnv "/home/curry/cardano-node" ["--version"] (Just [("LD_LIBRARY_PATH", dir)])
 
     shouldDownload = liftPropellor $ do
         hasFile <- doesFileExist archivePath
