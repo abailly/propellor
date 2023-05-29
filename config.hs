@@ -80,8 +80,8 @@ clermont =
     punkachien =
         [
           "server {",
-          "    listen 80 default_server;",
-          "    listen [::]:80 default_server;",
+          "    listen 80;",
+          "    listen [::]:80;",
           "    ",
           "    root /var/www/punkachien.net/public_html;",
           "    index index.html index.htm index.nginx-debian.html;",
