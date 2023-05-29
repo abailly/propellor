@@ -18,6 +18,7 @@ import qualified Propellor.Property.Tor as Tor
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (readProcess)
+import qualified Propellor.Property.LetsEncrypt as LetsEncrypt
 
 main :: IO ()
 main = defaultMain hosts
@@ -25,6 +26,9 @@ main = defaultMain hosts
 -- The hosts propellor knows about.
 hosts :: [Host]
 hosts = [clermont, cardano]
+
+letsEncryptAgree :: LetsEncrypt.AgreeTOS
+letsEncryptAgree = LetsEncrypt.AgreeTOS (Just "me@punkachien.net")
 
 clermont :: Host
 clermont =
@@ -48,6 +52,8 @@ clermont =
             & File.dirExists "/var/www"
             & File.ownerGroup "/var/www" user userGrp
             & Nginx.siteEnabled "www.punkachien.net" punkachien
+            & LetsEncrypt.letsEncrypt letsEncryptAgree "punkachien.net" "/var/www/punkachien.net/public_html"
+              `onChange` Nginx.reloaded
   where
     user = User "curry"
     userGrp = Group "curry"
