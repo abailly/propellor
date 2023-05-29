@@ -42,12 +42,17 @@ clermont =
             & Systemd.persistentJournal
             & User.accountFor user
             & User.hasGroup user nixGrp
+            & User.hasGroup user systemdJournal
             & Ssh.authorizedKey user ""
             & setupNode user
+            & File.dirExists "/var/www"
+            & File.ownerGroup "/var/www" user userGrp
             & Nginx.siteEnabled "www.punkachien.net" punkachien
   where
     user = User "curry"
+    userGrp = Group "curry"
     nixGrp = Group "nixbld"
+    systemdJournal = Group "systemd-journal"
     nixConf =
         [ "max-jobs = 6"
         , "cores = 0"
@@ -74,8 +79,8 @@ clermont =
 
     punkachien =
         [ "location / {"
-        , "root /srv/www/punkachien.net/public_html;"
-        , "index index.html index.htm;"
+        , "   root /var/www/punkachien.net/public_html;"
+        , "   index index.html index.htm;"
         , "}"
         ]
 
