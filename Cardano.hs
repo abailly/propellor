@@ -45,7 +45,7 @@ setupNode user =
             & Systemd.enabled "cardano-node"
             & Systemd.started "cardano-node"
   where
-    sha256 = "478fb9a9b1f214b22fc076f9c7db93c4b0dd38f1700400eb8ca44fe9e4e7a011"
+    sha256 = "98629a25db5536efee27d4a7517257df1529a02f3a356c36dc8869057d340e0e"
 
     archivePath = "/home/curry/cardano-node-8.0.0.tgz"
 
@@ -103,12 +103,13 @@ setupNode user =
         ]
 
     generateTopologyFile =
-        propertyList "Random topology.json created" $
+        propertyList "Cardano topology created" $
             props
                 & Apt.installed ["jq", "curl", "coreutils"]
                 & check
                     (not <$> doesFileExist "/home/curry/topology.json")
                     (scriptProperty [randomPeers])
+                     `describe` "Random topology.json generated"
                 & File.ownerGroup "/home/curry/topology.json" user userGrp
 
     randomPeers =
