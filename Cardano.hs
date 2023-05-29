@@ -1,7 +1,6 @@
 module Cardano where
 
 import Base (OS)
-import Control.Monad (when)
 import Propellor
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.File as File

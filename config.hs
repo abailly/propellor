@@ -17,7 +17,7 @@ import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.Tor as Tor
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
-import Propellor.Utilities (readProcess)
+import Propellor.Utilities (readProcess, doesFileExist)
 import qualified Propellor.Property.LetsEncrypt as LetsEncrypt
 
 main :: IO ()
@@ -53,6 +53,7 @@ clermont =
             & File.ownerGroup "/var/www" user userGrp
             & Nginx.siteEnabled "www.punkachien.net" punkachien
             & LetsEncrypt.letsEncrypt letsEncryptAgree "www.punkachien.net" "/var/www/punkachien.net/public_html"
+              `requires` letsEncryptNginxConf
               `onChange` Nginx.reloaded
   where
     user = User "curry"
@@ -82,6 +83,14 @@ clermont =
                 ]
             )
             `describe` "Nix 2.15.0 installed"
+
+    letsEncryptNginxConf =
+      check (doesFileExist "/etc/letsencrypt/options-ssl-nginx.conf")
+            ( scriptProperty
+                [ "curl -o /etc/letsencrypt/options-ssl-nginx.conf https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf"
+                ]
+            )
+            `describe` "Let's Encrypt Nginx configured"
 
     punkachien =
         [
