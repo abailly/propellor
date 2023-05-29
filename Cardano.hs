@@ -23,13 +23,14 @@ setupNode user =
                     not <$> doesDirectoryExist (d </> "cardano-configurations")
                 )
                 (Git.pulled user "https://github.com/input-output-hk/cardano-configurations" "cardano-configurations" Nothing)
+                `describe` "Cardano configurations pulled"
             & check
                 shouldDownload
                 ( cmdProperty
                     "curl"
                     ["-o", archivePath, "-L", "https://update-cardano-mainnet.iohk.io/cardano-node-releases/cardano-node-8.0.0-linux.tar.gz"]
                     `changesFileContent` archivePath
-                )
+                ) `describe` "Cardano node 8.0.0 archive downloaded"
             & File.ownerGroup archivePath user userGrp
             & check
                 shouldUnpack
@@ -37,7 +38,7 @@ setupNode user =
                     "tar"
                     ["xC", "/home/curry", "-f", archivePath]
                     `changesFileContent` "/home/curry/cardano-node"
-                )
+                ) `describe` "Cardano node 8.0.0 archive unpacked"
             & generateTopologyFile
             & File.hasContent "/home/curry/cardano-node.environment" envFile
             & File.hasContent "/etc/systemd/system/cardano-node.service" serviceNode
@@ -55,11 +56,11 @@ setupNode user =
             then not . ("8.0.0" `elem`) . words . head . lines <$> readProcessEnv "/home/curry/cardano-node" ["--version"] (Just [("LD_LIBRARY_PATH", dir)])
             else pure True
 
-    shouldDownload = liftPropellor $ do
+    shouldDownload = do
         hasFile <- doesFileExist archivePath
         if not hasFile
             then pure True
-            else (/= sha256) . head . words . head . lines <$> readProcess "sha256sum" [archivePath]
+            else (/= sha256) . head . words . head . lines <$> readProcess "/usr/bin/sha256sum" [archivePath]
 
     userGrp = Group "curry"
 
@@ -102,7 +103,7 @@ setupNode user =
         ]
 
     generateTopologyFile =
-        propertyList "Random topology.json" $
+        propertyList "Random topology.json created" $
             props
                 & Apt.installed ["jq", "curl", "coreutils"]
                 & check

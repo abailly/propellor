@@ -34,7 +34,7 @@ clermont =
             & Apt.unattendedUpgrades
             & Apt.installed ["etckeeper"]
             & Apt.installed ["ssh", "jq", "tmux", "dstat", "git", "emacs-nox"]
-            & check shouldInstallNix (scriptProperty installNix)
+            & installNix
             & File.hasContent "/etc/nix/nix.conf" nixConf
             & Systemd.started "nix-daemon.service"
             & Ssh.installed
@@ -54,17 +54,22 @@ clermont =
         , "keep-derivations = true"
         , "keep-outputs = true"
         , "experimental-features = nix-command flakes"
-        , "substituters = https://cache.nixos.org https://hydra.iohk.io https://iohk.cachix.org https://cache.iog.io"
-        , "trusted-public-keys = iohk.cachix.org-1:DpRUyj7h7V830dp/i6Nti+NEO2/nhblbov/8MW7Rqoo= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+        , "substituters = https://cache.nixos.org https://hydra.iohk.io https://iohk.cachix.org https://cache.iog.io https://cardano-scaling.cachix.org https://cache.zw3rk.com"
+        , "trusted-public-keys = iohk.cachix.org-1:DpRUyj7h7V830dp/i6Nti+NEO2/nhblbov/8MW7Rqoo= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= cardano-scaling.cachix.org-1:RKvHKhGs/b6CBDqzKbDk0Rv6sod2kPSXLwPzcUQg9lY= loony-tools:pr9m4BkM/5/eSTZlkQyRt57Jz7OMBxNSUiMC4FkcNfk="
         ]
     shouldInstallNix =
-            not . ("2.15.0" `elem`) . words <$> readProcess "/nix/var/nix/profiles/default/bin/nix" ["--version"]
+        not . ("2.15.0" `elem`) . words <$> readProcess "/nix/var/nix/profiles/default/bin/nix" ["--version"]
 
     installNix =
-        [ "curl -o install-nix-2.15.0 https://releases.nixos.org/nix/nix-2.15.0/install"
-        , "chmod +x ./install-nix-2.15.0"
-        , "./install-nix-2.15.0 --daemon < /dev/null"
-        ]
+        check
+            shouldInstallNix
+            ( scriptProperty
+                [ "curl -o install-nix-2.15.0 https://releases.nixos.org/nix/nix-2.15.0/install"
+                , "chmod +x ./install-nix-2.15.0"
+                , "./install-nix-2.15.0 --daemon < /dev/null"
+                ]
+            )
+            `describe` "Nix 2.15.0 installed"
 
 cardano :: Host
 cardano =
