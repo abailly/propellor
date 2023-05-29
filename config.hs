@@ -58,7 +58,7 @@ clermont =
         , "trusted-public-keys = iohk.cachix.org-1:DpRUyj7h7V830dp/i6Nti+NEO2/nhblbov/8MW7Rqoo= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
         ]
     shouldInstallNix =
-            not . ("2.15.0" `elem`) . words <$> readProcess "nix" ["--version"]
+            not . ("2.15.0" `elem`) . words <$> readProcess "/nix/var/nix/profiles/default/bin/nix" ["--version"]
 
     installNix =
         [ "curl -o install-nix-2.15.0 https://releases.nixos.org/nix/nix-2.15.0/install"

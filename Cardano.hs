@@ -1,5 +1,7 @@
 module Cardano where
 
+import Base (OS)
+import Control.Monad (when)
 import Propellor
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.File as File
@@ -9,7 +11,6 @@ import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.User as User
 import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess, readProcessEnv)
 import System.FilePath ((</>))
-import Base(OS)
 
 setupNode :: User -> Property OS
 setupNode user =
@@ -47,13 +48,12 @@ setupNode user =
 
     archivePath = "/home/curry/cardano-node-8.0.0.tgz"
 
-    shouldUnpack =
-        liftPropellor $ do
-            dir <- User.homedir user
-            hasFile <- doesFileExist (dir </> "cardano-node")
-            if not hasFile
-                then pure True
-                else not . ("8.0.0" `elem`) . words . head . lines <$> readProcessEnv "/home/curry/cardano-node" ["--version"] (Just [("LD_LIBRARY_PATH", dir)])
+    shouldUnpack = do
+        dir <- User.homedir user
+        hasFile <- doesFileExist (dir </> "cardano-node")
+        if hasFile
+            then not . ("8.0.0" `elem`) . words . head . lines <$> readProcessEnv "/home/curry/cardano-node" ["--version"] (Just [("LD_LIBRARY_PATH", dir)])
+            else pure True
 
     shouldDownload = liftPropellor $ do
         hasFile <- doesFileExist archivePath
