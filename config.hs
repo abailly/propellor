@@ -85,7 +85,7 @@ clermont =
             `describe` "Nix 2.15.0 installed"
 
     letsEncryptNginxConf =
-      check (doesFileExist "/etc/letsencrypt/options-ssl-nginx.conf")
+      check (not <$> doesFileExist "/etc/letsencrypt/options-ssl-nginx.conf")
             ( scriptProperty
                 [ "curl -o /etc/letsencrypt/options-ssl-nginx.conf https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf"
                 ]
