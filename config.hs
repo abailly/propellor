@@ -11,6 +11,7 @@ import qualified Propellor.Property.Cron as Cron
 import qualified Propellor.Property.File as File
 import Propellor.Property.Firewall (Chain (..), ConnectionState (..), Proto (..), Rules (..), Table (..), Target (..), rule)
 import qualified Propellor.Property.Firewall as Firewall
+import qualified Propellor.Property.Nginx as Nginx
 import qualified Propellor.Property.Ssh as Ssh
 import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.Tor as Tor
@@ -42,8 +43,8 @@ clermont =
             & User.accountFor user
             & User.hasGroup user nixGrp
             & Ssh.authorizedKey user ""
-            & Ssh.authorizedKeys user hostContext
             & setupNode user
+            & Nginx.siteEnabled "www.punkachien.net" punkachien
   where
     user = User "curry"
     nixGrp = Group "nixbld"
@@ -70,6 +71,13 @@ clermont =
                 ]
             )
             `describe` "Nix 2.15.0 installed"
+
+    punkachien =
+        [ "location / {"
+        , "root /srv/www/punkachien.net/public_html;"
+        , "index index.html index.htm;"
+        , "}"
+        ]
 
 cardano :: Host
 cardano =
