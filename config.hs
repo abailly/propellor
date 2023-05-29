@@ -58,7 +58,6 @@ clermont =
         , "trusted-public-keys = iohk.cachix.org-1:DpRUyj7h7V830dp/i6Nti+NEO2/nhblbov/8MW7Rqoo= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
         ]
     shouldInstallNix =
-        liftPropellor $
             not . ("2.15.0" `elem`) . words <$> readProcess "nix" ["--version"]
 
     installNix =
