@@ -52,7 +52,7 @@ clermont =
             & File.dirExists "/var/www"
             & File.ownerGroup "/var/www" user userGrp
             & Nginx.siteEnabled "www.punkachien.net" punkachien
-            & LetsEncrypt.letsEncrypt letsEncryptAgree "punkachien.net" "/var/www/punkachien.net/public_html"
+            & LetsEncrypt.letsEncrypt letsEncryptAgree "www.punkachien.net" "/var/www/punkachien.net/public_html"
               `onChange` Nginx.reloaded
   where
     user = User "curry"
