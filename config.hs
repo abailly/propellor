@@ -78,10 +78,20 @@ clermont =
             `describe` "Nix 2.15.0 installed"
 
     punkachien =
-        [ "location / {"
-        , "   root /var/www/punkachien.net/public_html;"
-        , "   index index.html index.htm;"
-        , "}"
+        [
+          "server {",
+          "    listen 80 default_server;",
+          "    listen [::]:80 default_server;",
+          "    ",
+          "    root /var/www/punkachien.net/public_html;",
+          "    index index.html index.htm index.nginx-debian.html;",
+          "    ",
+          "    server_name www.punkachien.net punkachien.net;",
+          "    ",
+          "    location / {",
+          "            try_files $uri $uri/ =404;",
+          "    }",
+          "}"
         ]
 
 cardano :: Host
