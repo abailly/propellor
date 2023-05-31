@@ -78,7 +78,7 @@ clermont =
             ( scriptProperty
                 ["curl -sSf https://sh.rustup.rs | sudo RUSTUP_HOME=/opt/rust CARGO_HOME=/opt/rust sh -s -- --no-modify-path -y"]
             )
-            `requires` Apt.installed ["gcc", "build-essentials"]
+            `requires` Apt.installed ["gcc", "build-essential"]
 
     doesNotHaveRust =
         not . ("1.65.0" `elem`) . words <$> readProcess "/opt/rust/bin/rustc" ["--version"]
