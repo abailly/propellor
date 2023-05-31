@@ -81,7 +81,7 @@ clermont =
             `requires` Apt.installed ["gcc", "build-essential"]
 
     doesNotHaveRust =
-        not . ("1.65.0" `elem`) . words <$> readProcess "/opt/rust/bin/rustc" ["--version"]
+        not <$> doesFileExist "/opt/rust/bin/rustc"
 
     shouldInstallNix =
         not . ("2.15.0" `elem`) . words <$> readProcess "/nix/var/nix/profiles/default/bin/nix" ["--version"]
