@@ -52,6 +52,7 @@ clermont =
             & File.dirExists "/var/www"
             & File.ownerGroup "/var/www" user userGrp
             & Nginx.siteEnabled "www.punkachien.net" punkachien
+--            `requires` Updown.checked "https://www.punkachien.net"
             & LetsEncrypt.letsEncrypt letsEncryptAgree "www.punkachien.net" "/var/www/punkachien.net/public_html"
             `requires` letsEncryptNginxConf
             `onChange` Nginx.reloaded
@@ -76,9 +77,12 @@ clermont =
         check
             doesNotHaveRust
             ( scriptProperty
-                ["curl -sSf https://sh.rustup.rs | sudo RUSTUP_HOME=/opt/rust CARGO_HOME=/opt/rust sh -s -- --no-modify-path -y"]
+                [ "curl -sSf https://sh.rustup.rs | sudo RUSTUP_HOME=/opt/rust CARGO_HOME=/opt/rust sh -s -- --no-modify-path -y"
+                , "echo 'export RUSTUP_HOME=/opt/rust' | sudo tee -a /etc/profile.d/rust.sh"
+                , "echo 'export PATH=$PATH:/opt/rust/bin' | sudo tee -a /etc/profile.d/rust.sh"
+                ]
             )
-            `requires` Apt.installed ["gcc", "build-essential"]
+            `requires` Apt.installed ["gcc", "build-essential", "m4"]
 
     doesNotHaveRust =
         not <$> doesFileExist "/opt/rust/bin/rustc"
