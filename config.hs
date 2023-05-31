@@ -38,7 +38,7 @@ clermont =
             & Apt.stdSourcesList
             & Apt.unattendedUpgrades
             & Apt.installed ["etckeeper"]
-            & Apt.installed ["ssh", "jq", "tmux", "dstat", "git", "emacs-nox", "ripgrep"]
+            & Apt.installed ["ssh", "jq", "tmux", "dstat", "git", "emacs-nox", "ag"]
             & installNix
             & File.hasContent "/etc/nix/nix.conf" nixConf
             & Systemd.started "nix-daemon.service"
