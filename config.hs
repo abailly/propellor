@@ -82,7 +82,7 @@ clermont =
                 , "echo 'export PATH=$PATH:/opt/rust/bin' | sudo tee -a /etc/profile.d/rust.sh"
                 ]
             )
-            `requires` Apt.installed ["gcc", "build-essential", "m4", "pkgconf" ]
+            `requires` Apt.installed ["gcc", "build-essential", "m4", "pkgconf", "libssl-dev"]
 
     doesNotHaveRust =
         not <$> doesFileExist "/opt/rust/bin/rustc"
