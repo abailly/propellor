@@ -38,7 +38,7 @@ clermont =
             & Apt.stdSourcesList
             & Apt.unattendedUpgrades
             & Apt.installed ["etckeeper"]
-            & Apt.installed ["ssh", "jq", "tmux", "dstat", "git", "emacs-nox", "rustup"]
+            & Apt.installed ["ssh", "jq", "tmux", "dstat", "git", "emacs-nox"]
             & installNix
             & File.hasContent "/etc/nix/nix.conf" nixConf
             & Systemd.started "nix-daemon.service"
@@ -55,6 +55,7 @@ clermont =
             & LetsEncrypt.letsEncrypt letsEncryptAgree "www.punkachien.net" "/var/www/punkachien.net/public_html"
             `requires` letsEncryptNginxConf
             `onChange` Nginx.reloaded
+            & installRust
   where
     user = User "curry"
     userGrp = Group "curry"
@@ -70,6 +71,18 @@ clermont =
         , "substituters = https://cache.nixos.org https://hydra.iohk.io https://iohk.cachix.org https://cache.iog.io https://cardano-scaling.cachix.org https://cache.zw3rk.com"
         , "trusted-public-keys = iohk.cachix.org-1:DpRUyj7h7V830dp/i6Nti+NEO2/nhblbov/8MW7Rqoo= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= cardano-scaling.cachix.org-1:RKvHKhGs/b6CBDqzKbDk0Rv6sod2kPSXLwPzcUQg9lY= loony-tools:pr9m4BkM/5/eSTZlkQyRt57Jz7OMBxNSUiMC4FkcNfk="
         ]
+
+    installRust =
+        check
+            doesNotHaveRust
+            ( scriptProperty
+                ["curl -sSf https://sh.rustup.rs | sudo RUSTUP_HOME=/opt/rust CARGO_HOME=/opt/rust sh -s -- --no-modify-path -y"]
+            )
+            `requires` Apt.installed ["gcc", "build-essentials"]
+
+    doesNotHaveRust =
+        not . ("1.65.0" `elem`) . words <$> readProcess "/opt/rust/bin/rustc" ["--version"]
+
     shouldInstallNix =
         not . ("2.15.0" `elem`) . words <$> readProcess "/nix/var/nix/profiles/default/bin/nix" ["--version"]
 
