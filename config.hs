@@ -11,14 +11,14 @@ import qualified Propellor.Property.Cron as Cron
 import qualified Propellor.Property.File as File
 import Propellor.Property.Firewall (Chain (..), ConnectionState (..), Proto (..), Rules (..), Table (..), Target (..), rule)
 import qualified Propellor.Property.Firewall as Firewall
+import qualified Propellor.Property.LetsEncrypt as LetsEncrypt
 import qualified Propellor.Property.Nginx as Nginx
 import qualified Propellor.Property.Ssh as Ssh
 import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.Tor as Tor
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
-import Propellor.Utilities (readProcess, doesFileExist)
-import qualified Propellor.Property.LetsEncrypt as LetsEncrypt
+import Propellor.Utilities (doesFileExist, readProcess)
 
 main :: IO ()
 main = defaultMain hosts
@@ -38,7 +38,7 @@ clermont =
             & Apt.stdSourcesList
             & Apt.unattendedUpgrades
             & Apt.installed ["etckeeper"]
-            & Apt.installed ["ssh", "jq", "tmux", "dstat", "git", "emacs-nox"]
+            & Apt.installed ["ssh", "jq", "tmux", "dstat", "git", "emacs-nox", "rustup"]
             & installNix
             & File.hasContent "/etc/nix/nix.conf" nixConf
             & Systemd.started "nix-daemon.service"
@@ -53,8 +53,8 @@ clermont =
             & File.ownerGroup "/var/www" user userGrp
             & Nginx.siteEnabled "www.punkachien.net" punkachien
             & LetsEncrypt.letsEncrypt letsEncryptAgree "www.punkachien.net" "/var/www/punkachien.net/public_html"
-              `requires` letsEncryptNginxConf
-              `onChange` Nginx.reloaded
+            `requires` letsEncryptNginxConf
+            `onChange` Nginx.reloaded
   where
     user = User "curry"
     userGrp = Group "curry"
@@ -84,8 +84,10 @@ clermont =
             )
             `describe` "Nix 2.15.0 installed"
 
+    -- for some reason, let's encrypt does not install this conf file
     letsEncryptNginxConf =
-      check (not <$> doesFileExist "/etc/letsencrypt/options-ssl-nginx.conf")
+        check
+            (not <$> doesFileExist "/etc/letsencrypt/options-ssl-nginx.conf")
             ( scriptProperty
                 [ "curl -o /etc/letsencrypt/options-ssl-nginx.conf https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf"
                 ]
@@ -93,33 +95,32 @@ clermont =
             `describe` "Let's Encrypt Nginx configured"
 
     punkachien =
-        [
-          "server {",
-          "    listen 80;",
-          "    listen [::]:80;",
-          "    ",
-          "    root /var/www/punkachien.net/public_html;",
-          "    index index.html index.htm index.nginx-debian.html;",
-          "    ",
-          "    server_name www.punkachien.net punkachien.net;",
-          "    ",
-          "    listen 443 ssl; # managed by Certbot",
-          "",
-          "    # RSA certificate",
-          "    ssl_certificate /etc/letsencrypt/live/www.punkachien.net/fullchain.pem; # managed by Certbot",
-          "    ssl_certificate_key /etc/letsencrypt/live/www.punkachien.net/privkey.pem; # managed by Certbot",
-          "",
-          "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot",
-          "",
-          "    # Redirect non-https traffic to https",
-          "    if ($scheme != \"https\") {",
-          "        return 301 https://$host$request_uri;",
-          "    } # managed by Certbot",
-          "",
-          "    location / {",
-          "            try_files $uri $uri/ =404;",
-          "    }",
-          "}"
+        [ "server {"
+        , "    listen 80;"
+        , "    listen [::]:80;"
+        , "    "
+        , "    root /var/www/punkachien.net/public_html;"
+        , "    index index.html index.htm index.nginx-debian.html;"
+        , "    "
+        , "    server_name www.punkachien.net punkachien.net;"
+        , "    "
+        , "    listen 443 ssl; # managed by Certbot"
+        , ""
+        , "    # RSA certificate"
+        , "    ssl_certificate /etc/letsencrypt/live/www.punkachien.net/fullchain.pem; # managed by Certbot"
+        , "    ssl_certificate_key /etc/letsencrypt/live/www.punkachien.net/privkey.pem; # managed by Certbot"
+        , ""
+        , "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot"
+        , ""
+        , "    # Redirect non-https traffic to https"
+        , "    if ($scheme != \"https\") {"
+        , "        return 301 https://$host$request_uri;"
+        , "    } # managed by Certbot"
+        , ""
+        , "    location / {"
+        , "            try_files $uri $uri/ =404;"
+        , "    }"
+        , "}"
         ]
 
 cardano :: Host
@@ -155,6 +156,7 @@ firewall =
             & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 5001))
             & dropEverything
 
+setupHydraNode :: Property (MetaTypes '[ 'Targeting 'OSDebian, 'Targeting 'OSBuntish, 'Targeting 'OSArchLinux])
 setupHydraNode =
     propertyList "Cardano node" $
         props
@@ -196,14 +198,14 @@ setupHydraNode =
         , "WantedBy=multi-user.target"
         ]
 
-{- |A basic rule to drop every input packet
+{- | A basic rule to drop every input packet
 
  This should be used as last clause for a bunch of rules, like:
 -}
 dropEverything :: Property Linux
 dropEverything = rule INPUT Filter DROP Everything
 
-{- |Drop all rules for given chain.
+{- | Drop all rules for given chain.
 
  Useful at start of configuration of firewall rules
 -}
@@ -220,11 +222,3 @@ firewallPreamble =
             & Firewall.installed
             & Firewall.rule INPUT Filter ACCEPT (Ctstate [ESTABLISHED, RELATED])
             & Firewall.rule INPUT Filter ACCEPT (InIFace "lo")
-
-openCommonPorts :: Property Linux
-openCommonPorts =
-    propertyList "open common operating ports for web" $
-        props
-            & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 22))
-            & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 80))
-            & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 443))
