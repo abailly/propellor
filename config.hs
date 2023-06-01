@@ -32,7 +32,7 @@ letsEncryptAgree = LetsEncrypt.AgreeTOS (Just "me@punkachien.net")
 
 clermont :: Host
 clermont =
-    host "clermont.home" $
+    host "clermont" $
         props
             & osDebian Unstable X86_64
             & Apt.stdSourcesList
