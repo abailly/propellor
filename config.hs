@@ -35,7 +35,7 @@ clermont =
     host "clermont" $
         props
             & osDebian Unstable X86_64
-            & Ssh.authorizedKeys root hostContext
+            & Ssh.authorizedKey root ""
             & Apt.stdSourcesList
             & Apt.unattendedUpgrades
             & Apt.installed ["etckeeper"]
