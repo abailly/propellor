@@ -1,21 +1,19 @@
 module Cardano where
 
-import Base (OS)
+import Base (OSNoInfo)
 import Propellor
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Git as Git
-import qualified Propellor.Property.Ssh as Ssh
 import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.User as User
 import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess, readProcessEnv)
 import System.FilePath ((</>))
 
-setupNode :: User -> Property OS
+setupNode :: User -> Property OSNoInfo
 setupNode user =
     propertyList "Cardano node" $
         props
-            & Ssh.authorizedKeys user hostContext
             & check
                 ( do
                     d <- User.homedir user

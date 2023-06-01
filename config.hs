@@ -45,15 +45,12 @@ clermont =
             & Systemd.started "nix-daemon.service"
             & Ssh.installed
             & Systemd.persistentJournal
-            & User.accountFor user
-            & User.hasGroup user nixGrp
-            & User.hasGroup user systemdJournal
-            & Ssh.authorizedKey user ""
+            & setupUser user
             & setupNode user
             & File.dirExists "/var/www"
             & File.ownerGroup "/var/www" user userGrp
             & Nginx.siteEnabled "www.punkachien.net" punkachien
---            `requires` Updown.checked "https://www.punkachien.net"
+            --            `requires` Updown.checked "https://www.punkachien.net"
             & LetsEncrypt.letsEncrypt letsEncryptAgree "www.punkachien.net" "/var/www/punkachien.net/public_html"
             `requires` letsEncryptNginxConf
             `onChange` Nginx.reloaded
@@ -64,6 +61,17 @@ clermont =
     userGrp = Group "curry"
     nixGrp = Group "nixbld"
     systemdJournal = Group "systemd-journal"
+
+    setupUser u =
+        propertyList ("Configured user " <> show u) $
+            props
+                & User.accountFor u
+                & User.hasGroup u nixGrp
+                & User.hasGroup u systemdJournal
+                & Ssh.authorizedKey user ""
+                & Ssh.authorizedKeys user hostContext
+                & File.hasPrivContent "/home/curry/.config/sensei/client.json" anyContext
+
     nixConf =
         [ "max-jobs = 6"
         , "cores = 0"
