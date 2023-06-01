@@ -71,6 +71,7 @@ clermont =
                 & Ssh.authorizedKey user ""
                 & Ssh.authorizedKeys user hostContext
                 & File.hasPrivContent "/home/curry/.config/sensei/client.json" anyContext
+                  `requires`  File.dirExists "/home/curry/.config/sensei/"
 
     nixConf =
         [ "max-jobs = 6"
