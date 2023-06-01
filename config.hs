@@ -83,6 +83,7 @@ clermont =
                 ]
             )
             `requires` Apt.installed ["gcc", "build-essential", "m4", "pkgconf", "libssl-dev"]
+            `describe` "Rustup toolchain installed"
 
     doesNotHaveRust =
         not <$> doesFileExist "/opt/rust/bin/rustc"
