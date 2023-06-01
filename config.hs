@@ -35,6 +35,7 @@ clermont =
     host "clermont" $
         props
             & osDebian Unstable X86_64
+            & Ssh.authorizedKeys root hostContext
             & Apt.stdSourcesList
             & Apt.unattendedUpgrades
             & Apt.installed ["etckeeper"]
@@ -58,6 +59,7 @@ clermont =
             `onChange` Nginx.reloaded
             & installRust
   where
+    root = User "root"
     user = User "curry"
     userGrp = Group "curry"
     nixGrp = Group "nixbld"
