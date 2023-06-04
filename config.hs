@@ -1,7 +1,6 @@
 -- This is the main configuration file for Propellor, and is used to build
 -- the propellor program.    https://propellor.branchable.com/
 {-# LANGUAGE DataKinds #-}
-{-# OPTIONS_GHC -Wno-deferred-out-of-scope-variables #-}
 
 import Base (OS)
 import Cardano (setupNode)
@@ -19,6 +18,9 @@ import qualified Propellor.Property.Tor as Tor
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (doesFileExist, readProcess)
+import qualified Propellor.Property.Sudo as Sudo
+import Propellor.Base (liftIO)
+import qualified Propellor.Property.Git as Git
 
 main :: IO ()
 main = defaultMain hosts
@@ -30,16 +32,29 @@ hosts = [clermont, cardano]
 letsEncryptAgree :: LetsEncrypt.AgreeTOS
 letsEncryptAgree = LetsEncrypt.AgreeTOS (Just "me@punkachien.net")
 
+basePackages :: [String]
+basePackages =
+    [ "etckeeper"
+    , "ssh"
+    , "jq"
+    , "tmux"
+    , "dstat"
+    , "git"
+    , "emacs-nox"
+    , "silversearcher-ag"
+    , "direnv"
+    , "python3-pip"
+    ]
+
 clermont :: Host
 clermont =
-    host "clermont" $
+    host "clermont" $ do
         props
             & osDebian Unstable X86_64
-            & Ssh.authorizedKey root ""
+            & Ssh.authorizedKeys root hostContext
             & Apt.stdSourcesList
             & Apt.unattendedUpgrades
-            & Apt.installed ["etckeeper"]
-            & Apt.installed ["ssh", "jq", "tmux", "dstat", "git", "emacs-nox", "silversearcher-ag", "direnv"]
+            & Apt.installed basePackages
             & installNix
             & File.hasContent "/etc/nix/nix.conf" nixConf
             & Systemd.started "nix-daemon.service"
@@ -64,15 +79,18 @@ clermont =
 
     setupUser u =
         propertyList ("Configured user " <> show u) $
-            props
+         props
                 & User.accountFor u
-                & User.hasGroup u nixGrp
-                & User.hasGroup u systemdJournal
                 & Ssh.authorizedKey user ""
                 & Ssh.authorizedKeys user hostContext
+                & User.hasGroup u nixGrp
+                & User.hasGroup u systemdJournal
+	        & Git.cloned user "git@github.com:abailly-iohk/dotfiles" "/home/curry/dotfiles" Nothing
+	        & Git.cloned user "git@github.com:abailly/sensei" "/home/curry/sensei" Nothing
+                & Sudo.enabledFor u
                 & File.hasPrivContent "/home/curry/.config/sensei/client.json" anyContext
-                  `requires` File.dirExists "/home/curry/.config/sensei/"
-                  `requires` File.applyPath  "/home/curry/.config" "sensei/client.json" (\ f -> File.ownerGroup f u userGrp)
+                `requires` File.dirExists "/home/curry/.config/sensei/"
+                `requires` File.applyPath "/home/curry/.config" "sensei/client.json" (\f -> File.ownerGroup f u userGrp)
 
     nixConf =
         [ "max-jobs = 6"
