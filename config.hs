@@ -150,7 +150,7 @@ clermont =
             shouldInstallStack
             ( scriptProperty
                 [ "curl -o install-stack -sSL https://get.haskellstack.org/"
-                , "/bin/sh install-stack"
+                , "/bin/sh install-stack -- -d /usr/local/bin/stack"
                 ]
             )
             `describe` "Stack 2.11.1 installed"
