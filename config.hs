@@ -94,7 +94,7 @@ clermont =
                 & User.hasGroup u nixGrp
                 & User.hasGroup u systemdJournal
                 & Git.cloned user "git@github.com:abailly-iohk/dotfiles" "/home/curry/dotfiles" Nothing
-                & File.hasContent "/home/curry/sensei/.git/hooks/update" senseiUpdateHook
+                & File.hasContent "/home/curry/sensei/hooks/update" senseiUpdateHook
                 `requires` stackInstalled
                 `requires` Git.bareRepo "sensei" user Git.NotShared
                 `onChange` ( "/home/curry/sensei/hooks/update"
