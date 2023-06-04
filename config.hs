@@ -95,7 +95,7 @@ clermont =
                 & User.hasGroup u systemdJournal
                 & Git.cloned user "git@github.com:abailly-iohk/dotfiles" "/home/curry/dotfiles" Nothing
                 & Git.cloned user "git@github.com:abailly/sensei" "/home/curry/sensei" Nothing
-                & File.hasContent "/home/curry/sensei/.git/hook/pre-receive" senseiPreReceiveHook
+                & File.hasContent "/home/curry/sensei/.git/hooks/pre-receive" senseiPreReceiveHook
                 & Sudo.enabledFor u
                 & File.hasPrivContent "/home/curry/.config/sensei/client.json" anyContext
                 `requires` File.dirExists "/home/curry/.config/sensei/"
@@ -153,7 +153,7 @@ clermont =
                 , "/bin/sh install-stack"
                 ]
             )
-            `describe` "Nix 2.15.0 installed"
+            `describe` "Stack 2.11.1 installed"
 
     shouldInstallStack =
         not . ("2.11.1" `elem`) . words <$> readProcess "/usr/bin/stack" ["--version"]
