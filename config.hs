@@ -5,22 +5,22 @@
 import Base (OS)
 import Cardano (setupNode)
 import Propellor
+import Propellor.Base (liftIO)
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.Cron as Cron
 import qualified Propellor.Property.File as File
 import Propellor.Property.Firewall (Chain (..), ConnectionState (..), Proto (..), Rules (..), Table (..), Target (..), rule)
 import qualified Propellor.Property.Firewall as Firewall
+import qualified Propellor.Property.Git as Git
 import qualified Propellor.Property.LetsEncrypt as LetsEncrypt
 import qualified Propellor.Property.Nginx as Nginx
 import qualified Propellor.Property.Ssh as Ssh
+import qualified Propellor.Property.Sudo as Sudo
 import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.Tor as Tor
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (doesFileExist, readProcess)
-import qualified Propellor.Property.Sudo as Sudo
-import Propellor.Base (liftIO)
-import qualified Propellor.Property.Git as Git
 
 main :: IO ()
 main = defaultMain hosts
@@ -70,6 +70,7 @@ clermont =
             `requires` letsEncryptNginxConf
             `onChange` Nginx.reloaded
             & installRust
+            & installStack
   where
     root = User "root"
     user = User "curry"
@@ -79,20 +80,31 @@ clermont =
 
     setupUser u =
         propertyList ("Configured user " <> show u) $
-         props
+            props
                 & User.accountFor u
                 & Ssh.authorizedKey user ""
                 & Ssh.authorizedKeys user hostContext
-                & Ssh.userKeyAt Nothing user hostContext (SshEd25519, "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIERjBICdoL0S4dU+HgevTutHF0QajK/qEN1iHKgeU7+T Remote curry user's key")
+                & Ssh.userKeyAt
+                    Nothing
+                    user
+                    hostContext
+                    ( SshEd25519
+                    , "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIERjBICdoL0S4dU+HgevTutHF0QajK/qEN1iHKgeU7+T Remote curry user's key"
+                    )
                 & User.hasGroup u nixGrp
                 & User.hasGroup u systemdJournal
-	        & Git.cloned user "git@github.com:abailly-iohk/dotfiles" "/home/curry/dotfiles" Nothing
-	        & Git.cloned user "git@github.com:abailly/sensei" "/home/curry/sensei" Nothing
+                & Git.cloned user "git@github.com:abailly-iohk/dotfiles" "/home/curry/dotfiles" Nothing
+                & Git.cloned user "git@github.com:abailly/sensei" "/home/curry/sensei" Nothing
+                & File.hasContent "/home/curry/sensei/.git/hook/pre-receive" senseiPreReceiveHook
                 & Sudo.enabledFor u
                 & File.hasPrivContent "/home/curry/.config/sensei/client.json" anyContext
                 `requires` File.dirExists "/home/curry/.config/sensei/"
                 `requires` File.applyPath "/home/curry/.config" "sensei/client.json" (\f -> File.ownerGroup f u userGrp)
 
+    senseiPreReceiveHook =
+      [
+
+      ]
     nixConf =
         [ "max-jobs = 6"
         , "cores = 0"
@@ -132,6 +144,19 @@ clermont =
                 ]
             )
             `describe` "Nix 2.15.0 installed"
+
+    installStack =
+        check
+            shouldInstallStack
+            ( scriptProperty
+                [ "curl -o install-stack -sSL https://get.haskellstack.org/"
+                , "/bin/sh install-stack"
+                ]
+            )
+            `describe` "Nix 2.15.0 installed"
+
+    shouldInstallStack =
+        not . ("2.11.1" `elem`) . words <$> readProcess "/usr/bin/stack" ["--version"]
 
     -- for some reason, let's encrypt does not install this conf file
     letsEncryptNginxConf =
