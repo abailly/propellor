@@ -100,6 +100,7 @@ clermont =
                 `onChange` ( "/home/curry/sensei/hooks/update"
                                 `File.mode` combineModes [ownerReadMode, ownerWriteMode, ownerExecuteMode]
                            )
+                `onChange` File.ownerGroup "/home/curry/sensei/hooks/update" user userGrp
                 & Sudo.enabledFor u
                 & File.hasPrivContent "/home/curry/.config/sensei/client.json" anyContext
                 `requires` File.dirExists "/home/curry/.config/sensei/"
