@@ -217,6 +217,7 @@ clermont =
         , "    "
         , "    server_name jupyter.mithril.network;"
         , "    "
+        , "    root /var/www/jupyter.mithril.network/public_html;"
         , "    listen 443 ssl; # managed by Certbot"
         , ""
         , "    # RSA certificate"
