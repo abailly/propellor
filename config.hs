@@ -5,7 +5,7 @@
 import Base (OS)
 import Cardano (setupNode)
 import Propellor
-import Propellor.Base (liftIO)
+import Propellor.Base (combineModes, liftIO)
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.Cron as Cron
 import qualified Propellor.Property.File as File
@@ -21,6 +21,7 @@ import qualified Propellor.Property.Tor as Tor
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (doesFileExist, readProcess)
+import System.Posix (ownerExecuteMode, ownerReadMode, ownerWriteMode)
 
 main :: IO ()
 main = defaultMain hosts
@@ -93,16 +94,22 @@ clermont =
                 & User.hasGroup u nixGrp
                 & User.hasGroup u systemdJournal
                 & Git.cloned user "git@github.com:abailly-iohk/dotfiles" "/home/curry/dotfiles" Nothing
-                & File.hasContent "/home/curry/sensei/.git/hooks/pre-receive" senseiPreReceiveHook
+                & File.hasContent "/home/curry/sensei/.git/hooks/update" senseiUpdateHook
                 `requires` stackInstalled
                 `requires` Git.cloned user "git@github.com:abailly/sensei" "/home/curry/sensei" Nothing
+                `onChange` ( "/home/curry/sensei/.git/hooks/update"
+                                `File.mode` combineModes [ownerReadMode, ownerWriteMode, ownerExecuteMode]
+                           )
                 & Sudo.enabledFor u
                 & File.hasPrivContent "/home/curry/.config/sensei/client.json" anyContext
                 `requires` File.dirExists "/home/curry/.config/sensei/"
                 `requires` File.applyPath "/home/curry/.config" "sensei/client.json" (\f -> File.ownerGroup f u userGrp)
 
-    senseiPreReceiveHook =
-        []
+    senseiUpdateHook =
+        [ "#!/bin/sh"
+        , "Updating $1 from $2 to $3"
+        ]
+
     nixConf =
         [ "max-jobs = 6"
         , "cores = 0"
