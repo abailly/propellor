@@ -69,9 +69,9 @@ clermont =
             & LetsEncrypt.letsEncrypt letsEncryptAgree "www.punkachien.net" "/var/www/punkachien.net/public_html"
             `requires` letsEncryptNginxConf
             `onChange` Nginx.reloaded
-            & LetsEncrypt.letsEncrypt letsEncryptAgree "jupyter.pankzsoft.com" "/var/www/jupyter.pankzsoft.com/public_html"
-              `requires` File.dirExists "/var/www/jupyter.pankzsoft.com/public_html"
-              `requires` Nginx.siteEnabled "jupyter.pankzsoft.com" jupyter
+            & LetsEncrypt.letsEncrypt letsEncryptAgree "jupyter.mithril.network" "/var/www/jupyter.mithril.network/public_html"
+              `requires` File.dirExists "/var/www/jupyter.mithril.network/public_html"
+              `requires` Nginx.siteEnabled "jupyter.mithril.network" jupyter
               `requires` letsEncryptNginxConf
               `onChange` Nginx.reloaded
             & installRust
@@ -215,13 +215,13 @@ clermont =
         , "    listen 80;"
         , "    listen [::]:80;"
         , "    "
-        , "    server_name jupyter.pankzsoft.com;"
+        , "    server_name jupyter.mithril.network;"
         , "    "
         , "    listen 443 ssl; # managed by Certbot"
         , ""
         , "    # RSA certificate"
-        , "    ssl_certificate /etc/letsencrypt/live/jupyter.pankzsoft.com/fullchain.pem; # managed by Certbot"
-        , "    ssl_certificate_key /etc/letsencrypt/live/jupyter.pankzsoft.com/privkey.pem; # managed by Certbot"
+        , "    ssl_certificate /etc/letsencrypt/live/jupyter.mithril.network/fullchain.pem; # managed by Certbot"
+        , "    ssl_certificate_key /etc/letsencrypt/live/jupyter.mithril.network/privkey.pem; # managed by Certbot"
         , ""
         , "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot"
         , ""
