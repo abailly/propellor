@@ -70,7 +70,6 @@ clermont =
             `requires` letsEncryptNginxConf
             `onChange` Nginx.reloaded
             & installRust
-            & installStack
   where
     root = User "root"
     user = User "curry"
@@ -94,17 +93,16 @@ clermont =
                 & User.hasGroup u nixGrp
                 & User.hasGroup u systemdJournal
                 & Git.cloned user "git@github.com:abailly-iohk/dotfiles" "/home/curry/dotfiles" Nothing
-                & Git.cloned user "git@github.com:abailly/sensei" "/home/curry/sensei" Nothing
                 & File.hasContent "/home/curry/sensei/.git/hooks/pre-receive" senseiPreReceiveHook
+                `requires` stackInstalled
+                `requires` Git.cloned user "git@github.com:abailly/sensei" "/home/curry/sensei" Nothing
                 & Sudo.enabledFor u
                 & File.hasPrivContent "/home/curry/.config/sensei/client.json" anyContext
                 `requires` File.dirExists "/home/curry/.config/sensei/"
                 `requires` File.applyPath "/home/curry/.config" "sensei/client.json" (\f -> File.ownerGroup f u userGrp)
 
     senseiPreReceiveHook =
-      [
-
-      ]
+        []
     nixConf =
         [ "max-jobs = 6"
         , "cores = 0"
@@ -145,7 +143,7 @@ clermont =
             )
             `describe` "Nix 2.15.0 installed"
 
-    installStack =
+    stackInstalled =
         check
             shouldInstallStack
             ( scriptProperty
@@ -158,8 +156,8 @@ clermont =
     shouldInstallStack = do
         hasStack <- doesFileExist "/usr/local/bin/stack"
         if hasStack
-          then not . ("2.11.1," `elem`) . words <$> readProcess "/usr/local/bin/stack" ["--version"]
-          else pure True
+            then not . ("2.11.1," `elem`) . words <$> readProcess "/usr/local/bin/stack" ["--version"]
+            else pure True
 
     -- for some reason, let's encrypt does not install this conf file
     letsEncryptNginxConf =
