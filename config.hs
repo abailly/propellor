@@ -108,7 +108,7 @@ clermont =
 
     senseiUpdateHook =
         [ "#!/bin/sh"
-        , "Updating $1 from $2 to $3"
+        , "echo \"Updating $1 from $2 to $3\""
         ]
 
     nixConf =
