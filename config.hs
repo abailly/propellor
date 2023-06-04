@@ -70,6 +70,7 @@ clermont =
             `requires` letsEncryptNginxConf
             `onChange` Nginx.reloaded
             & LetsEncrypt.letsEncrypt letsEncryptAgree "jupyter.pankzsoft.com" "/var/www/jupyter.pankzsoft.com/public_html"
+              `requires` File.dirExists "/var/www/jupyter.pankzsoft.com/public_html"
               `requires` Nginx.siteEnabled "jupyter.pankzsoft.com" jupyter
               `requires` letsEncryptNginxConf
               `onChange` Nginx.reloaded
