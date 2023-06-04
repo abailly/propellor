@@ -69,9 +69,9 @@ clermont =
             & LetsEncrypt.letsEncrypt letsEncryptAgree "www.punkachien.net" "/var/www/punkachien.net/public_html"
             `requires` letsEncryptNginxConf
             `onChange` Nginx.reloaded
+            & Nginx.siteEnabled "jupyter.mithril.network" jupyter
             & LetsEncrypt.letsEncrypt letsEncryptAgree "jupyter.mithril.network" "/var/www/jupyter.mithril.network/public_html"
               `requires` File.dirExists "/var/www/jupyter.mithril.network/public_html"
-              `requires` Nginx.siteEnabled "jupyter.mithril.network" jupyter
               `requires` letsEncryptNginxConf
               `onChange` Nginx.reloaded
             & installRust
@@ -211,13 +211,22 @@ clermont =
         ]
 
     jupyter =
-        [ "server {"
+        [
+          "          server {"
         , "    listen 80;"
         , "    listen [::]:80;"
-        , "    "
+        , "    server_name jupyter.mithril.network;"
+        , "    location / {"
+        , "            rewrite ^ https://$host$request_uri? permanent;"
+        , "    }"
+        , "    location ~ /.well-known/acme-challenge {"
+        , "        allow all;"
+        , "        root /var/www/jupyter.mithril.network/public_html;"
+        , "    }"
+        , "}"
+        , "server {"
         , "    server_name jupyter.mithril.network;"
         , "    "
-        , "    root /var/www/jupyter.mithril.network/public_html;"
         , "    listen 443 ssl; # managed by Certbot"
         , ""
         , "    # RSA certificate"
@@ -225,11 +234,6 @@ clermont =
         , "    ssl_certificate_key /etc/letsencrypt/live/jupyter.mithril.network/privkey.pem; # managed by Certbot"
         , ""
         , "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot"
-        , ""
-        , "    # Redirect non-https traffic to https"
-        , "    if ($scheme != \"https\") {"
-        , "        return 301 https://$host$request_uri;"
-        , "    } # managed by Certbot"
         , ""
         , "    location / {"
         , "        proxy_pass http://127.0.0.1:8888;"
@@ -244,10 +248,6 @@ clermont =
         , "        proxy_set_header X-Scheme $scheme;"
         , ""
         , "        proxy_buffering off;"
-        , "    }"
-        , "    # Managing requests to verify letsencrypt host"
-        , "    location ~ /.well-known {"
-        , "        allow all;"
         , "    }"
         , "}"
         ]
