@@ -157,9 +157,9 @@ clermont =
 
     shouldInstallStack = do
         hasStack <- doesFileExist "/usr/bin/stack"
-        if not hasStack
+        if hasStack
           then not . ("2.11.1" `elem`) . words <$> readProcess "/usr/bin/stack" ["--version"]
-          else pure False
+          else pure True
 
     -- for some reason, let's encrypt does not install this conf file
     letsEncryptNginxConf =
