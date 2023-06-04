@@ -83,6 +83,7 @@ clermont =
                 & User.accountFor u
                 & Ssh.authorizedKey user ""
                 & Ssh.authorizedKeys user hostContext
+                & Ssh.userKeyAt Nothing user hostContext (SshEd25519, "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIERjBICdoL0S4dU+HgevTutHF0QajK/qEN1iHKgeU7+T Remote curry user's key")
                 & User.hasGroup u nixGrp
                 & User.hasGroup u systemdJournal
 	        & Git.cloned user "git@github.com:abailly-iohk/dotfiles" "/home/curry/dotfiles" Nothing
