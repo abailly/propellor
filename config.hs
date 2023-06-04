@@ -212,7 +212,7 @@ clermont =
 
     jupyter =
         [
-          "          server {"
+          "server {"
         , "    listen 80;"
         , "    listen [::]:80;"
         , "    server_name jupyter.mithril.network;"
