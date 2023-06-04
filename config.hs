@@ -96,8 +96,8 @@ clermont =
                 & Git.cloned user "git@github.com:abailly-iohk/dotfiles" "/home/curry/dotfiles" Nothing
                 & File.hasContent "/home/curry/sensei/.git/hooks/update" senseiUpdateHook
                 `requires` stackInstalled
-                `requires` Git.cloned user "git@github.com:abailly/sensei" "/home/curry/sensei" Nothing
-                `onChange` ( "/home/curry/sensei/.git/hooks/update"
+                `requires` Git.bareRepo "sensei" user Git.NotShared
+                `onChange` ( "/home/curry/sensei/hooks/update"
                                 `File.mode` combineModes [ownerReadMode, ownerWriteMode, ownerExecuteMode]
                            )
                 & Sudo.enabledFor u
