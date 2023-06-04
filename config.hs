@@ -244,6 +244,10 @@ clermont =
         , ""
         , "        proxy_buffering off;"
         , "    }"
+        , "    # Managing requests to verify letsencrypt host"
+        , "    location ~ /.well-known {"
+        , "        allow all;"
+        , "    }"
         , "}"
         ]
 
