@@ -71,6 +71,7 @@ clermont =
             & Nginx.siteEnabled "jupyter.mithril.network" jupyter
             `onChange` selfSignedCert "jupyter.mithril.network"
             & LetsEncrypt.letsEncrypt' letsEncryptAgree "www.punkachien.net" ["jupyter.mithril.network"] "/var/www/punkachien.net/public_html"
+            `requires` Apt.installed ["python-certbot-nginx"]
             `requires` letsEncryptNginxConf
             `onChange` Nginx.reloaded
             & installRust
