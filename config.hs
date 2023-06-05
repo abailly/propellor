@@ -5,7 +5,7 @@
 import Base (OS)
 import Cardano (setupNode)
 import Propellor
-import Propellor.Base (combineModes, liftIO)
+import Propellor.Base (combineModes, liftIO, (</>), processTranscript, hPutStr, stderr)
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.Cron as Cron
 import qualified Propellor.Property.File as File
@@ -67,7 +67,9 @@ clermont =
             & File.dirExists "/var/www"
             & File.ownerGroup "/var/www" user userGrp
             & Nginx.siteEnabled "www.punkachien.net" punkachien
-            ! Nginx.siteEnabled "jupyter.mithril.network" jupyter
+            `onChange` selfSignedCert "www.punkachien.net"
+            & Nginx.siteEnabled "jupyter.mithril.network" jupyter
+            `onChange` selfSignedCert "jupyter.mithril.network"
             & LetsEncrypt.letsEncrypt' letsEncryptAgree "www.punkachien.net" [] "/var/www/punkachien.net/public_html"
             `requires` letsEncryptNginxConf
             `onChange` Nginx.reloaded
@@ -208,8 +210,7 @@ clermont =
         ]
 
     jupyter =
-        [
-          "server {"
+        [ "server {"
         , "    listen 80;"
         , "    listen [::]:80;"
         , "    server_name jupyter.mithril.network;"
@@ -249,6 +250,46 @@ clermont =
         , "    }"
         , "}"
         ]
+
+selfSignedCert :: FilePath -> Property DebianLike
+selfSignedCert domain =
+        property desc $ do
+            hasCert <- liftIO $ doesFileExist certFile
+            if hasCert
+                then pure NoChange
+                else genSelfSignedCert
+      where
+        desc = "Self-signed cert for " <> domain
+        genSelfSignedCert = do
+            (transcript, ok) <- liftIO $ processTranscript "openssl" params Nothing
+            if ok
+                then do
+                    hasCert <- liftIO $ doesFileExist certFile
+                    if hasCert
+                        then return MadeChange
+                        else return FailedChange
+                else do
+                    liftIO $ hPutStr stderr transcript
+                    return FailedChange
+
+        certFile = "/etc/letsencrypt/live" </> domain </> "fullchain.pem"
+        keyFile = "/etc/letsencrypt/live" </> domain </> "privkey.pem"
+        params =
+            [ "req"
+            , "-x509"
+            , "-nodes"
+            , "-days"
+            , "365"
+            , "-newkey"
+            , "rsa:4096"
+            , "-subj"
+            , "/C=FR/ST=France/L=Paris/CN=" <> domain
+            , "-keyout"
+            , keyFile
+            , "-out"
+            , certFile
+            ]
+
 
 cardano :: Host
 cardano =
