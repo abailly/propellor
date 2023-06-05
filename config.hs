@@ -5,13 +5,14 @@
 import Base (OS)
 import Cardano (setupNode)
 import Propellor
-import Propellor.Base (combineModes, hPutStr, liftIO, processTranscript, stderr, (</>), catchMaybeIO)
+import Propellor.Base (catchMaybeIO, combineModes, hPutStr, liftIO, processTranscript, stderr, (</>))
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.Cron as Cron
 import qualified Propellor.Property.File as File
 import Propellor.Property.Firewall (Chain (..), ConnectionState (..), Proto (..), Rules (..), Table (..), Target (..), rule)
 import qualified Propellor.Property.Firewall as Firewall
 import qualified Propellor.Property.Git as Git
+import Propellor.Property.LetsEncrypt (AgreeTOS (..), certFile, chainFile, fullChainFile, privKeyFile)
 import qualified Propellor.Property.LetsEncrypt as LetsEncrypt
 import qualified Propellor.Property.Nginx as Nginx
 import qualified Propellor.Property.Ssh as Ssh
@@ -21,8 +22,7 @@ import qualified Propellor.Property.Tor as Tor
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (doesFileExist, readProcess)
-import System.Posix (ownerExecuteMode, ownerReadMode, ownerWriteMode, fileID, deviceID, fileMode, fileSize, modificationTime, getFileStatus)
-import Propellor.Property.LetsEncrypt (AgreeTOS (..), certFile, privKeyFile, chainFile, fullChainFile)
+import System.Posix (deviceID, fileID, fileMode, fileSize, getFileStatus, modificationTime, ownerExecuteMode, ownerReadMode, ownerWriteMode)
 
 main :: IO ()
 main = defaultMain hosts
@@ -69,6 +69,7 @@ clermont =
             & File.ownerGroup "/var/www" user userGrp
             & Nginx.siteEnabled "www.punkachien.net" punkachien
             `onChange` selfSignedCert "www.punkachien.net"
+            `requires` File.hasContent "/etc/nginx/conf.d/connection-upgrade.conf" connectionUpgradeConf
             & Nginx.siteEnabled "jupyter.mithril.network" jupyter
             `onChange` selfSignedCert "jupyter.mithril.network"
             & letsEncryptCertsInstalled letsEncryptAgree ["www.punkachien.net", "jupyter.mithril.network"]
@@ -80,6 +81,13 @@ clermont =
     userGrp = Group "curry"
     nixGrp = Group "nixbld"
     systemdJournal = Group "systemd-journal"
+
+    connectionUpgradeConf =
+        [ "map $http_upgrade $connection_upgrade {  "
+        , "    default upgrade;"
+        , "    ''      close;"
+        , "}"
+        ]
 
     setupUser u =
         propertyList ("Configured user " <> show u) $
@@ -243,49 +251,51 @@ clermont =
 
 letsEncryptCertsInstalled :: AgreeTOS -> [String] -> Property DebianLike
 letsEncryptCertsInstalled (AgreeTOS memail) domains =
-  prop `requires` Apt.installed ["certbot", "python3-certbot-nginx"]
+    prop `requires` Apt.installed ["certbot", "python3-certbot-nginx"]
   where
-	prop :: Property UnixLike
-	prop = property desc $ do
-		startstats <- liftIO getstats
-		(transcript, ok) <- liftIO $
-			processTranscript "letsencrypt" params Nothing
-		if ok
-			then do
-				endstats <- liftIO getstats
-				if startstats /= endstats
-					then return MadeChange
-					else return NoChange
-			else do
-				liftIO $ hPutStr stderr transcript
-				return FailedChange
+    prop :: Property UnixLike
+    prop = property desc $ do
+        startstats <- liftIO getstats
+        (transcript, ok) <-
+            liftIO $
+                processTranscript "letsencrypt" params Nothing
+        if ok
+            then do
+                endstats <- liftIO getstats
+                if startstats /= endstats
+                    then return MadeChange
+                    else return NoChange
+            else do
+                liftIO $ hPutStr stderr transcript
+                return FailedChange
 
-	desc = "letsencrypt " ++ unwords domains
-	params =
-		[ "--nginx"
-		, "--agree-tos"
-		, case memail of
-			Just email -> "--email="++email
-			Nothing -> "--register-unsafely-without-email"
-		, "--noninteractive"
-		, "--keep-until-expiring"
-		-- The list of domains may be changed, adding more, so
-		-- always request expansion.
-		, "--expand"
-		] ++ map (\d -> "--domain="++d) domains
+    desc = "letsencrypt " ++ unwords domains
+    params =
+        [ "--nginx"
+        , "--agree-tos"
+        , case memail of
+            Just email -> "--email=" ++ email
+            Nothing -> "--register-unsafely-without-email"
+        , "--noninteractive"
+        , "--keep-until-expiring"
+        , -- The list of domains may be changed, adding more, so
+          -- always request expansion.
+          "--expand"
+        ]
+            ++ map (\d -> "--domain=" ++ d) domains
 
-	getstats = mapM statcertfiles domains
-	statcertfiles d = mapM statfile
-		[ certFile d
-		, privKeyFile d
-		, chainFile d
-		, fullChainFile d
-		]
-	statfile f = catchMaybeIO $ do
-		s <- getFileStatus f
-		return (fileID s, deviceID s, fileMode s, fileSize s, modificationTime s)
-
-
+    getstats = mapM statcertfiles domains
+    statcertfiles d =
+        mapM
+            statfile
+            [ certFile d
+            , privKeyFile d
+            , chainFile d
+            , fullChainFile d
+            ]
+    statfile f = catchMaybeIO $ do
+        s <- getFileStatus f
+        return (fileID s, deviceID s, fileMode s, fileSize s, modificationTime s)
 
 selfSignedCert :: FilePath -> Property DebianLike
 selfSignedCert domain =
