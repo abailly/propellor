@@ -66,14 +66,10 @@ clermont =
             & File.dirExists "/var/www"
             & File.ownerGroup "/var/www" user userGrp
             & Nginx.siteEnabled "www.punkachien.net" punkachien
-            & LetsEncrypt.letsEncrypt letsEncryptAgree "www.punkachien.net" "/var/www/punkachien.net/public_html"
+            & Nginx.siteEnabled "jupyter.mithril.network" jupyter
+            & LetsEncrypt.letsEncrypt' letsEncryptAgree "www.punkachien.net" [ "jupyter.mithril.network" ] "/var/www/punkachien.net/public_html"
             `requires` letsEncryptNginxConf
             `onChange` Nginx.reloaded
-            & Nginx.siteEnabled "jupyter.mithril.network" jupyter
-            & LetsEncrypt.letsEncrypt letsEncryptAgree "jupyter.mithril.network" "/var/www/jupyter.mithril.network/public_html"
-              `requires` File.dirExists "/var/www/jupyter.mithril.network/public_html"
-              `requires` letsEncryptNginxConf
-              `onChange` Nginx.reloaded
             & installRust
   where
     root = User "root"
@@ -218,12 +214,13 @@ clermont =
         , "    server_name jupyter.mithril.network;"
         , "    location ~ /.well-known/acme-challenge {"
         , "        allow all;"
-        , "        root /var/www/jupyter.mithril.network/public_html;"
+        , "        root /var/www/punkachien.net/public_html;"
         , "    }"
         , "    location / {"
         , "            rewrite ^ https://$host$request_uri? permanent;"
         , "    }"
         , "}"
+        , ""
         , "server {"
         , "    server_name jupyter.mithril.network;"
         , "    "
