@@ -53,6 +53,7 @@ clermont =
         props
             & osDebian Unstable X86_64
             & Ssh.authorizedKeys root hostContext
+            & Ssh.noPasswords
             & Apt.stdSourcesList
             & Apt.unattendedUpgrades
             & Apt.installed basePackages
