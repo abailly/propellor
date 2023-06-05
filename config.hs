@@ -68,7 +68,7 @@ clermont =
             & File.ownerGroup "/var/www" user userGrp
             & Nginx.siteEnabled "www.punkachien.net" punkachien
             ! Nginx.siteEnabled "jupyter.mithril.network" jupyter
-            & LetsEncrypt.letsEncrypt' letsEncryptAgree "www.punkachien.net" [ "jupyter.mithril.network" ] "/var/www/punkachien.net/public_html"
+            & LetsEncrypt.letsEncrypt' letsEncryptAgree "www.punkachien.net" [] "/var/www/punkachien.net/public_html"
             `requires` letsEncryptNginxConf
             `onChange` Nginx.reloaded
             & installRust
