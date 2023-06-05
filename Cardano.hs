@@ -10,8 +10,8 @@ import qualified Propellor.Property.User as User
 import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess, readProcessEnv)
 import System.FilePath ((</>))
 
-setupNode :: User -> Property OSNoInfo
-setupNode user =
+setup :: User -> Property OSNoInfo
+setup user =
     propertyList "Cardano node" $
         props
             & check

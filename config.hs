@@ -3,7 +3,7 @@
 {-# LANGUAGE DataKinds #-}
 
 import Base (OS)
-import Cardano (setupNode)
+import qualified Cardano
 import Propellor
 import Propellor.Base (catchMaybeIO, combineModes, hPutStr, liftIO, processTranscript, stderr, (</>))
 import qualified Propellor.Property.Apt as Apt
@@ -46,6 +46,7 @@ basePackages =
     , "silversearcher-ag"
     , "direnv"
     , "python3-pip"
+    , "dstat"
     ]
 
 clermont :: Host
@@ -64,7 +65,7 @@ clermont =
             & Ssh.installed
             & Systemd.persistentJournal
             & setupUser user
-            & setupNode user
+            & Cardano.setup user
             & File.dirExists "/var/www"
             & File.ownerGroup "/var/www" user userGrp
             & Nginx.siteEnabled "www.punkachien.net" punkachien
@@ -82,6 +83,7 @@ clermont =
     nixGrp = Group "nixbld"
     systemdJournal = Group "systemd-journal"
 
+    -- from https://futurestud.io/tutorials/nginx-how-to-fix-unknown-connection_upgrade-variable
     connectionUpgradeConf =
         [ "map $http_upgrade $connection_upgrade {  "
         , "    default upgrade;"
@@ -357,7 +359,7 @@ cardano =
             & Cron.runPropellor (Cron.Times "30 * * * *")
             & Systemd.persistentJournal
             & firewall
-            & setupNode user
+            & Cardano.setup user
             & setupHydraNode
   where
     user = User "curry"
