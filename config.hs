@@ -47,6 +47,7 @@ basePackages =
     , "direnv"
     , "python3-pip"
     , "dstat"
+    , "btop"
     ]
 
 clermont :: Host
