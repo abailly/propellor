@@ -5,7 +5,7 @@
 import Base (OS)
 import Cardano (setupNode)
 import Propellor
-import Propellor.Base (combineModes, hPutStr, liftIO, processTranscript, stderr, (</>))
+import Propellor.Base (combineModes, hPutStr, liftIO, processTranscript, stderr, (</>), catchMaybeIO)
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.Cron as Cron
 import qualified Propellor.Property.File as File
@@ -21,7 +21,8 @@ import qualified Propellor.Property.Tor as Tor
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (doesFileExist, readProcess)
-import System.Posix (ownerExecuteMode, ownerReadMode, ownerWriteMode)
+import System.Posix (ownerExecuteMode, ownerReadMode, ownerWriteMode, fileID, deviceID, fileMode, fileSize, modificationTime, getFileStatus)
+import Propellor.Property.LetsEncrypt (AgreeTOS (..), certFile, privKeyFile, chainFile, fullChainFile)
 
 main :: IO ()
 main = defaultMain hosts
@@ -70,9 +71,7 @@ clermont =
             `onChange` selfSignedCert "www.punkachien.net"
             & Nginx.siteEnabled "jupyter.mithril.network" jupyter
             `onChange` selfSignedCert "jupyter.mithril.network"
-            & LetsEncrypt.letsEncrypt' letsEncryptAgree "www.punkachien.net" ["jupyter.mithril.network"] "/var/www/punkachien.net/public_html"
-            `requires` Apt.installed ["python3-certbot-nginx"]
-            `requires` letsEncryptNginxConf
+            & letsEncryptCertsInstalled letsEncryptAgree ["www.punkachien.net", "jupyter.mithril.network"]
             `onChange` Nginx.reloaded
             & installRust
   where
@@ -171,16 +170,6 @@ clermont =
             then not . ("2.11.1," `elem`) . words <$> readProcess "/usr/local/bin/stack" ["--version"]
             else pure True
 
-    -- for some reason, let's encrypt does not install this conf file
-    letsEncryptNginxConf =
-        check
-            (not <$> doesFileExist "/etc/letsencrypt/options-ssl-nginx.conf")
-            ( scriptProperty
-                [ "curl -o /etc/letsencrypt/options-ssl-nginx.conf https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf"
-                ]
-            )
-            `describe` "Let's Encrypt Nginx configured"
-
     punkachien =
         [ "server {"
         , "    listen 80;"
@@ -215,9 +204,9 @@ clermont =
         , "    listen 80;"
         , "    listen [::]:80;"
         , "    server_name jupyter.mithril.network;"
-        , "    location ~ /.well-known/acme-challenge {"
+        , "    location ~ /.well-known {"
         , "        allow all;"
-        , "        root /var/www/punkachien.net/public_html;"
+        , "        root /var/www/jupyter.mithril.net/public_html;"
         , "    }"
         , "    location / {"
         , "            rewrite ^ https://$host$request_uri? permanent;"
@@ -251,6 +240,52 @@ clermont =
         , "    }"
         , "}"
         ]
+
+letsEncryptCertsInstalled :: AgreeTOS -> [String] -> Property DebianLike
+letsEncryptCertsInstalled (AgreeTOS memail) domains =
+  prop `requires` Apt.installed ["certbot", "python3-certbot-nginx"]
+  where
+	prop :: Property UnixLike
+	prop = property desc $ do
+		startstats <- liftIO getstats
+		(transcript, ok) <- liftIO $
+			processTranscript "letsencrypt" params Nothing
+		if ok
+			then do
+				endstats <- liftIO getstats
+				if startstats /= endstats
+					then return MadeChange
+					else return NoChange
+			else do
+				liftIO $ hPutStr stderr transcript
+				return FailedChange
+
+	desc = "letsencrypt " ++ unwords domains
+	params =
+		[ "--nginx"
+		, "--agree-tos"
+		, case memail of
+			Just email -> "--email="++email
+			Nothing -> "--register-unsafely-without-email"
+		, "--noninteractive"
+		, "--keep-until-expiring"
+		-- The list of domains may be changed, adding more, so
+		-- always request expansion.
+		, "--expand"
+		] ++ map (\d -> "--domain="++d) domains
+
+	getstats = mapM statcertfiles domains
+	statcertfiles d = mapM statfile
+		[ certFile d
+		, privKeyFile d
+		, chainFile d
+		, fullChainFile d
+		]
+	statfile f = catchMaybeIO $ do
+		s <- getFileStatus f
+		return (fileID s, deviceID s, fileMode s, fileSize s, modificationTime s)
+
+
 
 selfSignedCert :: FilePath -> Property DebianLike
 selfSignedCert domain =
