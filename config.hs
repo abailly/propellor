@@ -46,7 +46,7 @@ basePackages =
     , "silversearcher-ag"
     , "direnv"
     , "python3-pip"
-    , "dstatq"
+    , "dstat"
     , "btop"
     , "tcpdump"
     ]
