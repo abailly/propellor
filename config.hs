@@ -46,8 +46,9 @@ basePackages =
     , "silversearcher-ag"
     , "direnv"
     , "python3-pip"
-    , "dstat"
+    , "dstatq"
     , "btop"
+    , "tcpdump"
     ]
 
 clermont :: Host
