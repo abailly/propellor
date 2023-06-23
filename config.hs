@@ -140,7 +140,7 @@ clermont =
     installRust =
         check
             doesNotHaveRust
-            ( scriptProperty
+            ( userScriptProperty user
                 [ "curl -sSf https://sh.rustup.rs | sudo RUSTUP_HOME=/opt/rust CARGO_HOME=/opt/rust sh -s -- --no-modify-path -y"
                 , "echo 'export RUSTUP_HOME=/opt/rust' | sudo tee -a /etc/profile.d/rust.sh"
                 , "echo 'export PATH=$PATH:/opt/rust/bin' | sudo tee -a /etc/profile.d/rust.sh"
@@ -375,6 +375,7 @@ firewall =
             & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 22))
             & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 3001))
             & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 5001))
+            & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 5002))
             & dropEverything
 
 setupHydraNode :: Property (MetaTypes '[ 'Targeting 'OSDebian, 'Targeting 'OSBuntish, 'Targeting 'OSArchLinux])
