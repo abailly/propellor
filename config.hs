@@ -56,6 +56,7 @@ clermont =
     host "clermont" $ do
         props
             & osDebian Unstable X86_64
+            & alias "www.punkachien.net"
             & Ssh.authorizedKeys root hostContext
             & Ssh.noPasswords
             & Apt.stdSourcesList
@@ -140,7 +141,8 @@ clermont =
     installRust =
         check
             doesNotHaveRust
-            ( userScriptProperty user
+            ( userScriptProperty
+                user
                 [ "curl -sSf https://sh.rustup.rs | sudo RUSTUP_HOME=/opt/rust CARGO_HOME=/opt/rust sh -s -- --no-modify-path -y"
                 , "echo 'export RUSTUP_HOME=/opt/rust' | sudo tee -a /etc/profile.d/rust.sh"
                 , "echo 'export PATH=$PATH:/opt/rust/bin' | sudo tee -a /etc/profile.d/rust.sh"
