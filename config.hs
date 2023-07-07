@@ -49,6 +49,7 @@ basePackages =
     , "dstat"
     , "btop"
     , "tcpdump"
+    , "dmidecode"
     ]
 
 clermont :: Host
