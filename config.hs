@@ -50,6 +50,7 @@ basePackages =
     , "btop"
     , "tcpdump"
     , "dmidecode"
+    , "hwinfo"
     ]
 
 clermont :: Host
