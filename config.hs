@@ -51,6 +51,7 @@ basePackages =
     , "tcpdump"
     , "dmidecode"
     , "hwinfo"
+    , "sqlite3"
     ]
 
 clermont :: Host
