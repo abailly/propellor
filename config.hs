@@ -91,6 +91,7 @@ clermont =
     user = User "curry"
     userGrp = Group "curry"
     nixGrp = Group "nixbld"
+    dockerGrp = Group "docker"
     systemdJournal = Group "systemd-journal"
 
     dockerComposeInstalled =
@@ -122,6 +123,7 @@ clermont =
                     )
                 & User.hasGroup u nixGrp
                 & User.hasGroup u systemdJournal
+                & User.hasGroup u dockerGrp
                 & Git.cloned user "git@github.com:abailly-iohk/dotfiles" "/home/curry/dotfiles" Nothing
                 & File.hasContent "/home/curry/sensei/hooks/update" senseiUpdateHook
                 `requires` stackInstalled
