@@ -66,6 +66,7 @@ clermont =
             & Ssh.noPasswords
             & Apt.stdSourcesList
             & Apt.unattendedUpgrades
+            & Apt.update
             & Apt.installed basePackages
             & installNix
             & File.hasContent "/etc/nix/nix.conf" nixConf
