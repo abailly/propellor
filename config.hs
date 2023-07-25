@@ -23,6 +23,7 @@ import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (doesFileExist, readProcess)
 import System.Posix (deviceID, fileID, fileMode, fileSize, getFileStatus, modificationTime, ownerExecuteMode, ownerReadMode, ownerWriteMode)
+import qualified Propellor.Property.Docker as Docker
 
 main :: IO ()
 main = defaultMain hosts
@@ -82,6 +83,7 @@ clermont =
             & letsEncryptCertsInstalled letsEncryptAgree ["www.punkachien.net", "jupyter.mithril.network"]
             `onChange` Nginx.reloaded
             & installRust
+            & Docker.installed
   where
     root = User "root"
     user = User "curry"
