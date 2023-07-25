@@ -53,6 +53,7 @@ basePackages =
     , "dmidecode"
     , "hwinfo"
     , "sqlite3"
+    , "docker-compose-plugin"
     ]
 
 clermont :: Host
