@@ -96,7 +96,7 @@ clermont =
     dockerComposeInstalled =
         Apt.installed ["docker-compose-plugin"]
             `requires` Docker.installed
-            `requires` Apt.setSourcesListD ["deb https://download.docker.com/linux/debian unstable main"] "docker"
+            `requires` Apt.setSourcesListD ["deb [arch=amd64] https://download.docker.com/linux/debian trixie stable"] "docker"
             `requires` Apt.trustsKey dockerKey
 
     -- from https://futurestud.io/tutorials/nginx-how-to-fix-unknown-connection_upgrade-variable
