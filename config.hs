@@ -53,6 +53,8 @@ basePackages =
     , "dmidecode"
     , "hwinfo"
     , "sqlite3"
+    , "hdparm"
+    , "fontconfig"
     ]
 
 clermont :: Host
@@ -75,7 +77,7 @@ clermont =
             & setupUser user
             & Cardano.setup user
             & File.dirExists "/var/www"
-            & File.ownerGroup "/var/www" user userGrp
+             & File.ownerGroup "/var/www" user userGrp
             & Nginx.siteEnabled "www.punkachien.net" punkachien
             `onChange` selfSignedCert "www.punkachien.net"
             `requires` File.hasContent "/etc/nginx/conf.d/connection-upgrade.conf" connectionUpgradeConf
