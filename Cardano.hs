@@ -161,7 +161,7 @@ mithrilSnapshotDownloaded user userGrp =
                 ]
             & File.ownerGroup "/home/curry/mithril-client.environment" user userGrp
   where
-    aggregatorEndpoint = "https://aggregator.release-mainnet.api.mithril.network/aggregator️"
+    aggregatorEndpoint = "https://aggregator.release-mainnet.api.mithril.network/aggregator"
 
     genesisVerificationKey = "5b3139312c36362c3134302c3138352c3133382c31312c3233372c3230372c3235302c3134342c32372c322c3138382c33302c31322c38312c3135352c3230342c31302c3137392c37352c32332c3133382c3139362c3231372c352c31342c32302c35372c37392c33392c3137365d"
 
