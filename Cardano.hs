@@ -164,7 +164,7 @@ mithrilSnapshotDownloaded user userGrp =
                 shouldDownloadSnapshot
                 ( userScriptProperty
                     user
-                    [ ". mithril-client.environment"
+                    [ ". ./mithril-client.environment"
                     , "mithril-client snapshot download " <> mithrilSnapshot
                     ]
                     `assume` MadeChange
