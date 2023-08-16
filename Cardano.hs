@@ -11,7 +11,7 @@ import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess, readProcessEnv)
-import System.FilePath ((</>))
+import System.FilePath ((</>), (<.>))
 
 setup :: User -> Property OSNoInfo
 setup user =
@@ -160,12 +160,19 @@ mithrilSnapshotDownloaded user userGrp =
                 , "export GENESIS_VERIFICATION_KEY=\"" <> genesisVerificationKey <> "\""
                 ]
             & File.ownerGroup "/home/curry/mithril-client.environment" user userGrp
+            & check
+                shouldDownloadSnapshot
+                ( cmdProperty "mithril-client" ["snapshot", "download", mithrilSnapshot]
+                    `assume` MadeChange
+                    `describe` ("Install Mithril snapshot " <> mithrilSnapshot)
+                )
+
   where
     aggregatorEndpoint = "https://aggregator.release-mainnet.api.mithril.network/aggregator"
 
     genesisVerificationKey = "5b3139312c36362c3134302c3138352c3133382c31312c3233372c3230372c3235302c3134342c32372c322c3138382c33302c31322c38312c3135352c3230342c31302c3137392c37352c32332c3133382c3139362c3231372c352c31342c32302c35372c37392c33392c3137365d"
 
-    mithrilSnapshot = "fdd609c5affa627c9b19dfd32c5a370a9e6ba0f930ec50281b5f470fe3c955de"
+    mithrilSnapshot = "87122ee3415112a1d2b215003e134652dd0ebf8f7588db8a0745336b9b249d4e"
 
     sha256 = "fc63de9c6b96185166066acfff4fa94cb329d79f3d8e1fd7adc7490defb20fb6"
 
@@ -180,6 +187,10 @@ mithrilSnapshotDownloaded user userGrp =
             . head
             . lines
             <$> readProcess ("/usr/bin" </> "mithril-client") ["--version"]
+
+    shouldDownloadSnapshot = do
+        dir <- User.homedir user
+        not <$> doesFileExist (dir </> "snapshot-" <> mithrilSnapshot <.> "tar" <.> "gz")
 
 shouldDownload :: String -> FilePath -> IO Bool
 shouldDownload sha256 archivePath = do
