@@ -11,7 +11,7 @@ import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess, readProcessEnv)
-import System.FilePath ((</>), (<.>))
+import System.FilePath ((<.>), (</>))
 
 setup :: User -> Property OSNoInfo
 setup user =
@@ -162,11 +162,15 @@ mithrilSnapshotDownloaded user userGrp =
             & File.ownerGroup "/home/curry/mithril-client.environment" user userGrp
             & check
                 shouldDownloadSnapshot
-                ( cmdProperty "mithril-client" ["snapshot", "download", mithrilSnapshot]
+                ( cmdPropertyEnv
+                    "mithril-client"
+                    ["snapshot", "download", mithrilSnapshot]
+                    [ ("AGGREGATOR_ENDPOINT", aggregatorEndpoint)
+                    , ("GENESIS_VERIFICATION_KEY", genesisVerificationKey)
+                    ]
                     `assume` MadeChange
                     `describe` ("Install Mithril snapshot " <> mithrilSnapshot)
                 )
-
   where
     aggregatorEndpoint = "https://aggregator.release-mainnet.api.mithril.network/aggregator"
 
