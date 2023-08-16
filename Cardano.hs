@@ -25,9 +25,9 @@ setup user =
                 shouldDownload
                 ( cmdProperty
                     "curl"
-                    ["-o", archivePath, "-L", "https://github.com/input-output-hk/cardano-node/releases/download/8.2.1-pre/cardano-node-8.2.1-linux.tar.gz"]
+                    ["-o", archivePath, "-L", "https://github.com/input-output-hk/cardano-node/releases/download/8.1.2-pre/cardano-node-8.1.2-linux.tar.gz"]
                     `changesFileContent` archivePath
-                ) `describe` "Cardano node 8.2.1 archive downloaded"
+                ) `describe` "Cardano node 8.1.2 archive downloaded"
             & File.ownerGroup archivePath user userGrp
             & check
                 shouldUnpack
@@ -35,7 +35,7 @@ setup user =
                     "tar"
                     ["xC", "/home/curry", "-f", archivePath]
                     `changesFileContent` "/home/curry/cardano-node"
-                ) `describe` "Cardano node 8.2.1 archive unpacked"
+                ) `describe` "Cardano node 8.1.2 archive unpacked"
             & generateTopologyFile
             & File.hasContent "/home/curry/cardano-node.environment" envFile
             & File.hasContent "/etc/systemd/system/cardano-node.service" serviceNode
@@ -44,7 +44,7 @@ setup user =
   where
     sha256 = "b8c2dbc5fcf2fca599fc17e7c9ca24f752e1af93e7a7a49a4f2559d211ad29a1"
 
-    archivePath = "/home/curry/cardano-node-8.2.1.tgz"
+    archivePath = "/home/curry/cardano-node-8.1.2.tgz"
 
     shouldUnpack = do
         dir <- User.homedir user
