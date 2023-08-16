@@ -1,3 +1,5 @@
+{-# LANGUAGE DataKinds #-}
+
 module Cardano where
 
 import Base (OSNoInfo)
@@ -7,6 +9,7 @@ import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Git as Git
 import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.User as User
+import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess, readProcessEnv)
 import System.FilePath ((</>))
 
@@ -20,14 +23,15 @@ setup user =
                     not <$> doesDirectoryExist (d </> "cardano-configurations")
                 )
                 (Git.pulled user "https://github.com/input-output-hk/cardano-configurations" "cardano-configurations" Nothing)
-                `describe` "Cardano configurations pulled"
+            `describe` "Cardano configurations pulled"
             & check
-                shouldDownload
+                (shouldDownload sha256 archivePath)
                 ( cmdProperty
                     "curl"
-                    ["-o", archivePath, "-L", "https://github.com/input-output-hk/cardano-node/releases/download/8.1.2-pre/cardano-node-8.1.2-linux.tar.gz"]
+                    ["-o", archivePath, "-L", "https://github.com/input-output-hk/cardano-node/releases/download/8.1.2/cardano-node-8.1.2-linux.tar.gz"]
                     `changesFileContent` archivePath
-                ) `describe` "Cardano node 8.1.2 archive downloaded"
+                )
+            `describe` "Cardano node 8.1.2 archive downloaded"
             & File.ownerGroup archivePath user userGrp
             & check
                 shouldUnpack
@@ -35,29 +39,31 @@ setup user =
                     "tar"
                     ["xC", "/home/curry", "-f", archivePath]
                     `changesFileContent` "/home/curry/cardano-node"
-                ) `describe` "Cardano node 8.1.2 archive unpacked"
+                )
+            `describe` "Cardano node 8.1.2 archive unpacked"
             & generateTopologyFile
             & File.hasContent "/home/curry/cardano-node.environment" envFile
             & File.hasContent "/etc/systemd/system/cardano-node.service" serviceNode
+            & mithrilSnapshotDownloaded
             & Systemd.enabled "cardano-node"
-            & Systemd.started "cardano-node"
+            & Systemd.restarted "cardano-node"
   where
-    sha256 = "b8c2dbc5fcf2fca599fc17e7c9ca24f752e1af93e7a7a49a4f2559d211ad29a1"
-
-    archivePath = "/home/curry/cardano-node-8.1.2.tgz"
+    sha256 = "35a9116cd7d47f527d3480853aaf8732b7cf1eeacf7a67530bca6a7fd69e50fa"
 
     shouldUnpack = do
         dir <- User.homedir user
         hasFile <- doesFileExist (dir </> "cardano-node")
         if hasFile
-            then not . ("8.0.0" `elem`) . words . head . lines <$> readProcessEnv "/home/curry/cardano-node" ["--version"] (Just [("LD_LIBRARY_PATH", dir)])
+            then
+                not
+                    . ("8.0.0" `elem`)
+                    . words
+                    . head
+                    . lines
+                    <$> readProcessEnv ("/home/curry" </> "cardano-node") ["--version"] (Just [("LD_LIBRARY_PATH", dir)])
             else pure True
 
-    shouldDownload = do
-        hasFile <- doesFileExist archivePath
-        if not hasFile
-            then pure True
-            else (/= sha256) . head . words . head . lines <$> readProcess "/usr/bin/sha256sum" [archivePath]
+    archivePath = "/home/curry/cardano-node-8.1.2.tgz"
 
     userGrp = Group "curry"
 
@@ -106,7 +112,7 @@ setup user =
                 & check
                     (not <$> doesFileExist "/home/curry/topology.json")
                     (scriptProperty [randomPeers])
-                     `describe` "Random topology.json generated"
+                `describe` "Random topology.json generated"
                 & File.ownerGroup "/home/curry/topology.json" user userGrp
 
     randomPeers =
@@ -119,3 +125,51 @@ setup user =
             , "jq -s '(. | {Producers:.})' > "
             , "/home/curry/topology.json"
             ]
+
+mithrilSnapshotDownloaded ::
+    Property
+        ( MetaTypes
+            '[ 'Targeting 'OSDebian
+             , 'Targeting 'OSBuntish
+             , 'Targeting 'OSArchLinux
+             , 'Targeting 'OSFreeBSD
+             ]
+        )
+mithrilSnapshotDownloaded =
+    propertyList "Mithril snapshot downloaded" $
+        props
+            & check
+                (shouldDownload sha256 mithrilPath)
+                ( cmdProperty
+                    "curl"
+                    ["-o", mithrilPath, "-L", "https://github.com/input-output-hk/mithril/releases/download/2331.1/mithril-client_0.3.27+ff06651_amd64.deb"]
+                    `changesFileContent` mithrilPath
+                )
+            `describe` ("Mithril client " <> mithrilClientVersion <> " package downloaded")
+            & check
+                shouldUnpack
+                ( cmdProperty "dpkg" ["--install", mithrilPath]
+                    `assume` MadeChange
+                    `describe` ("Mithril client " <> mithrilClientVersion <> " package installed")
+                )
+  where
+    sha256 = "fc63de9c6b96185166066acfff4fa94cb329d79f3d8e1fd7adc7490defb20fb6"
+
+    mithrilPath = "mithril-client.deb"
+
+    mithrilClientVersion = "0.3.27+ff06651"
+
+    shouldUnpack =
+        not
+            . (mithrilClientVersion `elem`)
+            . words
+            . head
+            . lines
+            <$> readProcess ("/home/curry" </> "cardano-node") ["--version"]
+
+shouldDownload :: String -> FilePath -> IO Bool
+shouldDownload sha256 archivePath = do
+    hasFile <- doesFileExist archivePath
+    if not hasFile
+        then pure True
+        else (/= sha256) . head . words . head . lines <$> readProcess "/usr/bin/sha256sum" [archivePath]
