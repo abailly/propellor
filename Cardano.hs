@@ -162,11 +162,10 @@ mithrilSnapshotDownloaded user userGrp =
             & File.ownerGroup "/home/curry/mithril-client.environment" user userGrp
             & check
                 shouldDownloadSnapshot
-                ( cmdPropertyEnv
-                    "mithril-client"
-                    ["snapshot", "download", mithrilSnapshot]
-                    [ ("AGGREGATOR_ENDPOINT", aggregatorEndpoint)
-                    , ("GENESIS_VERIFICATION_KEY", genesisVerificationKey)
+                ( userScriptProperty
+                    user
+                    [ ". mithril-client.environment"
+                    , "mithril-client snapshot download " <> mithrilSnapshot
                     ]
                     `assume` MadeChange
                     `describe` ("Install Mithril snapshot " <> mithrilSnapshot)
