@@ -156,8 +156,8 @@ mithrilSnapshotDownloaded user userGrp =
                 )
             & File.hasContent
                 "/home/curry/mithril-client.environment"
-                [ "AGGREGATOR_ENDPOINT=\"" <> aggregatorEndpoint <> "\""
-                , "GENESIS_VERIFICATION_KEY=\"" <> genesisVerificationKey <> "\""
+                [ "export AGGREGATOR_ENDPOINT=\"" <> aggregatorEndpoint <> "\""
+                , "export GENESIS_VERIFICATION_KEY=\"" <> genesisVerificationKey <> "\""
                 ]
             & File.ownerGroup "/home/curry/mithril-client.environment" user userGrp
   where
