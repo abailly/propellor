@@ -165,7 +165,7 @@ mithrilSnapshotDownloaded =
             . words
             . head
             . lines
-            <$> readProcess ("/home/curry" </> "cardano-node") ["--version"]
+            <$> readProcess ("/usr/bin" </> "mithril-client") ["--version"]
 
 shouldDownload :: String -> FilePath -> IO Bool
 shouldDownload sha256 archivePath = do
