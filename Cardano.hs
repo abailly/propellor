@@ -152,7 +152,7 @@ mithrilSnapshotDownloaded =
                     `assume` MadeChange
                     `describe` ("Mithril client " <> mithrilClientVersion <> " package installed")
                 )
-            & File.containsLines
+            & File.hasContent
                 "/home/user/mithril-client.env"
                 [ "AGGREGATOR_ENDPOINT=" <> aggregatorEndpoint <> "\""
                 , "GENESIS_VERIFICATION_KEY=" <> genesisVerificationKey <> "\""
