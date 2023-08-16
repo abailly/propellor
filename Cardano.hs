@@ -134,7 +134,6 @@ mithrilSnapshotDownloaded ::
             '[ 'Targeting 'OSDebian
              , 'Targeting 'OSBuntish
              , 'Targeting 'OSArchLinux
-             , 'Targeting 'OSFreeBSD
              ]
         )
 mithrilSnapshotDownloaded user userGrp =
@@ -165,10 +164,12 @@ mithrilSnapshotDownloaded user userGrp =
                 ( userScriptProperty
                     user
                     [ ". ./mithril-client.environment"
+                    , "rm -fr db"
                     , "mithril-client snapshot download " <> mithrilSnapshot
                     ]
                     `assume` MadeChange
                     `describe` ("Install Mithril snapshot " <> mithrilSnapshot)
+                    `requires` Systemd.stopped "cardano-node"
                 )
   where
     aggregatorEndpoint = "https://aggregator.release-mainnet.api.mithril.network/aggregator"
