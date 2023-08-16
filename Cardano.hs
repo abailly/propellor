@@ -25,9 +25,9 @@ setup user =
                 shouldDownload
                 ( cmdProperty
                     "curl"
-                    ["-o", archivePath, "-L", "https://update-cardano-mainnet.iohk.io/cardano-node-releases/cardano-node-8.0.0-linux.tar.gz"]
+                    ["-o", archivePath, "-L", "https://github.com/input-output-hk/cardano-node/releases/download/8.2.1-pre/cardano-node-8.2.1-linux.tar.gz"]
                     `changesFileContent` archivePath
-                ) `describe` "Cardano node 8.0.0 archive downloaded"
+                ) `describe` "Cardano node 8.2.1 archive downloaded"
             & File.ownerGroup archivePath user userGrp
             & check
                 shouldUnpack
@@ -35,16 +35,16 @@ setup user =
                     "tar"
                     ["xC", "/home/curry", "-f", archivePath]
                     `changesFileContent` "/home/curry/cardano-node"
-                ) `describe` "Cardano node 8.0.0 archive unpacked"
+                ) `describe` "Cardano node 8.2.1 archive unpacked"
             & generateTopologyFile
             & File.hasContent "/home/curry/cardano-node.environment" envFile
             & File.hasContent "/etc/systemd/system/cardano-node.service" serviceNode
             & Systemd.enabled "cardano-node"
             & Systemd.started "cardano-node"
   where
-    sha256 = "98629a25db5536efee27d4a7517257df1529a02f3a356c36dc8869057d340e0e"
+    sha256 = "b8c2dbc5fcf2fca599fc17e7c9ca24f752e1af93e7a7a49a4f2559d211ad29a1"
 
-    archivePath = "/home/curry/cardano-node-8.0.0.tgz"
+    archivePath = "/home/curry/cardano-node-8.2.1.tgz"
 
     shouldUnpack = do
         dir <- User.homedir user
