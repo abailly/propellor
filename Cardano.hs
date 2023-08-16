@@ -44,7 +44,7 @@ setup user =
             & generateTopologyFile
             & File.hasContent "/home/curry/cardano-node.environment" envFile
             & File.hasContent "/etc/systemd/system/cardano-node.service" serviceNode
-            & mithrilSnapshotDownloaded
+            & mithrilSnapshotDownloaded user userGrp
             & Systemd.enabled "cardano-node"
             & Systemd.restarted "cardano-node"
   where
@@ -127,6 +127,8 @@ setup user =
             ]
 
 mithrilSnapshotDownloaded ::
+    User ->
+    Group ->
     Property
         ( MetaTypes
             '[ 'Targeting 'OSDebian
@@ -135,7 +137,7 @@ mithrilSnapshotDownloaded ::
              , 'Targeting 'OSFreeBSD
              ]
         )
-mithrilSnapshotDownloaded =
+mithrilSnapshotDownloaded user userGrp =
     propertyList "Mithril snapshot downloaded" $
         props
             & check
@@ -153,11 +155,11 @@ mithrilSnapshotDownloaded =
                     `describe` ("Mithril client " <> mithrilClientVersion <> " package installed")
                 )
             & File.hasContent
-                "/home/user/mithril-client.env"
+                "/home/curry/mithril-client.environment"
                 [ "AGGREGATOR_ENDPOINT=" <> aggregatorEndpoint <> "\""
                 , "GENESIS_VERIFICATION_KEY=" <> genesisVerificationKey <> "\""
                 ]
-
+            & File.ownerGroup "/home/curry/mithril-client.environment" user userGrp
   where
     aggregatorEndpoint = "https://aggregator.release-mainnet.api.mithril.network/aggregator️"
 
