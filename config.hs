@@ -57,6 +57,7 @@ basePackages =
     , "fontconfig"
     , "autoconf"
     , "automake"
+    , "libtool"
     ]
 
 clermont :: Host
