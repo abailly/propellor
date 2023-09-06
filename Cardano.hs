@@ -12,6 +12,7 @@ import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess, readProcessEnv)
 import System.FilePath ((<.>), (</>))
+import Propellor.Base (whenM)
 
 setup :: User -> Property OSNoInfo
 setup user =
@@ -184,13 +185,18 @@ mithrilSnapshotDownloaded user userGrp =
 
     mithrilClientVersion = "0.3.38+a6caa1c"
 
-    shouldUnpack =
-        not
+    shouldUnpack = do
+      let exe = "/usr/bin/mithril-client"
+      hasExe <- doesFileExist exe
+      if hasExe
+        then
+          not
             . (mithrilClientVersion `elem`)
             . words
             . head
             . lines
-            <$> readProcess ("/usr/bin" </> "mithril-client") ["--version"]
+            <$> readProcess "/usr/bin/mithril-client" ["--version"]
+        else pure True
 
     shouldDownloadSnapshot = do
         dir <- User.homedir user
