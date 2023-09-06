@@ -45,9 +45,9 @@ setup user =
             & generateTopologyFile
             & File.hasContent "/home/curry/cardano-node.environment" envFile
             & File.hasContent "/etc/systemd/system/cardano-node.service" serviceNode
-            & mithrilSnapshotDownloaded user userGrp
-            & Systemd.enabled "cardano-node"
-            & Systemd.restarted "cardano-node"
+            -- & mithrilSnapshotDownloaded user userGrp
+            -- & Systemd.enabled "cardano-node"
+            -- & Systemd.restarted "cardano-node"
   where
     sha256 = "35a9116cd7d47f527d3480853aaf8732b7cf1eeacf7a67530bca6a7fd69e50fa"
 
