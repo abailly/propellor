@@ -22,7 +22,7 @@ import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.Tor as Tor
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
-import Propellor.Utilities (doesFileExist, readProcess)
+import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess)
 import System.Posix (deviceID, fileID, fileMode, fileSize, getFileStatus, modificationTime, ownerExecuteMode, ownerReadMode, ownerWriteMode)
 
 main :: IO ()
@@ -77,7 +77,7 @@ clermont =
             & setupUser user
             & Cardano.setup user
             & File.dirExists "/var/www"
-             & File.ownerGroup "/var/www" user userGrp
+            & File.ownerGroup "/var/www" user userGrp
             & Nginx.siteEnabled "www.punkachien.net" punkachien
             `onChange` selfSignedCert "www.punkachien.net"
             `requires` File.hasContent "/etc/nginx/conf.d/connection-upgrade.conf" connectionUpgradeConf
@@ -86,8 +86,10 @@ clermont =
             & letsEncryptCertsInstalled letsEncryptAgree ["www.punkachien.net", "jupyter.mithril.network"]
             `onChange` Nginx.reloaded
             & installRust
+            & installHaskell
             & dockerComposeInstalled
             & Docker.installed
+            & Cron.runPropellor (Cron.Times "30 * * * *")
   where
     root = User "root"
     user = User "curry"
@@ -170,6 +172,32 @@ clermont =
 
     doesNotHaveRust =
         not <$> doesFileExist "/opt/rust/bin/rustc"
+
+    installHaskell =
+        check
+            doesNotHaveHaskell
+            ( userScriptProperty
+                user
+                [ "export BOOTSTRAP_HASKELL_NONINTERACTIVE=1"
+                , "curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh"
+                ]
+            )
+            `requires` Apt.installed
+                [ "build-essential"
+                , "curl"
+                , "libffi-dev"
+                , "libffi7"
+                , "libgmp-dev"
+                , "libgmp10"
+                , "libncurses-dev"
+                , "libncurses5"
+                , "libtinfo5"
+                ]
+            `describe` "GHCUp toolchain installed"
+
+    doesNotHaveHaskell = do
+        home <- User.homedir user
+        not <$> doesDirectoryExist (home </> ".ghcup" </> "bin")
 
     shouldInstallNix =
         not . ("2.15.0" `elem`) . words <$> readProcess "/nix/var/nix/profiles/default/bin/nix" ["--version"]
