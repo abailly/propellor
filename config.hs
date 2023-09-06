@@ -55,6 +55,8 @@ basePackages =
     , "sqlite3"
     , "hdparm"
     , "fontconfig"
+    , "autoconf"
+    , "automake"
     ]
 
 clermont :: Host
