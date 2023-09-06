@@ -143,7 +143,7 @@ mithrilSnapshotDownloaded user userGrp =
                 (shouldDownload sha256 mithrilPath)
                 ( cmdProperty
                     "curl"
-                    ["-o", mithrilPath, "-L", "https://github.com/input-output-hk/mithril/releases/download/2331.1/mithril-client_0.3.27+ff06651_amd64.deb"]
+                    ["-o", mithrilPath, "-L", "https://github.com/input-output-hk/mithril/releases/download/2335.0/mithril-client_0.3.38+a6caa1c_amd64.deb"]
                     `changesFileContent` mithrilPath
                 )
             `describe` ("Mithril client " <> mithrilClientVersion <> " package downloaded")
@@ -176,13 +176,13 @@ mithrilSnapshotDownloaded user userGrp =
 
     genesisVerificationKey = "5b3139312c36362c3134302c3138352c3133382c31312c3233372c3230372c3235302c3134342c32372c322c3138382c33302c31322c38312c3135352c3230342c31302c3137392c37352c32332c3133382c3139362c3231372c352c31342c32302c35372c37392c33392c3137365d"
 
-    mithrilSnapshot = "87122ee3415112a1d2b215003e134652dd0ebf8f7588db8a0745336b9b249d4e"
+    mithrilSnapshot = "6c92eb1239a9a48967f66ca0f7ce6078623aaccfffa614e79871bbae35b67237"
 
-    sha256 = "fc63de9c6b96185166066acfff4fa94cb329d79f3d8e1fd7adc7490defb20fb6"
+    sha256 = "09051cc931da1c8f65857d040ea03e8b2e6473f2ea73dcb6d2040ac3c34473e6"
 
     mithrilPath = "mithril-client.deb"
 
-    mithrilClientVersion = "0.3.27+ff06651"
+    mithrilClientVersion = "0.3.38+a6caa1c"
 
     shouldUnpack =
         not
