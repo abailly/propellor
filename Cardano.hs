@@ -180,7 +180,7 @@ mithrilSnapshotDownloaded user userGrp =
 
     sha256 = "09051cc931da1c8f65857d040ea03e8b2e6473f2ea73dcb6d2040ac3c34473e6"
 
-    mithrilPath = "mithril-client.deb"
+    mithrilPath = "/root/mithril-client.deb"
 
     mithrilClientVersion = "0.3.38+a6caa1c"
 
