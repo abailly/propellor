@@ -190,8 +190,8 @@ clermont =
                 , "libgmp-dev"
                 , "libgmp10"
                 , "libncurses-dev"
-                , "libncurses5"
-                , "libtinfo5"
+                , "libncurses6"
+                , "libtinfo6"
                 ]
             `describe` "GHCUp toolchain installed"
 
