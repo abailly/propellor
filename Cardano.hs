@@ -17,13 +17,8 @@ setup :: User -> Property OSNoInfo
 setup user =
     propertyList "Cardano node" $
         props
-            & check
-                ( do
-                    d <- User.homedir user
-                    not <$> doesDirectoryExist (d </> "cardano-configurations")
-                )
-                (Git.pulled user "https://github.com/input-output-hk/cardano-configurations" "cardano-configurations" Nothing)
-            `describe` "Cardano configurations pulled"
+            & Git.pulled user "https://github.com/input-output-hk/cardano-configurations" "cardano-configurations" Nothing
+               `describe` "Cardano configurations pulled"
             & check
                 (shouldDownload sha256 archivePath)
                 ( cmdProperty
