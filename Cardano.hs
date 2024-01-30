@@ -184,8 +184,10 @@ mithrilSnapshotDownloaded user userGrp =
                           ]
 
         snapshotJson <- readProcessEnv "/usr/bin/mithril-client"  [ "snapshot", "show", mithrilSnapshot , "--json" ] (Just mithrilEnv)
-        lastImmutablFile <- writeReadProcessEnv "jq" [ ".beacon.immutable_file_number + 1" ] Nothing (Just $ \ hdl -> hPutStr hdl snapshotJson) Nothing
-        not <$> doesFileExist (dir </> "db" </> "immutable" </> lastImmutablFile <.> "chunk")
+        putStrLn $ "Snapshot JSON: " <> snapshotJson
+        lastImmutableFile <- writeReadProcessEnv "jq" [ ".beacon.immutable_file_number + 1" ] Nothing (Just $ \ hdl -> hPutStr hdl snapshotJson) Nothing
+        putStrLn $ "Last immutable file: " <> lastImmutableFile
+        not <$> doesFileExist (dir </> "db" </> "immutable" </> lastImmutableFile <.> "chunk")
 
 shouldDownload :: String -> FilePath -> IO Bool
 shouldDownload sha256 archivePath = do
