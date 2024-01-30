@@ -17,7 +17,12 @@ setup :: User -> Property OSNoInfo
 setup user =
     propertyList "Cardano node" $
         props
-            & Git.pulled user "https://github.com/input-output-hk/cardano-configurations" "cardano-configurations" Nothing
+            & check
+                ( do
+                    d <- User.homedir user
+                    not <$> doesDirectoryExist (d </> "cardano-configurations")
+                )
+                (Git.pulled user "https://github.com/input-output-hk/cardano-configurations" "cardano-configurations" Nothing)
                `describe` "Cardano configurations pulled"
             & check
                 (shouldDownload sha256 archivePath)
@@ -43,7 +48,7 @@ setup user =
             & Systemd.enabled "cardano-node"
             & Systemd.restarted "cardano-node"
   where
-    sha256 = "35a9116cd7d47f527d3480853aaf8732b7cf1eeacf7a67530bca6a7fd69e50fa"
+    sha256 = "fea39964590885eb2bcf7bd8e78cb11f8bde4b29bb10ca743f41c497cfd9f327"
 
     shouldUnpack = do
         dir <- User.homedir user
@@ -156,7 +161,7 @@ mithrilSnapshotDownloaded user userGrp =
 
     mithrilPath = "/root/mithril-client.deb"
 
-    mithrilClientVersion = "0.5.17+254d266-1"
+    mithrilClientVersion = "0.5.17+254d266"
 
     shouldUnpack = do
       let exe = "/usr/bin/mithril-client"
