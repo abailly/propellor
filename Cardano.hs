@@ -179,7 +179,11 @@ mithrilSnapshotDownloaded user userGrp =
 
     shouldDownloadSnapshot = do
         dir <- User.homedir user
-        snapshotJson <- readProcess "/usr/bin/mithril-client"  [ "snapshot", "show", mithrilSnapshot , "--json" ]
+        let mithrilEnv =  [ ("AGGREGATOR_ENDPOINT", aggregatorEndpoint)
+                          , ("GENESIS_VERIFICATION_KEY", genesisVerificationKey)
+                          ]
+
+        snapshotJson <- readProcessEnv "/usr/bin/mithril-client"  [ "snapshot", "show", mithrilSnapshot , "--json" ] (Just mithrilEnv)
         lastImmutablFile <- writeReadProcessEnv "jq" [ ".beacon.immutable_file_number + 1" ] Nothing (Just $ \ hdl -> hPutStr hdl snapshotJson) Nothing
         not <$> doesFileExist (dir </> "db" </> "immutable" </> lastImmutablFile <.> "chunk")
 
