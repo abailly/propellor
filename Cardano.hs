@@ -43,6 +43,7 @@ setup user =
             `describe` "Cardano node 8.7.3 archive unpacked"
             & File.hasContent "/home/curry/cardano-node.environment" envFile
             & File.hasContent "/etc/systemd/system/cardano-node.service" serviceNode
+            & Apt.removed ["mithril-client"]
             & mithrilSnapshotDownloaded user userGrp
             & Systemd.enabled "cardano-node"
             & Systemd.restarted "cardano-node"
