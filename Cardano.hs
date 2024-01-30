@@ -10,8 +10,9 @@ import qualified Propellor.Property.Git as Git
 import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
-import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess, readProcessEnv)
+import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess, readProcessEnv, writeReadProcessEnv)
 import System.FilePath ((<.>), (</>))
+import System.IO(hPutStr)
 
 setup :: User -> Property OSNoInfo
 setup user =
@@ -178,7 +179,9 @@ mithrilSnapshotDownloaded user userGrp =
 
     shouldDownloadSnapshot = do
         dir <- User.homedir user
-        not <$> doesFileExist (dir </> "snapshot-" <> mithrilSnapshot <.> "tar" <.> "gz")
+        snapshotJson <- readProcess "/usr/bin/mithril-client"  [ "snapshot", "show", mithrilSnapshot , "--json" ]
+        lastImmutablFile <- writeReadProcessEnv "jq" [ ".beacon.immutable_file_number + 1" ] Nothing (Just $ \ hdl -> hPutStr hdl snapshotJson) Nothing
+        not <$> doesFileExist (dir </> "db" </> "immutable" </> lastImmutablFile <.> "chunk")
 
 shouldDownload :: String -> FilePath -> IO Bool
 shouldDownload sha256 archivePath = do
