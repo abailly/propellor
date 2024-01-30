@@ -84,9 +84,7 @@ clermont =
             & Nginx.siteEnabled "www.punkachien.net" punkachien
             `onChange` selfSignedCert "www.punkachien.net"
             `requires` File.hasContent "/etc/nginx/conf.d/connection-upgrade.conf" connectionUpgradeConf
-            & Nginx.siteEnabled "jupyter.mithril.network" jupyter
-            `onChange` selfSignedCert "jupyter.mithril.network"
-            & letsEncryptCertsInstalled letsEncryptAgree ["www.punkachien.net", "jupyter.mithril.network"]
+            & letsEncryptCertsInstalled letsEncryptAgree ["www.punkachien.net"]
             `onChange` Nginx.reloaded
             & installRust
             & installHaskell
@@ -261,47 +259,6 @@ clermont =
         , "}"
         ]
 
-    jupyter =
-        [ "server {"
-        , "    listen 80;"
-        , "    listen [::]:80;"
-        , "    server_name jupyter.mithril.network;"
-        , "    location ~ /.well-known {"
-        , "        allow all;"
-        , "        root /var/www/jupyter.mithril.net/public_html;"
-        , "    }"
-        , "    location / {"
-        , "            rewrite ^ https://$host$request_uri? permanent;"
-        , "    }"
-        , "}"
-        , ""
-        , "server {"
-        , "    server_name jupyter.mithril.network;"
-        , "    "
-        , "    listen 443 ssl; # managed by Certbot"
-        , ""
-        , "    # RSA certificate"
-        , "    ssl_certificate /etc/letsencrypt/live/jupyter.mithril.network/fullchain.pem; # managed by Certbot"
-        , "    ssl_certificate_key /etc/letsencrypt/live/jupyter.mithril.network/privkey.pem; # managed by Certbot"
-        , ""
-        , "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot"
-        , ""
-        , "    location / {"
-        , "        proxy_pass http://127.0.0.1:8888;"
-        , "        proxy_set_header X-Real-IP $remote_addr;"
-        , "        proxy_set_header Host $host;"
-        , "        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;"
-        , ""
-        , "        # websocket headers"
-        , "        proxy_http_version 1.1;"
-        , "        proxy_set_header Upgrade $http_upgrade;"
-        , "        proxy_set_header Connection $connection_upgrade;"
-        , "        proxy_set_header X-Scheme $scheme;"
-        , ""
-        , "        proxy_buffering off;"
-        , "    }"
-        , "}"
-        ]
 
 letsEncryptCertsInstalled :: AgreeTOS -> [String] -> Property DebianLike
 letsEncryptCertsInstalled (AgreeTOS memail) domains =
@@ -413,6 +370,7 @@ cardano =
             & firewall
             & Cardano.setup user
             & setupHydraNode
+            & Sudo.enabledFor user
   where
     user = User "curry"
 
@@ -439,7 +397,7 @@ setupHydraNode =
   where
     envFile =
         [ "SOCKETPATH=/home/curry/node.socket"
-        , "HYDRA_SCRIPTS_TX_ID=4a4f3e25887b40f1575a4b53815996145c994559bac1b5d85f7de0f82b8f4ed5"
+        , "HYDRA_SCRIPTS_TX_ID=7d998b617526d827dd69a495f5d5dc2c5e293b86a62ad61cb2fb5f2503cd87f0"
         ]
 
     serviceFile =

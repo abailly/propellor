@@ -28,10 +28,10 @@ setup user =
                 (shouldDownload sha256 archivePath)
                 ( cmdProperty
                     "curl"
-                    ["-o", archivePath, "-L", "https://github.com/input-output-hk/cardano-node/releases/download/8.1.2/cardano-node-8.1.2-linux.tar.gz"]
+                    ["-o", archivePath, "-L", "https://github.com/input-output-hk/cardano-node/releases/download/8.7.3/cardano-node-8.7.3-linux.tar.gz"]
                     `changesFileContent` archivePath
                 )
-            `describe` "Cardano node 8.1.2 archive downloaded"
+            `describe` "Cardano node 8.7.3 archive downloaded"
             & File.ownerGroup archivePath user userGrp
             & check
                 shouldUnpack
@@ -40,8 +40,7 @@ setup user =
                     ["xC", "/home/curry", "-f", archivePath]
                     `changesFileContent` "/home/curry/cardano-node"
                 )
-            `describe` "Cardano node 8.1.2 archive unpacked"
-            & generateTopologyFile
+            `describe` "Cardano node 8.7.3 archive unpacked"
             & File.hasContent "/home/curry/cardano-node.environment" envFile
             & File.hasContent "/etc/systemd/system/cardano-node.service" serviceNode
             & mithrilSnapshotDownloaded user userGrp
@@ -56,20 +55,20 @@ setup user =
         if hasFile
             then
                 not
-                    . ("8.0.0" `elem`)
+                    . ("8.7.3" `elem`)
                     . words
                     . head
                     . lines
                     <$> readProcessEnv ("/home/curry" </> "cardano-node") ["--version"] (Just [("LD_LIBRARY_PATH", dir)])
             else pure True
 
-    archivePath = "/home/curry/cardano-node-8.1.2.tgz"
+    archivePath = "/home/curry/cardano-node-8.7.3.tgz"
 
     userGrp = Group "curry"
 
     envFile =
         [ "CONFIG=\"/home/curry/cardano-configurations/network/mainnet/cardano-node/config.json\""
-        , "TOPOLOGY=\"/home/curry/topology.json\""
+        , "TOPOLOGY=\"/home/curry/cardano-configurations/network/mainnet/cardano-node/topology.json\""
         , "DBPATH=\"./db/\""
         , "SOCKETPATH=\"./node.socket\""
         , "HOSTADDR=\"0.0.0.0\""
@@ -105,27 +104,6 @@ setup user =
         , "WantedBy=multi-user.target"
         ]
 
-    generateTopologyFile =
-        propertyList "Cardano topology created" $
-            props
-                & Apt.installed ["jq", "curl", "coreutils"]
-                & check
-                    (not <$> doesFileExist "/home/curry/topology.json")
-                    (scriptProperty [randomPeers])
-                `describe` "Random topology.json generated"
-                & File.ownerGroup "/home/curry/topology.json" user userGrp
-
-    randomPeers =
-        concat
-            [ "curl https://explorer.mainnet.cardano.org/relays/topology.json | "
-            , "jq -rc '(.Producers[] | "
-            , "{addr:.addr,port:.port,valency:1})' | "
-            , "shuf | "
-            , "head -20 | "
-            , "jq -s '(. | {Producers:.})' > "
-            , "/home/curry/topology.json"
-            ]
-
 mithrilSnapshotDownloaded ::
     User ->
     Group ->
@@ -140,10 +118,10 @@ mithrilSnapshotDownloaded user userGrp =
     propertyList "Mithril snapshot downloaded" $
         props
             & check
-                (shouldDownload sha256 mithrilPath)
+                (shouldDownload archiveSha256 mithrilPath)
                 ( cmdProperty
                     "curl"
-                    ["-o", mithrilPath, "-L", "https://github.com/input-output-hk/mithril/releases/download/2335.0/mithril-client_0.3.38+a6caa1c_amd64.deb"]
+                    ["-o", mithrilPath, "-L", "https://github.com/input-output-hk/mithril/releases/download/2403.1/mithril-client-cli_0.5.17+254d266-1_amd64.deb"]
                     `changesFileContent` mithrilPath
                 )
             `describe` ("Mithril client " <> mithrilClientVersion <> " package downloaded")
@@ -176,13 +154,13 @@ mithrilSnapshotDownloaded user userGrp =
 
     genesisVerificationKey = "5b3139312c36362c3134302c3138352c3133382c31312c3233372c3230372c3235302c3134342c32372c322c3138382c33302c31322c38312c3135352c3230342c31302c3137392c37352c32332c3133382c3139362c3231372c352c31342c32302c35372c37392c33392c3137365d"
 
-    mithrilSnapshot = "6c92eb1239a9a48967f66ca0f7ce6078623aaccfffa614e79871bbae35b67237"
+    mithrilSnapshot = "177f9d9e3c541cfe255e37faaa2b4a4b340ee6965c46f30e1e0a6c8ac79f6dcd"
 
-    sha256 = "09051cc931da1c8f65857d040ea03e8b2e6473f2ea73dcb6d2040ac3c34473e6"
+    archiveSha256 = "dde2030d987b547e701c57693112d4a14c7676744a8d7bc3dd5ba65a905e8556"
 
     mithrilPath = "/root/mithril-client.deb"
 
-    mithrilClientVersion = "0.3.38+a6caa1c"
+    mithrilClientVersion = "0.5.17+254d266-1"
 
     shouldUnpack = do
       let exe = "/usr/bin/mithril-client"
