@@ -36,10 +36,10 @@ setup user =
                 `describe` ("Hydra node " <> hydraVersion <> " archive unpacked")
             & File.mode "/home/curry/hydra-node" (combineModes [ownerReadMode, ownerWriteMode, ownerExecuteMode])
             & File.hasContent "/home/curry/hydra-node.environment" envFile
-            & File.hasContent "/home/curry/hydra-run.sh" hydraRunFile
+            & File.hasContent "/home/curry/run-hydra.sh" hydraRunFile
               `requires` Systemd.stopped "hydra-node"
-            & File.mode "/home/curry/hydra-run.sh" (combineModes [ownerReadMode, ownerWriteMode, ownerExecuteMode])
-            & File.ownerGroup "/home/curry/hydra-run.sh" user userGrp
+            & File.mode "/home/curry/run-hydra.sh" (combineModes [ownerReadMode, ownerWriteMode, ownerExecuteMode])
+            & File.ownerGroup "/home/curry/run-hydra.sh" user userGrp
             & File.hasContent "/etc/systemd/system/hydra-node.service" serviceFile
             & Systemd.enabled "hydra-node"
             & Systemd.restarted "hydra-node"
