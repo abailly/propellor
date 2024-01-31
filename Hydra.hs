@@ -11,6 +11,7 @@ import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import System.Posix (deviceID, fileID, fileMode, fileSize, getFileStatus, modificationTime, ownerExecuteMode, ownerReadMode, ownerWriteMode)
+import Data.List (isInfixOf)
 
 setup :: User -> Property (MetaTypes '[ 'Targeting 'OSDebian, 'Targeting 'OSBuntish])
 setup user =
@@ -57,10 +58,7 @@ setup user =
         if hasFile
             then
                 not
-                    . (hydraVersion `elem`)
-                    . words
-                    . head
-                    . lines
+                    . (hydraVersion `isInfixOf`)
                     <$> readProcessEnv (dir </> hydraExe) ["--version"] (Just [("LD_LIBRARY_PATH", dir)])
             else pure True
 
