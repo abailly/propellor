@@ -67,6 +67,7 @@ clermont =
         props
             & osDebian Unstable X86_64
             & alias "www.punkachien.net"
+            & alias "clermont.lan"
             & Ssh.authorizedKeys root hostContext
             & Ssh.noPasswords
             & Apt.stdSourcesList
