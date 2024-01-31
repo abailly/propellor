@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Cardano where
 
@@ -13,6 +14,8 @@ import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess, readProcessEnv, writeReadProcessEnv)
 import System.FilePath ((<.>), (</>))
 import System.IO (hPutStr)
+import Text.Printf (printf)
+import Text.Read (readMaybe)
 
 setup :: User -> Property OSNoInfo
 setup user =
@@ -185,12 +188,18 @@ mithrilSnapshotDownloaded user userGrp =
                 ]
 
         snapshotJson <- readProcessEnv "/usr/bin/mithril-client" ["snapshot", "show", mithrilSnapshot, "--json"] (Just mithrilEnv)
-        lastImmutableFile <- head . lines <$> writeReadProcessEnv "jq" ["-c" , ".beacon.immutable_file_number"] Nothing (Just $ \hdl -> hPutStr hdl snapshotJson) Nothing
-        let chunkFile = dir </> "db" </> "immutable" </> lastImmutableFile <.> "chunk"
-        foundChunk <- doesFileExist chunkFile
-        if foundChunk
-            then putStrLn ("Found chunk: " <> chunkFile) >> pure True
-            else putStrLn ("Cannot find chunk: " <> chunkFile) >> pure False
+        lastImmutableFileNumber <-
+            readMaybe . head . lines
+                <$> writeReadProcessEnv "jq" ["-c", ".beacon.immutable_file_number"] Nothing (Just $ \hdl -> hPutStr hdl snapshotJson) Nothing
+        case lastImmutableFileNumber of
+            Nothing -> pure False
+            Just (num :: Int) -> do
+                let chunkNumber = printf "%05d" num
+                    chunkFile = dir </> "db" </> "immutable" </> chunkNumber <.> "chunk"
+                foundChunk <- doesFileExist chunkFile
+                if foundChunk
+                    then putStrLn ("Found chunk: " <> chunkFile) >> pure True
+                    else putStrLn ("Cannot find chunk: " <> chunkFile) >> pure False
 
 shouldDownload :: String -> FilePath -> IO Bool
 shouldDownload sha256 archivePath = do
