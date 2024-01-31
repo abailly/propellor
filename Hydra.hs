@@ -120,7 +120,7 @@ setup user =
             , "  --hydra-signing-key  keys/arnaud-hydra.sk \\"
             , "  --cardano-signing-key  keys/arnaud.sk \\"
             , "  --ledger-protocol-parameters  protocol-parameters.json \\"
-            , "  --network-magic 2 \\"
+            , "  --testnet-magic 2 \\"
             , "  --hydra-scripts-tx-id  ${HYDRA_SCRIPTS_TX_ID} \\"
             , "  --node-socket ${SOCKETPATH} \\"
             -- sebastian
