@@ -42,7 +42,7 @@ setup user =
             & File.ownerGroup "/home/curry/hydra-run.sh" user userGrp
             & File.hasContent "/etc/systemd/system/hydra-node.service" serviceFile
             & Systemd.enabled "hydra-node"
-            & Systemd.started "hydra-node"
+            & Systemd.restarted "hydra-node"
   where
     hydraNodeArchiveUrl =
         "https://github.com/input-output-hk/hydra/releases/download"
