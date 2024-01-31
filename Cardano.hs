@@ -61,7 +61,7 @@ setup user =
                     . words
                     . head
                     . lines
-                    <$> readProcessEnv ("/home/curry" </> "cardano-node") ["--version"] (Just [("LD_LIBRARY_PATH", dir)])
+                    <$> readProcessEnv (dir </> "cardano-node") ["--version"] (Just [("LD_LIBRARY_PATH", dir)])
             else pure True
 
     archivePath = "/home/curry/cardano-node-8.7.3.tgz"
@@ -184,9 +184,7 @@ mithrilSnapshotDownloaded user userGrp =
                           ]
 
         snapshotJson <- readProcessEnv "/usr/bin/mithril-client"  [ "snapshot", "show", mithrilSnapshot , "--json" ] (Just mithrilEnv)
-        putStrLn $ "Snapshot JSON: " <> snapshotJson
-        lastImmutableFile <- writeReadProcessEnv "jq" [ ".beacon.immutable_file_number + 1" ] Nothing (Just $ \ hdl -> hPutStr hdl snapshotJson) Nothing
-        putStrLn $ "Last immutable file: " <> lastImmutableFile
+        lastImmutableFile <- writeReadProcessEnv "jq" [ ".beacon.immutable_file_number" ] Nothing (Just $ \ hdl -> hPutStr hdl snapshotJson) Nothing
         not <$> doesFileExist (dir </> "db" </> "immutable" </> lastImmutableFile <.> "chunk")
 
 shouldDownload :: String -> FilePath -> IO Bool

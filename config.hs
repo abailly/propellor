@@ -24,6 +24,7 @@ import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess)
 import System.Posix (deviceID, fileID, fileMode, fileSize, getFileStatus, modificationTime, ownerExecuteMode, ownerReadMode, ownerWriteMode)
+import qualified Hydra
 
 main :: IO ()
 main = defaultMain hosts
@@ -369,7 +370,7 @@ cardano =
             & Systemd.persistentJournal
             & firewall
             & Cardano.setup user
-            & setupHydraNode
+            & Hydra.setup user
             & Sudo.enabledFor user
   where
     user = User "curry"
@@ -386,47 +387,6 @@ firewall =
             & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 5002))
             & dropEverything
 
-setupHydraNode :: Property (MetaTypes '[ 'Targeting 'OSDebian, 'Targeting 'OSBuntish, 'Targeting 'OSArchLinux])
-setupHydraNode =
-    propertyList "Cardano node" $
-        props
-            & File.hasContent "/home/curry/hydra-node.environment" envFile
-            & File.hasContent "/etc/systemd/system/hydra-node.service" serviceFile
-            & Systemd.enabled "hydra-node"
-            & Systemd.started "hydra-node"
-  where
-    envFile =
-        [ "SOCKETPATH=/home/curry/node.socket"
-        , "HYDRA_SCRIPTS_TX_ID=7d998b617526d827dd69a495f5d5dc2c5e293b86a62ad61cb2fb5f2503cd87f0"
-        ]
-
-    serviceFile =
-        [ "[Unit]"
-        , "Description=Hydra node"
-        , "After=multi-user.target"
-        , ""
-        , "[Service]"
-        , "Type=simple"
-        , "EnvironmentFile=/home/curry/hydra-node.environment"
-        , "ExecStart=/home/curry/run-hydra.sh"
-        , "KillSignal = SIGINT"
-        , "RestartKillSignal = SIGINT"
-        , "StandardOutput=journal"
-        , "StandardError=journal"
-        , "SyslogIdentifier=hydra-node"
-        , ""
-        , "LimitNOFILE=32768"
-        , ""
-        , "Restart=on-failure"
-        , "RestartSec=15s"
-        , "StartLimitIntervalSec=0"
-        , "WorkingDirectory=~"
-        , "User=curry"
-        , "Group=curry"
-        , ""
-        , "[Install]"
-        , "WantedBy=multi-user.target"
-        ]
 
 {- | A basic rule to drop every input packet
 
