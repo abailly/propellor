@@ -71,7 +71,7 @@ setup user =
 
     envFile =
         [ "SOCKETPATH=/home/curry/node.socket"
-        , "HYDRA_SCRIPTS_TX_ID=7d998b617526d827dd69a495f5d5dc2c5e293b86a62ad61cb2fb5f2503cd87f0"
+        , "HYDRA_SCRIPTS_TX_ID=c21b70a719112f76d318abcfee95499a27556ef4a18b1c62bc38e4b9c07ae3a6"
         ]
 
     serviceFile =
@@ -119,7 +119,7 @@ setup user =
             , "  --hydra-signing-key  keys/arnaud-hydra.sk \\"
             , "  --cardano-signing-key  keys/arnaud.sk \\"
             , "  --ledger-protocol-parameters  protocol-parameters.json \\"
-            , "  --mainnet \\"
+            , "  --network-magic 2 \\"
             , "  --hydra-scripts-tx-id  ${HYDRA_SCRIPTS_TX_ID} \\"
             , "  --node-socket ${SOCKETPATH} \\"
             -- sebastian
