@@ -161,7 +161,7 @@ mithrilSnapshotDownloaded user userGrp network =
                 ( userScriptProperty
                     user
                     [ ". ./mithril-client.environment"
-                    , "rm -fr db"
+                    , "sudo rm -fr db"
                     , "mithril-client snapshot download " <> mithrilSnapshot
                     ]
                     `assume` MadeChange
