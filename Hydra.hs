@@ -38,7 +38,7 @@ setup user =
             & File.hasContent "/home/curry/hydra-node.environment" envFile
             & File.hasContent "/home/curry/hydra-run.sh" hydraRunFile
             & File.mode "/home/curry/hydra-run.sh" (combineModes [ownerReadMode, ownerWriteMode, ownerExecuteMode])
-            & File.ownerGroup "/home/curry/hydra-run" user userGrp
+            & File.ownerGroup "/home/curry/hydra-run.sh" user userGrp
             & File.hasContent "/etc/systemd/system/hydra-node.service" serviceFile
             & Systemd.enabled "hydra-node"
             & Systemd.started "hydra-node"
