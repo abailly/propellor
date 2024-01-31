@@ -12,7 +12,7 @@ import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess, readProcessEnv, writeReadProcessEnv)
 import System.FilePath ((<.>), (</>))
-import System.IO(hPutStr)
+import System.IO (hPutStr)
 
 setup :: User -> Property OSNoInfo
 setup user =
@@ -24,7 +24,7 @@ setup user =
                     not <$> doesDirectoryExist (d </> "cardano-configurations")
                 )
                 (Git.pulled user "https://github.com/input-output-hk/cardano-configurations" "cardano-configurations" Nothing)
-               `describe` "Cardano configurations pulled"
+                `describe` "Cardano configurations pulled"
             & check
                 (shouldDownload sha256 archivePath)
                 ( cmdProperty
@@ -32,7 +32,7 @@ setup user =
                     ["-o", archivePath, "-L", "https://github.com/input-output-hk/cardano-node/releases/download/8.7.3/cardano-node-8.7.3-linux.tar.gz"]
                     `changesFileContent` archivePath
                 )
-            `describe` "Cardano node 8.7.3 archive downloaded"
+                `describe` "Cardano node 8.7.3 archive downloaded"
             & File.ownerGroup archivePath user userGrp
             & check
                 shouldUnpack
@@ -41,7 +41,7 @@ setup user =
                     ["xC", "/home/curry", "-f", archivePath]
                     `changesFileContent` "/home/curry/cardano-node"
                 )
-            `describe` "Cardano node 8.7.3 archive unpacked"
+                `describe` "Cardano node 8.7.3 archive unpacked"
             & File.hasContent "/home/curry/cardano-node.environment" envFile
             & File.hasContent "/etc/systemd/system/cardano-node.service" serviceNode
             & Apt.removed ["mithril-client"]
@@ -69,8 +69,8 @@ setup user =
     userGrp = Group "curry"
 
     envFile =
-        [ "CONFIG=\"/home/curry/cardano-configurations/network/mainnet/cardano-node/config.json\""
-        , "TOPOLOGY=\"/home/curry/cardano-configurations/network/mainnet/cardano-node/topology.json\""
+        [ "CONFIG=\"/home/curry/cardano-configurations/network/preview/cardano-node/config.json\""
+        , "TOPOLOGY=\"/home/curry/cardano-configurations/network/preview/cardano-node/topology.json\""
         , "DBPATH=\"./db/\""
         , "SOCKETPATH=\"./node.socket\""
         , "HOSTADDR=\"0.0.0.0\""
@@ -152,11 +152,11 @@ mithrilSnapshotDownloaded user userGrp =
                     `requires` Systemd.stopped "cardano-node"
                 )
   where
-    aggregatorEndpoint = "https://aggregator.release-mainnet.api.mithril.network/aggregator"
+    aggregatorEndpoint = "https://aggregator.pre-release-preview.api.mithril.network/aggregator"
 
-    genesisVerificationKey = "5b3139312c36362c3134302c3138352c3133382c31312c3233372c3230372c3235302c3134342c32372c322c3138382c33302c31322c38312c3135352c3230342c31302c3137392c37352c32332c3133382c3139362c3231372c352c31342c32302c35372c37392c33392c3137365d"
+    genesisVerificationKey = "5b3132372c37332c3132342c3136312c362c3133372c3133312c3231332c3230372c3131372c3139382c38352c3137362c3139392c3136322c3234312c36382c3132332c3131392c3134352c31332c3233322c3234332c34392c3232392c322c3234392c3230352c3230352c33392c3233352c34345d"
 
-    mithrilSnapshot = "177f9d9e3c541cfe255e37faaa2b4a4b340ee6965c46f30e1e0a6c8ac79f6dcd"
+    mithrilSnapshot = "5f0f99d00a4b13fb17432e6db313ab5f98cef469d76328c5992938875eaabb68"
 
     archiveSha256 = "dde2030d987b547e701c57693112d4a14c7676744a8d7bc3dd5ba65a905e8556"
 
@@ -165,27 +165,32 @@ mithrilSnapshotDownloaded user userGrp =
     mithrilClientVersion = "0.5.17+254d266"
 
     shouldUnpack = do
-      let exe = "/usr/bin/mithril-client"
-      hasExe <- doesFileExist exe
-      if hasExe
-        then
-          not
-            . (mithrilClientVersion `elem`)
-            . words
-            . head
-            . lines
-            <$> readProcess "/usr/bin/mithril-client" ["--version"]
-        else pure True
+        let exe = "/usr/bin/mithril-client"
+        hasExe <- doesFileExist exe
+        if hasExe
+            then
+                not
+                    . (mithrilClientVersion `elem`)
+                    . words
+                    . head
+                    . lines
+                    <$> readProcess "/usr/bin/mithril-client" ["--version"]
+            else pure True
 
     shouldDownloadSnapshot = do
         dir <- User.homedir user
-        let mithrilEnv =  [ ("AGGREGATOR_ENDPOINT", aggregatorEndpoint)
-                          , ("GENESIS_VERIFICATION_KEY", genesisVerificationKey)
-                          ]
+        let mithrilEnv =
+                [ ("AGGREGATOR_ENDPOINT", aggregatorEndpoint)
+                , ("GENESIS_VERIFICATION_KEY", genesisVerificationKey)
+                ]
 
-        snapshotJson <- readProcessEnv "/usr/bin/mithril-client"  [ "snapshot", "show", mithrilSnapshot , "--json" ] (Just mithrilEnv)
-        lastImmutableFile <- writeReadProcessEnv "jq" [ ".beacon.immutable_file_number" ] Nothing (Just $ \ hdl -> hPutStr hdl snapshotJson) Nothing
-        not <$> doesFileExist (dir </> "db" </> "immutable" </> lastImmutableFile <.> "chunk")
+        snapshotJson <- readProcessEnv "/usr/bin/mithril-client" ["snapshot", "show", mithrilSnapshot, "--json"] (Just mithrilEnv)
+        lastImmutableFile <- writeReadProcessEnv "jq" [".beacon.immutable_file_number"] Nothing (Just $ \hdl -> hPutStr hdl snapshotJson) Nothing
+        let chunkFile = dir </> "db" </> "immutable" </> lastImmutableFile <.> "chunk"
+        foundChunk <- doesFileExist chunkFile
+        if foundChunk
+            then putStrLn ("Found chunk: " <> chunkFile) >> pure True
+            else putStrLn ("Cannot find chunk: " <> chunkFile) >> pure False
 
 shouldDownload :: String -> FilePath -> IO Bool
 shouldDownload sha256 archivePath = do
