@@ -3,7 +3,9 @@
 {-# LANGUAGE DataKinds #-}
 
 import Base (OS)
+import Cardano (CardanoNetwork (..))
 import qualified Cardano
+import qualified Hydra
 import Propellor
 import Propellor.Base (catchMaybeIO, combineModes, hPutStr, liftIO, processTranscript, stderr, (</>))
 import qualified Propellor.Property.Apt as Apt
@@ -24,7 +26,6 @@ import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess)
 import System.Posix (deviceID, fileID, fileMode, fileSize, getFileStatus, modificationTime, ownerExecuteMode, ownerReadMode, ownerWriteMode)
-import qualified Hydra
 
 main :: IO ()
 main = defaultMain hosts
@@ -80,7 +81,7 @@ clermont =
             & Ssh.installed
             & Systemd.persistentJournal
             & setupUser user
-            & Cardano.setup user
+            & Cardano.setup user Mainnet
             & File.dirExists "/var/www"
             & File.ownerGroup "/var/www" user userGrp
             & Nginx.siteEnabled "www.punkachien.net" punkachien
@@ -261,7 +262,6 @@ clermont =
         , "}"
         ]
 
-
 letsEncryptCertsInstalled :: AgreeTOS -> [String] -> Property DebianLike
 letsEncryptCertsInstalled (AgreeTOS memail) domains =
     prop `requires` Apt.installed ["certbot", "python3-certbot-nginx"]
@@ -370,7 +370,7 @@ cardano =
             & Cron.runPropellor (Cron.Times "30 * * * *")
             & Systemd.persistentJournal
             & firewall
-            & Cardano.setup user
+            & Cardano.setup user Preview
             & Hydra.setup user
             & Sudo.enabledFor user
   where
@@ -387,7 +387,6 @@ firewall =
             & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 5001))
             & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 5002))
             & dropEverything
-
 
 {- | A basic rule to drop every input packet
 

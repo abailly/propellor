@@ -1,4 +1,6 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Cardano where
@@ -17,8 +19,11 @@ import System.IO (hPutStr)
 import Text.Printf (printf)
 import Text.Read (readMaybe)
 
-setup :: User -> Property OSNoInfo
-setup user =
+data CardanoNetwork = Mainnet | Preview
+    deriving stock (Eq, Show)
+
+setup :: User -> CardanoNetwork -> Property OSNoInfo
+setup user network =
     propertyList "Cardano node" $
         props
             & check
@@ -27,7 +32,7 @@ setup user =
                     not <$> doesDirectoryExist (d </> "cardano-configurations")
                 )
                 (Git.pulled user "https://github.com/input-output-hk/cardano-configurations" "cardano-configurations" Nothing)
-                `describe` "Cardano configurations pulled"
+            `describe` "Cardano configurations pulled"
             & check
                 (shouldDownload sha256 archivePath)
                 ( cmdProperty
@@ -35,7 +40,7 @@ setup user =
                     ["-o", archivePath, "-L", "https://github.com/input-output-hk/cardano-node/releases/download/8.7.3/cardano-node-8.7.3-linux.tar.gz"]
                     `changesFileContent` archivePath
                 )
-                `describe` "Cardano node 8.7.3 archive downloaded"
+            `describe` "Cardano node 8.7.3 archive downloaded"
             & File.ownerGroup archivePath user userGrp
             & check
                 shouldUnpack
@@ -44,14 +49,17 @@ setup user =
                     ["xC", "/home/curry", "-f", archivePath]
                     `changesFileContent` "/home/curry/cardano-node"
                 )
-                `describe` "Cardano node 8.7.3 archive unpacked"
-            & File.hasContent "/home/curry/cardano-node.environment" envFile
+            `describe` "Cardano node 8.7.3 archive unpacked"
+            & environmentConfigured
             & File.hasContent "/etc/systemd/system/cardano-node.service" serviceNode
             & Apt.removed ["mithril-client"]
-            & mithrilSnapshotDownloaded user userGrp
+            & mithrilSnapshotDownloaded user userGrp network
             & Systemd.enabled "cardano-node"
             & Systemd.restarted "cardano-node"
   where
+    environmentConfigured =
+        File.hasContent "/home/curry/cardano-node.environment" envFile
+
     sha256 = "fea39964590885eb2bcf7bd8e78cb11f8bde4b29bb10ca743f41c497cfd9f327"
 
     shouldUnpack = do
@@ -72,8 +80,8 @@ setup user =
     userGrp = Group "curry"
 
     envFile =
-        [ "CONFIG=\"/home/curry/cardano-configurations/network/preview/cardano-node/config.json\""
-        , "TOPOLOGY=\"/home/curry/cardano-configurations/network/preview/cardano-node/topology.json\""
+        [ "CONFIG=\"/home/curry/cardano-configurations/network/" <> networkName network <> "/cardano-node/config.json\""
+        , "TOPOLOGY=\"/home/curry/cardano-configurations/network/" <> networkName network <> "/cardano-node/topology.json\""
         , "DBPATH=\"./db/\""
         , "SOCKETPATH=\"./node.socket\""
         , "HOSTADDR=\"0.0.0.0\""
@@ -109,9 +117,15 @@ setup user =
         , "WantedBy=multi-user.target"
         ]
 
+networkName :: CardanoNetwork -> String
+networkName = \case
+    Mainnet -> "mainnet"
+    Preview -> "preview"
+
 mithrilSnapshotDownloaded ::
     User ->
     Group ->
+    CardanoNetwork ->
     Property
         ( MetaTypes
             '[ 'Targeting 'OSDebian
@@ -119,7 +133,7 @@ mithrilSnapshotDownloaded ::
              , 'Targeting 'OSArchLinux
              ]
         )
-mithrilSnapshotDownloaded user userGrp =
+mithrilSnapshotDownloaded user userGrp network =
     propertyList "Mithril snapshot downloaded" $
         props
             & check
@@ -155,11 +169,15 @@ mithrilSnapshotDownloaded user userGrp =
                     `requires` Systemd.stopped "cardano-node"
                 )
   where
-    aggregatorEndpoint = "https://aggregator.pre-release-preview.api.mithril.network/aggregator"
+    aggregatorEndpoint = case network of
+        Preview -> "https://aggregator.pre-release-preview.api.mithril.network/aggregator"
+        Mainnet -> "https://aggregator.release-mainnet.api.mithril.network/aggregator"
 
-    genesisVerificationKey = "5b3132372c37332c3132342c3136312c362c3133372c3133312c3231332c3230372c3131372c3139382c38352c3137362c3139392c3136322c3234312c36382c3132332c3131392c3134352c31332c3233322c3234332c34392c3232392c322c3234392c3230352c3230352c33392c3233352c34345d"
+    genesisVerificationKey = case network of
+        Preview -> "5b3132372c37332c3132342c3136312c362c3133372c3133312c3231332c3230372c3131372c3139382c38352c3137362c3139392c3136322c3234312c36382c3132332c3131392c3134352c31332c3233322c3234332c34392c3232392c322c3234392c3230352c3230352c33392c3233352c34345d"
+        Mainnet -> "5b3139312c36362c3134302c3138352c3133382c31312c3233372c3230372c3235302c3134342c32372c322c3138382c33302c31322c38312c3135352c3230342c31302c3137392c37352c32332c3133382c3139362c3231372c352c31342c32302c35372c37392c33392c3137365d"
 
-    mithrilSnapshot = "5f0f99d00a4b13fb17432e6db313ab5f98cef469d76328c5992938875eaabb68"
+    mithrilSnapshot = "latest"
 
     archiveSha256 = "dde2030d987b547e701c57693112d4a14c7676744a8d7bc3dd5ba65a905e8556"
 
