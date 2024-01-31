@@ -185,7 +185,7 @@ mithrilSnapshotDownloaded user userGrp =
                 ]
 
         snapshotJson <- readProcessEnv "/usr/bin/mithril-client" ["snapshot", "show", mithrilSnapshot, "--json"] (Just mithrilEnv)
-        lastImmutableFile <- writeReadProcessEnv "jq" ["-c" , ".beacon.immutable_file_number"] Nothing (Just $ \hdl -> hPutStr hdl snapshotJson) Nothing
+        lastImmutableFile <- head . lines <$> writeReadProcessEnv "jq" ["-c" , ".beacon.immutable_file_number"] Nothing (Just $ \hdl -> hPutStr hdl snapshotJson) Nothing
         let chunkFile = dir </> "db" </> "immutable" </> lastImmutableFile <.> "chunk"
         foundChunk <- doesFileExist chunkFile
         if foundChunk
