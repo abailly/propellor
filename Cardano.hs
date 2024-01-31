@@ -198,8 +198,8 @@ mithrilSnapshotDownloaded user userGrp =
                     chunkFile = dir </> "db" </> "immutable" </> chunkNumber <.> "chunk"
                 foundChunk <- doesFileExist chunkFile
                 if foundChunk
-                    then putStrLn ("Found chunk: " <> chunkFile) >> pure True
-                    else putStrLn ("Cannot find chunk: " <> chunkFile) >> pure False
+                    then putStrLn ("Found chunk: " <> chunkFile) >> pure False
+                    else putStrLn ("Cannot find chunk: " <> chunkFile) >> pure True
 
 shouldDownload :: String -> FilePath -> IO Bool
 shouldDownload sha256 archivePath = do
