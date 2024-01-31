@@ -316,7 +316,7 @@ selfSignedCert domain =
   where
     selfSignedGenerated :: Property DebianLike
     selfSignedGenerated = property desc $ do
-        hasCert <- liftIO $ doesFileExist certFile
+        hasCert <- liftIO $ doesFileExist domainCertFile
         if hasCert
             then pure NoChange
             else genSelfSignedCert
@@ -326,7 +326,7 @@ selfSignedCert domain =
         (transcript, ok) <- liftIO $ processTranscript "openssl" params Nothing
         if ok
             then do
-                hasCert <- liftIO $ doesFileExist certFile
+                hasCert <- liftIO $ doesFileExist domainCertFile
                 if hasCert
                     then return MadeChange
                     else return FailedChange
@@ -334,7 +334,7 @@ selfSignedCert domain =
                 liftIO $ hPutStr stderr transcript
                 return FailedChange
 
-    certFile = "/etc/letsencrypt/live" </> domain </> "fullchain.pem"
+    domainCertFile = "/etc/letsencrypt/live" </> domain </> "fullchain.pem"
     keyFile = "/etc/letsencrypt/live" </> domain </> "privkey.pem"
     params =
         [ "req"
@@ -349,7 +349,7 @@ selfSignedCert domain =
         , "-keyout"
         , keyFile
         , "-out"
-        , certFile
+        , domainCertFile
         ]
 
 cardano :: Host
