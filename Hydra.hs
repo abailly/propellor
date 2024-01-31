@@ -18,7 +18,7 @@ setup user =
     propertyList "Hydra node" $
         props
             & check
-                (shouldDownload sha256 archivePath)
+                (shouldDownload sha256 ("/home/curry" </> archivePath))
                 ( userScriptProperty
                     user
                     ["curl -o " <> archivePath <> " -L " <> hydraNodeArchiveUrl]
