@@ -45,7 +45,7 @@ setup user =
             </> "hydra-x86_64-linux-"
             <> hydraVersion <.> "zip"
 
-    sha256 = "fea39964590885eb2bcf7bd8e78cb11f8bde4b29bb10ca743f41c497cfd9f327"
+    sha256 = "760dbc71dfb01501003f80d6fd768ba9734202c908a70d39cb01b99f5abe5dc7"
 
     hydraExe = "hydra-node"
 
