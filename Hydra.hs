@@ -4,12 +4,13 @@ module Hydra where
 
 import Cardano (shouldDownload)
 import Propellor
-import Propellor.Base (doesFileExist, readProcessEnv, (<.>), (</>))
+import Propellor.Base (combineModes, doesFileExist, readProcessEnv, (<.>), (</>))
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
+import System.Posix (deviceID, fileID, fileMode, fileSize, getFileStatus, modificationTime, ownerExecuteMode, ownerReadMode, ownerWriteMode)
 
 setup :: User -> Property (MetaTypes '[ 'Targeting 'OSDebian, 'Targeting 'OSBuntish])
 setup user =
@@ -23,7 +24,6 @@ setup user =
                     `changesFileContent` archivePath
                 )
                 `describe` ("Hydra node " <> hydraVersion <> " archive downloaded")
-            & File.ownerGroup archivePath user userGrp
             & check
                 shouldUnpack
                 ( userScriptProperty
@@ -33,6 +33,7 @@ setup user =
                     `requires` Apt.installed ["unzip"]
                 )
                 `describe` ("Hydra node " <> hydraVersion <> " archive unpacked")
+            & File.mode "/home/curry/hydra-node" (combineModes [ownerReadMode, ownerWriteMode, ownerExecuteMode])
             & File.hasContent "/home/curry/hydra-node.environment" envFile
             & File.hasContent "/etc/systemd/system/hydra-node.service" serviceFile
             & Systemd.enabled "hydra-node"
