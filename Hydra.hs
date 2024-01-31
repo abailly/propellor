@@ -28,7 +28,7 @@ setup user =
                 shouldUnpack
                 ( userScriptProperty
                     user
-                    ["unzip " <> archivePath]
+                    ["unzip -qo " <> archivePath]
                     `changesFileContent` "/home/curry/hydra-node"
                     `requires` Apt.installed ["unzip"]
                 )
