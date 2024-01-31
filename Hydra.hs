@@ -36,6 +36,9 @@ setup user =
                 `describe` ("Hydra node " <> hydraVersion <> " archive unpacked")
             & File.mode "/home/curry/hydra-node" (combineModes [ownerReadMode, ownerWriteMode, ownerExecuteMode])
             & File.hasContent "/home/curry/hydra-node.environment" envFile
+            & File.hasContent "/home/curry/hydra-run.sh" hydraRunFile
+            & File.mode "/home/curry/hydra-run.sh" (combineModes [ownerReadMode, ownerWriteMode, ownerExecuteMode])
+            & File.ownerGroup "/home/curry/hydra-run" user userGrp
             & File.hasContent "/etc/systemd/system/hydra-node.service" serviceFile
             & Systemd.enabled "hydra-node"
             & Systemd.started "hydra-node"
@@ -98,3 +101,41 @@ setup user =
         , "[Install]"
         , "WantedBy=multi-user.target"
         ]
+
+    hydraRunFile = [
+             "#!/usr/bin/env bash"
+            , ""
+            , "set -vxe"
+            , ""
+            , ". hydra-node.environment"
+            , ""
+            , "./hydra-node \\"
+            , "  --node-id  arnaud \\"
+            , "  --api-host   0.0.0.0 \\"
+            , "  --host  0.0.0.0 \\"
+            , "  --port  5001 \\"
+            , "  --monitoring-port  6001 \\"
+            , "  --persistence-dir  hydra-data \\"
+            , "  --hydra-signing-key  keys/arnaud-hydra.sk \\"
+            , "  --cardano-signing-key  keys/arnaud.sk \\"
+            , "  --ledger-protocol-parameters  protocol-parameters.json \\"
+            , "  --mainnet \\"
+            , "  --hydra-scripts-tx-id  ${HYDRA_SCRIPTS_TX_ID} \\"
+            , "  --node-socket ${SOCKETPATH} \\"
+            -- sebastian
+            , "  --peer  fk.ncoding.at:5001 \\"
+            , "  --cardano-verification-key  keys/sebastian.cardano.vk \\"
+            , "  --hydra-verification-key  keys/sebastian.hydra.vk \\"
+            -- sasha
+            , "  --peer 13.37.150.125:5001 \\"
+            , "  --cardano-verification-key keys/sasha.cardano.vk \\"
+            , "  --hydra-verification-key keys/sasha.hydra.vk  \\"
+            -- franco
+            , "  --peer 13.39.83.131:5001 \\"
+            , "  --cardano-verification-key keys/franco.cardano.vk \\"
+            , "  --hydra-verification-key keys/franco.hydra.vk \\"
+            -- daniel
+            , "  --peer hydra.horizon-haskell.net:5005 \\"
+            , "  --cardano-verification-key keys/daniel.cardano.vk \\"
+            , "  --hydra-verification-key keys/daniel.hydra.vk"
+       ]
