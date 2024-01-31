@@ -111,7 +111,7 @@ setup user =
             , ". hydra-node.environment"
             , ""
             , "./hydra-node \\"
-            , "  --node-id  arnaud \\"
+            , "  --node-id  arnaud@preview \\"
             , "  --api-host   0.0.0.0 \\"
             , "  --host  0.0.0.0 \\"
             , "  --port  5001 \\"
