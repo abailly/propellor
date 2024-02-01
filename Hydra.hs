@@ -124,7 +124,7 @@ setup user =
             , "  --hydra-scripts-tx-id  ${HYDRA_SCRIPTS_TX_ID} \\"
             , "  --node-socket ${SOCKETPATH} \\"
             -- sebastian
-            , "  --peer  fk.ncoding.at:5001 \\"
+            , "  --peer  fk.ncoding.at:5002 \\"
             , "  --cardano-verification-key  keys/sebastian.cardano.vk \\"
             , "  --hydra-verification-key  keys/sebastian.hydra.vk \\"
             -- sasha
