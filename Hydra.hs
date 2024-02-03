@@ -12,6 +12,7 @@ import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import System.Posix (ownerExecuteMode, ownerReadMode, ownerWriteMode)
 import Data.List (isInfixOf)
+import User (commonUserSetup)
 
 setup :: User -> Property (MetaTypes '[ 'Targeting 'OSDebian, 'Targeting 'OSBuntish])
 setup user =

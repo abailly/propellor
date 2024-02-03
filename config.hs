@@ -26,6 +26,7 @@ import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess)
 import System.Posix (deviceID, fileID, fileMode, fileSize, getFileStatus, modificationTime, ownerExecuteMode, ownerReadMode, ownerWriteMode)
+import User (commonUserSetup)
 
 main :: IO ()
 main = defaultMain hosts
@@ -85,10 +86,10 @@ clermont =
             & File.dirExists "/var/www"
             & File.ownerGroup "/var/www" user userGrp
             & Nginx.siteEnabled "www.punkachien.net" punkachien
-            `onChange` selfSignedCert "www.punkachien.net"
-            `requires` File.hasContent "/etc/nginx/conf.d/connection-upgrade.conf" connectionUpgradeConf
+                `onChange` selfSignedCert "www.punkachien.net"
+                `requires` File.hasContent "/etc/nginx/conf.d/connection-upgrade.conf" connectionUpgradeConf
             & letsEncryptCertsInstalled letsEncryptAgree ["www.punkachien.net"]
-            `onChange` Nginx.reloaded
+                `onChange` Nginx.reloaded
             & installRust
             & installHaskell
             & dockerComposeInstalled
@@ -100,7 +101,6 @@ clermont =
     userGrp = Group "curry"
     nixGrp = Group "nixbld"
     dockerGrp = Group "docker"
-    systemdJournal = Group "systemd-journal"
 
     dockerComposeInstalled =
         Apt.installed ["docker-compose-plugin"]
@@ -117,33 +117,22 @@ clermont =
         ]
 
     setupUser u =
-        propertyList ("Configured user " <> show u) $
+        propertyList ("Configured hacking " <> show u) $
             props
-                & User.accountFor u
-                & Ssh.authorizedKey user ""
-                & Ssh.authorizedKeys user hostContext
-                & Ssh.userKeyAt
-                    Nothing
-                    user
-                    hostContext
-                    ( SshEd25519
-                    , "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIERjBICdoL0S4dU+HgevTutHF0QajK/qEN1iHKgeU7+T Remote curry user's key"
-                    )
+                & commonUserSetup u
                 & User.hasGroup u nixGrp
-                & User.hasGroup u systemdJournal
                 & User.hasGroup u dockerGrp
                 & Git.cloned user "git@github.com:abailly-iohk/dotfiles" "/home/curry/dotfiles" Nothing
                 & File.hasContent "/home/curry/sensei/hooks/update" senseiUpdateHook
-                `requires` stackInstalled
-                `requires` Git.bareRepo "sensei" user Git.NotShared
-                `onChange` ( "/home/curry/sensei/hooks/update"
-                                `File.mode` combineModes [ownerReadMode, ownerWriteMode, ownerExecuteMode]
-                           )
-                `onChange` File.ownerGroup "/home/curry/sensei/hooks/update" user userGrp
-                & Sudo.enabledFor u
+                    `requires` stackInstalled
+                    `requires` Git.bareRepo "sensei" user Git.NotShared
+                    `onChange` ( "/home/curry/sensei/hooks/update"
+                                    `File.mode` combineModes [ownerReadMode, ownerWriteMode, ownerExecuteMode]
+                               )
+                    `onChange` File.ownerGroup "/home/curry/sensei/hooks/update" user userGrp
                 & File.hasPrivContent "/home/curry/.config/sensei/client.json" anyContext
-                `requires` File.dirExists "/home/curry/.config/sensei/"
-                `requires` File.applyPath "/home/curry/.config" "sensei/client.json" (\f -> File.ownerGroup f u userGrp)
+                    `requires` File.dirExists "/home/curry/.config/sensei/"
+                    `requires` File.applyPath "/home/curry/.config" "sensei/client.json" (\f -> File.ownerGroup f u userGrp)
 
     senseiUpdateHook =
         [ "#!/bin/sh"
@@ -370,8 +359,9 @@ cardano =
             & Cron.runPropellor (Cron.Times "30 * * * *")
             & Systemd.persistentJournal
             & firewall
-            & Cardano.setup user Preview
             & Hydra.setup user
+                `requires` Cardano.setup user Preview
+                `requires` commonUserSetup user
             & Sudo.enabledFor user
   where
     user = User "curry"
