@@ -244,6 +244,7 @@ peras =
             & alias perasStaging
             & Apt.stdSourcesList
             & Apt.unattendedUpgrades
+            & Apt.installed ["rsync"]
             & File.dirExists perasDir
             & File.ownerGroup perasDir (User "www-data") (Group "www-data")
             & Ssh.authorizedKey (User "root") "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIsRDJTQ2hGutRjE0f/C5YJLKwVji4g9h6lEkrROzC7t"
