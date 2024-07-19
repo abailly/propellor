@@ -240,6 +240,7 @@ cardano =
     host "cardano.hydra.bzh" $
         props
             & osDebian Unstable X86_64
+            & alias perasStaging
             & Apt.stdSourcesList
             & Apt.unattendedUpgrades
             & Apt.installed ["etckeeper"]
@@ -256,7 +257,38 @@ cardano =
                 `requires` Cardano.setup user Preview
                 `requires` commonUserSetup user
             & Sudo.enabledFor user
+            & httpsWebSite perasStaging perasPrivate "me@cardano-scaling.org"
   where
+    perasStaging = "peras-staging.cardano-scaling.org"
+    perasPrivate =
+        [ "server {"
+        , "    listen 80;"
+        , "    listen [::]:80;"
+        , "    "
+        , "    root /var/www/peras-staging.cardano-scaling.org/public_html;"
+        , "    index index.html index.htm index.nginx-debian.html;"
+        , "    "
+        , "    server_name peras-staging.cardano-scaling.org;"
+        , "    "
+        , "    listen 443 ssl; # managed by Certbot"
+        , ""
+        , "    # RSA certificate"
+        , "    ssl_certificate /etc/letsencrypt/live/www.punkachien.net/fullchain.pem; # managed by Certbot"
+        , "    ssl_certificate_key /etc/letsencrypt/live/www.punkachien.net/privkey.pem; # managed by Certbot"
+        , ""
+        , "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot"
+        , ""
+        , "    # Redirect non-https traffic to https"
+        , "    if ($scheme != \"https\") {"
+        , "        return 301 https://$host$request_uri;"
+        , "    } # managed by Certbot"
+        , ""
+        , "    location / {"
+        , "            try_files $uri $uri/ =404;"
+        , "    }"
+        , "}"
+        ]
+
     user = User "curry"
 
 firewall :: Property OS
