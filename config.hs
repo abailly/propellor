@@ -7,7 +7,7 @@ import Cardano (CardanoNetwork (..))
 import qualified Cardano
 import qualified Hydra
 import Propellor
-import Propellor.Base (catchMaybeIO, combineModes, hPutStr, liftIO, processTranscript, stderr, (</>))
+import Propellor.Base (combineModes, (</>))
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.Cron as Cron
 import qualified Propellor.Property.Docker as Docker
@@ -15,9 +15,6 @@ import qualified Propellor.Property.File as File
 import Propellor.Property.Firewall (Chain (..), ConnectionState (..), Proto (..), Rules (..), Table (..), Target (..), rule)
 import qualified Propellor.Property.Firewall as Firewall
 import qualified Propellor.Property.Git as Git
-import Propellor.Property.LetsEncrypt (AgreeTOS (..), certFile, chainFile, fullChainFile, privKeyFile)
-import qualified Propellor.Property.LetsEncrypt as LetsEncrypt
-import qualified Propellor.Property.Nginx as Nginx
 import qualified Propellor.Property.Ssh as Ssh
 import qualified Propellor.Property.Sudo as Sudo
 import qualified Propellor.Property.Systemd as Systemd
@@ -25,8 +22,9 @@ import qualified Propellor.Property.Tor as Tor
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess)
-import System.Posix (deviceID, fileID, fileMode, fileSize, getFileStatus, modificationTime, ownerExecuteMode, ownerReadMode, ownerWriteMode)
+import System.Posix (ownerExecuteMode, ownerReadMode, ownerWriteMode)
 import User (commonUserSetup)
+import Web (httpsWebSite)
 
 main :: IO ()
 main = defaultMain hosts
@@ -34,9 +32,6 @@ main = defaultMain hosts
 -- The hosts propellor knows about.
 hosts :: [Host]
 hosts = [clermont, cardano]
-
-letsEncryptAgree :: LetsEncrypt.AgreeTOS
-letsEncryptAgree = LetsEncrypt.AgreeTOS (Just "me@punkachien.net")
 
 basePackages :: [String]
 basePackages =
@@ -85,11 +80,7 @@ clermont =
             ! Cardano.setup user Mainnet
             & File.dirExists "/var/www"
             & File.ownerGroup "/var/www" user userGrp
-            & Nginx.siteEnabled "www.punkachien.net" punkachien
-                `onChange` selfSignedCert "www.punkachien.net"
-                `requires` File.hasContent "/etc/nginx/conf.d/connection-upgrade.conf" connectionUpgradeConf
-            & letsEncryptCertsInstalled letsEncryptAgree ["www.punkachien.net"]
-                `onChange` Nginx.reloaded
+            & httpsWebSite punkachienNet punkachien "me@punkachien.net"
             & installRust
             & installHaskell
             & dockerComposeInstalled
@@ -101,20 +92,13 @@ clermont =
     userGrp = Group "curry"
     nixGrp = Group "nixbld"
     dockerGrp = Group "docker"
+    punkachienNet = "www.punkachien.net"
 
     dockerComposeInstalled =
         Apt.installed ["docker-compose-plugin"]
             `requires` Docker.installed
             `requires` Apt.setSourcesListD ["deb [arch=amd64] https://download.docker.com/linux/debian bookworm stable"] "docker"
             `requires` Apt.trustsKey dockerKey
-
-    -- from https://futurestud.io/tutorials/nginx-how-to-fix-unknown-connection_upgrade-variable
-    connectionUpgradeConf =
-        [ "map $http_upgrade $connection_upgrade {  "
-        , "    default upgrade;"
-        , "    ''      close;"
-        , "}"
-        ]
 
     setupUser u =
         propertyList ("Configured hacking " <> show u) $
@@ -249,97 +233,6 @@ clermont =
         , "            try_files $uri $uri/ =404;"
         , "    }"
         , "}"
-        ]
-
-letsEncryptCertsInstalled :: AgreeTOS -> [String] -> Property DebianLike
-letsEncryptCertsInstalled (AgreeTOS memail) domains =
-    prop `requires` Apt.installed ["certbot", "python3-certbot-nginx"]
-  where
-    prop :: Property UnixLike
-    prop = property desc $ do
-        startstats <- liftIO getstats
-        (transcript, ok) <-
-            liftIO $
-                processTranscript "letsencrypt" params Nothing
-        if ok
-            then do
-                endstats <- liftIO getstats
-                if startstats /= endstats
-                    then return MadeChange
-                    else return NoChange
-            else do
-                liftIO $ hPutStr stderr transcript
-                return FailedChange
-
-    desc = "letsencrypt " ++ unwords domains
-    params =
-        [ "--nginx"
-        , "--agree-tos"
-        , case memail of
-            Just email -> "--email=" ++ email
-            Nothing -> "--register-unsafely-without-email"
-        , "--noninteractive"
-        , "--keep-until-expiring"
-        , -- The list of domains may be changed, adding more, so
-          -- always request expansion.
-          "--expand"
-        ]
-            ++ map (\d -> "--domain=" ++ d) domains
-
-    getstats = mapM statcertfiles domains
-    statcertfiles d =
-        mapM
-            statfile
-            [ certFile d
-            , privKeyFile d
-            , chainFile d
-            , fullChainFile d
-            ]
-    statfile f = catchMaybeIO $ do
-        s <- getFileStatus f
-        return (fileID s, deviceID s, fileMode s, fileSize s, modificationTime s)
-
-selfSignedCert :: FilePath -> Property DebianLike
-selfSignedCert domain =
-    selfSignedGenerated
-        `requires` File.dirExists ("/etc/letsencrypt/live" </> domain)
-  where
-    selfSignedGenerated :: Property DebianLike
-    selfSignedGenerated = property desc $ do
-        hasCert <- liftIO $ doesFileExist domainCertFile
-        if hasCert
-            then pure NoChange
-            else genSelfSignedCert
-
-    desc = "Self-signed cert for " <> domain
-    genSelfSignedCert = do
-        (transcript, ok) <- liftIO $ processTranscript "openssl" params Nothing
-        if ok
-            then do
-                hasCert <- liftIO $ doesFileExist domainCertFile
-                if hasCert
-                    then return MadeChange
-                    else return FailedChange
-            else do
-                liftIO $ hPutStr stderr transcript
-                return FailedChange
-
-    domainCertFile = "/etc/letsencrypt/live" </> domain </> "fullchain.pem"
-    keyFile = "/etc/letsencrypt/live" </> domain </> "privkey.pem"
-    params =
-        [ "req"
-        , "-x509"
-        , "-nodes"
-        , "-days"
-        , "365"
-        , "-newkey"
-        , "rsa:4096"
-        , "-subj"
-        , "/C=FR/ST=France/L=Paris/CN=" <> domain
-        , "-keyout"
-        , keyFile
-        , "-out"
-        , domainCertFile
         ]
 
 cardano :: Host
