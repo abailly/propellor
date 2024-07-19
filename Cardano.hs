@@ -22,41 +22,59 @@ import Text.Read (readMaybe)
 data CardanoNetwork = Mainnet | Preview
     deriving stock (Eq, Show)
 
-setup :: User -> CardanoNetwork -> Property OSNoInfo
-setup user network =
-    propertyList "Cardano node" $
-        props
-            & check
-                ( do
-                    d <- User.homedir user
-                    not <$> doesDirectoryExist (d </> "cardano-configurations")
-                )
-                (Git.pulled user "https://github.com/input-output-hk/cardano-configurations" "cardano-configurations" Nothing)
-            `describe` "Cardano configurations pulled"
-            & check
-                (shouldDownload sha256 archivePath)
-                ( cmdProperty
-                    "curl"
-                    ["-o", archivePath, "-L", "https://github.com/input-output-hk/cardano-node/releases/download/8.7.3/cardano-node-8.7.3-linux.tar.gz"]
-                    `changesFileContent` archivePath
-                )
-            `describe` "Cardano node 8.7.3 archive downloaded"
-            & File.ownerGroup archivePath user userGrp
-            & check
-                shouldUnpack
-                ( cmdProperty
-                    "tar"
-                    ["xC", "/home/curry", "-f", archivePath]
-                    `changesFileContent` "/home/curry/cardano-node"
-                )
-            `describe` "Cardano node 8.7.3 archive unpacked"
-            & environmentConfigured
-            & File.hasContent "/etc/systemd/system/cardano-node.service" serviceNode
-            & Apt.removed ["mithril-client"]
-            & mithrilSnapshotDownloaded user userGrp network
-            & Systemd.enabled "cardano-node"
-            & Systemd.restarted "cardano-node"
+setup :: User -> CardanoNetwork -> RevertableProperty OSNoInfo OSNoInfo
+setup user network = setupCardanoNode <!> teardownCardanoNode
   where
+    teardownCardanoNode :: Property OSNoInfo
+    teardownCardanoNode =
+        propertyList "Remove Cardano node" $
+            props
+                & Systemd.stopped "cardano-node"
+                & Systemd.disabled "cardano-node"
+                & File.notPresent "/etc/systemd/system/cardano-node.service"
+                & File.notPresent "/home/curry/cardano-node.environment"
+                & File.notPresent "/home/curry/cardano-node"
+                & File.notPresent "/home/curry/mithril-client.environment"
+                & File.notPresent "/root/mithril-client.deb"
+                & Apt.removed ["mithril-client"]
+                & File.notPresent "/home/curry/cardano-configurations"
+                & File.notPresent "/home/curry/cardano-node"
+
+    setupCardanoNode :: Property OSNoInfo
+    setupCardanoNode =
+        propertyList "Cardano node" $
+            props
+                & check
+                    ( do
+                        d <- User.homedir user
+                        not <$> doesDirectoryExist (d </> "cardano-configurations")
+                    )
+                    (Git.pulled user "https://github.com/input-output-hk/cardano-configurations" "cardano-configurations" Nothing)
+                    `describe` "Cardano configurations pulled"
+                & check
+                    (shouldDownload sha256 archivePath)
+                    ( cmdProperty
+                        "curl"
+                        ["-o", archivePath, "-L", "https://github.com/input-output-hk/cardano-node/releases/download/8.7.3/cardano-node-8.7.3-linux.tar.gz"]
+                        `changesFileContent` archivePath
+                    )
+                    `describe` "Cardano node 8.7.3 archive downloaded"
+                & File.ownerGroup archivePath user userGrp
+                & check
+                    shouldUnpack
+                    ( cmdProperty
+                        "tar"
+                        ["xC", "/home/curry", "-f", archivePath]
+                        `changesFileContent` "/home/curry/cardano-node"
+                    )
+                    `describe` "Cardano node 8.7.3 archive unpacked"
+                & environmentConfigured
+                & File.hasContent "/etc/systemd/system/cardano-node.service" serviceNode
+                & Apt.removed ["mithril-client"]
+                & mithrilSnapshotDownloaded user userGrp network
+                & Systemd.enabled "cardano-node"
+                & Systemd.restarted "cardano-node"
+
     environmentConfigured =
         File.hasContent "/home/curry/cardano-node.environment" envFile
 
@@ -143,7 +161,7 @@ mithrilSnapshotDownloaded user userGrp network =
                     ["-o", mithrilPath, "-L", "https://github.com/input-output-hk/mithril/releases/download/2403.1/mithril-client-cli_0.5.17+254d266-1_amd64.deb"]
                     `changesFileContent` mithrilPath
                 )
-            `describe` ("Mithril client " <> mithrilClientVersion <> " package downloaded")
+                `describe` ("Mithril client " <> mithrilClientVersion <> " package downloaded")
             & check
                 shouldUnpack
                 ( cmdProperty "dpkg" ["--install", mithrilPath]

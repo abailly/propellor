@@ -82,7 +82,7 @@ clermont =
             & Ssh.installed
             & Systemd.persistentJournal
             & setupUser user
-            & Cardano.setup user Mainnet
+            ! Cardano.setup user Mainnet
             & File.dirExists "/var/www"
             & File.ownerGroup "/var/www" user userGrp
             & Nginx.siteEnabled "www.punkachien.net" punkachien
