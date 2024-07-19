@@ -7,10 +7,11 @@ import Cardano (CardanoNetwork (..))
 import qualified Cardano
 import qualified Hydra
 import Propellor
-import Propellor.Base (combineModes, (</>))
+import Propellor.Base (combineModes, withPrivData, (</>))
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.Cron as Cron
 import qualified Propellor.Property.Docker as Docker
+import Propellor.Property.File (FileWriteMode (ProtectedWrite))
 import qualified Propellor.Property.File as File
 import Propellor.Property.Firewall (Chain (..), ConnectionState (..), Proto (..), Rules (..), Table (..), Target (..), rule)
 import qualified Propellor.Property.Firewall as Firewall
@@ -259,8 +260,20 @@ cardano =
                 `requires` commonUserSetup user
             & Sudo.enabledFor user
             & httpsWebSite perasStaging perasPrivate "me@cardano-scaling.org"
+            & passwordProtected
   where
+    passwordProtected :: Property (MetaTypes '[ 'WithInfo])
+    passwordProtected =
+        withPrivData (PrivFile "peras.htpasswd") anyContext $ \getHtpasswd ->
+            property "Configure .htpasswd" $ do
+                getHtpasswd $ \(PrivData htpasswdContent) -> do
+                    liftPropellor $ File.writeFileContent ProtectedWrite htpasswdPath (lines htpasswdContent)
+                    pure MadeChange
+
+    htpasswdPath = "/var/www/" <> perasStaging <> "/public_html/.htpasswd"
+
     perasStaging = "peras-staging.cardano-scaling.org"
+
     perasPrivate =
         [ "server {"
         , "    listen 80;"
@@ -272,6 +285,9 @@ cardano =
         , "    server_name peras-staging.cardano-scaling.org;"
         , "    "
         , "    listen 443 ssl; # managed by Certbot"
+        , ""
+        , "    auth_basic           \"Restricted Access\";"
+        , "    auth_basic_user_file /var/www/" <> perasStaging <> "/public_html/.htpasswd;"
         , ""
         , "    # RSA certificate"
         , "    ssl_certificate /etc/letsencrypt/live/" <> perasStaging <> "/fullchain.pem; # managed by Certbot"
