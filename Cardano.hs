@@ -23,8 +23,11 @@ data CardanoNetwork = Mainnet | Preview
     deriving stock (Eq, Show)
 
 setup :: User -> CardanoNetwork -> RevertableProperty OSNoInfo OSNoInfo
-setup user network = setupCardanoNode <!> teardownCardanoNode
+setup user@(User userName) network = setupCardanoNode <!> teardownCardanoNode
   where
+    -- FIXME: How do I make this part of a property?
+    home = "/home" </> userName
+
     teardownCardanoNode :: Property OSNoInfo
     teardownCardanoNode =
         propertyList "Remove Cardano node" $
@@ -32,13 +35,13 @@ setup user network = setupCardanoNode <!> teardownCardanoNode
                 & Systemd.stopped "cardano-node"
                 & Systemd.disabled "cardano-node"
                 & File.notPresent "/etc/systemd/system/cardano-node.service"
-                & File.notPresent "/home/curry/cardano-node.environment"
-                & File.notPresent "/home/curry/cardano-node"
-                & File.notPresent "/home/curry/mithril-client.environment"
+                & File.notPresent (home </> "cardano-node.environment")
+                & File.notPresent (home </> "cardano-node")
+                & File.notPresent (home </> "mithril-client.environment")
                 & File.notPresent "/root/mithril-client.deb"
                 & Apt.removed ["mithril-client"]
-                & File.notPresent "/home/curry/cardano-configurations"
-                & File.notPresent "/home/curry/cardano-node"
+                & File.notPresent (home </> "cardano-configurations")
+                & File.notPresent (home </> "cardano-node")
 
     setupCardanoNode :: Property OSNoInfo
     setupCardanoNode =
@@ -64,8 +67,8 @@ setup user network = setupCardanoNode <!> teardownCardanoNode
                     shouldUnpack
                     ( cmdProperty
                         "tar"
-                        ["xC", "/home/curry", "-f", archivePath]
-                        `changesFileContent` "/home/curry/cardano-node"
+                        ["xC", home, "-f", archivePath]
+                        `changesFileContent` (home </> "cardano-node")
                     )
                     `describe` "Cardano node 8.7.3 archive unpacked"
                 & environmentConfigured
@@ -76,7 +79,7 @@ setup user network = setupCardanoNode <!> teardownCardanoNode
                 & Systemd.restarted "cardano-node"
 
     environmentConfigured =
-        File.hasContent "/home/curry/cardano-node.environment" envFile
+        File.hasContent (home </> "cardano-node.environment") envFile
 
     sha256 = "fea39964590885eb2bcf7bd8e78cb11f8bde4b29bb10ca743f41c497cfd9f327"
 
@@ -93,18 +96,18 @@ setup user network = setupCardanoNode <!> teardownCardanoNode
                     <$> readProcessEnv (dir </> "cardano-node") ["--version"] (Just [("LD_LIBRARY_PATH", dir)])
             else pure True
 
-    archivePath = "/home/curry/cardano-node-8.7.3.tgz"
+    archivePath = home </> "cardano-node-8.7.3.tgz"
 
     userGrp = Group "curry"
 
     envFile =
-        [ "CONFIG=\"/home/curry/cardano-configurations/network/" <> networkName network <> "/cardano-node/config.json\""
-        , "TOPOLOGY=\"/home/curry/cardano-configurations/network/" <> networkName network <> "/cardano-node/topology.json\""
+        [ "CONFIG=\"" <> home <> "/cardano-configurations/network/" <> networkName network <> "/cardano-node/config.json\""
+        , "TOPOLOGY=\"" <> home <> "/cardano-configurations/network/" <> networkName network <> "/cardano-node/topology.json\""
         , "DBPATH=\"./db/\""
         , "SOCKETPATH=\"./node.socket\""
         , "HOSTADDR=\"0.0.0.0\""
         , "PORT=\"3001\""
-        , "LD_LIBRARY_PATH=\"/home/curry\""
+        , "LD_LIBRARY_PATH=\"" <> home <> "\""
         ]
 
     serviceNode =
@@ -114,8 +117,8 @@ setup user network = setupCardanoNode <!> teardownCardanoNode
         , ""
         , "[Service]"
         , "Type=simple"
-        , "EnvironmentFile=/home/curry/cardano-node.environment"
-        , "ExecStart=/home/curry/cardano-node run --config $CONFIG --topology $TOPOLOGY --database-path $DBPATH --socket-path $SOCKETPATH --host-addr $HOSTADDR --port $PORT"
+        , "EnvironmentFile=" <> home <> "/cardano-node.environment"
+        , "ExecStart=" <> home <> "/cardano-node run --config $CONFIG --topology $TOPOLOGY --database-path $DBPATH --socket-path $SOCKETPATH --host-addr $HOSTADDR --port $PORT"
         , "KillSignal = SIGINT"
         , "RestartKillSignal = SIGINT"
         , "StandardOutput=journal"
@@ -151,7 +154,7 @@ mithrilSnapshotDownloaded ::
              , 'Targeting 'OSArchLinux
              ]
         )
-mithrilSnapshotDownloaded user userGrp network =
+mithrilSnapshotDownloaded user@(User userName) userGrp network =
     propertyList "Mithril snapshot downloaded" $
         props
             & check
@@ -169,11 +172,11 @@ mithrilSnapshotDownloaded user userGrp network =
                     `describe` ("Mithril client " <> mithrilClientVersion <> " package installed")
                 )
             & File.hasContent
-                "/home/curry/mithril-client.environment"
+                (home </> "mithril-client.environment")
                 [ "export AGGREGATOR_ENDPOINT=\"" <> aggregatorEndpoint <> "\""
                 , "export GENESIS_VERIFICATION_KEY=\"" <> genesisVerificationKey <> "\""
                 ]
-            & File.ownerGroup "/home/curry/mithril-client.environment" user userGrp
+            & File.ownerGroup (home </> "mithril-client.environment") user userGrp
             & check
                 shouldDownloadSnapshot
                 ( userScriptProperty
@@ -187,6 +190,8 @@ mithrilSnapshotDownloaded user userGrp network =
                     `requires` Systemd.stopped "cardano-node"
                 )
   where
+    home = "/home" </> userName
+
     aggregatorEndpoint = case network of
         Preview -> "https://aggregator.pre-release-preview.api.mithril.network/aggregator"
         Mainnet -> "https://aggregator.release-mainnet.api.mithril.network/aggregator"
