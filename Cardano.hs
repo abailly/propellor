@@ -32,8 +32,9 @@ setup user@(User userName) network = setupCardanoNode <!> teardownCardanoNode
     teardownCardanoNode =
         propertyList "Remove Cardano node" $
             props
-                & Systemd.stopped "cardano-node"
-                & Systemd.disabled "cardano-node"
+                & check
+                    (doesFileExist "/etc/systemd/system/cardano-node.service")
+                    (Systemd.disabled "cardano-node" `requires` Systemd.stopped "cardano-node")
                 & File.notPresent "/etc/systemd/system/cardano-node.service"
                 & File.notPresent (home </> "cardano-node.environment")
                 & File.notPresent (home </> "cardano-node")
