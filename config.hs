@@ -261,11 +261,12 @@ cardano =
             & Sudo.enabledFor user
             & httpsWebSite perasStaging perasPrivate "me@cardano-scaling.org"
             & passwordProtected
+                `requires` File.dirExists ("/var/www/" <> perasStaging <> "/public_html")
   where
     passwordProtected :: Property (MetaTypes '[ 'WithInfo])
     passwordProtected =
         withPrivData (PrivFile "peras.htpasswd") anyContext $ \getHtpasswd ->
-            property "Configure .htpasswd" $ do
+            property "Configure .htpasswd" $
                 getHtpasswd $ \(PrivData htpasswdContent) -> do
                     liftPropellor $ File.writeFileContent ProtectedWrite htpasswdPath (lines htpasswdContent)
                     pure MadeChange
