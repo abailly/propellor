@@ -264,7 +264,18 @@ cardano =
                 `requires` File.dirExists perasDir
                 `requires` File.ownerGroup perasDir user userGrp
             & File.ownerGroup htpasswdPath (User "www-data") (Group "www-data")
+            & Systemd.nspawned perasContainer
   where
+    perasContainer =
+        Systemd.debContainer "peras" $
+            props
+                & osDebian Unstable X86_64
+                & Apt.removed ["exim4", "exim4-base", "exim4-daemon-light"]
+                    `onChange` Apt.autoRemove
+                & Apt.stdSourcesList `onChange` Apt.upgrade
+                & Apt.unattendedUpgrades
+                & Apt.cacheCleaned
+
     passwordProtected :: Property (MetaTypes '[ 'WithInfo])
     passwordProtected =
         withPrivData (PrivFile "peras.htpasswd") anyContext $ \getHtpasswd ->
