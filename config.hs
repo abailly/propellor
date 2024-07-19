@@ -263,6 +263,7 @@ cardano =
             & passwordProtected
                 `requires` File.dirExists perasDir
                 `requires` File.ownerGroup perasDir user userGrp
+            & File.ownerGroup htpasswdPath (User "www-data") (Group "www-data")
   where
     passwordProtected :: Property (MetaTypes '[ 'WithInfo])
     passwordProtected =
