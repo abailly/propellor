@@ -13,16 +13,23 @@ import System.Posix (deviceID, fileID, fileMode, fileSize, getFileStatus, modifi
 letsEncryptAgree :: String -> LetsEncrypt.AgreeTOS
 letsEncryptAgree email = LetsEncrypt.AgreeTOS (Just email)
 
-httpsWebSite :: String -> [String] -> String -> Property DebianLike
+httpsWebSite :: String -> [String] -> String -> RevertableProperty DebianLike DebianLike
 httpsWebSite domainName nginxConfig email =
-    propertyList ("Configured HTTPS website for " <> show domainName) $
-        props
-            & Nginx.siteEnabled domainName nginxConfig
-                `onChange` selfSignedCert domainName
-                `requires` File.hasContent "/etc/nginx/conf.d/connection-upgrade.conf" connectionUpgradeConf
-            & letsEncryptCertsInstalled (letsEncryptAgree email) [domainName]
-                `onChange` Nginx.reloaded
+    webSiteConfigured <!> webSiteUnconfigured
   where
+    webSiteUnconfigured =
+        propertyList ("Unconfigured HTTPS website for " <> show domainName) $
+            props
+                ! Nginx.siteEnabled domainName nginxConfig
+
+    webSiteConfigured =
+        propertyList ("Configured HTTPS website for " <> show domainName) $
+            props
+                & Nginx.siteEnabled domainName nginxConfig
+                    `onChange` selfSignedCert domainName
+                    `requires` File.hasContent "/etc/nginx/conf.d/connection-upgrade.conf" connectionUpgradeConf
+                & letsEncryptCertsInstalled (letsEncryptAgree email) [domainName]
+                    `onChange` Nginx.reloaded
     -- from https://futurestud.io/tutorials/nginx-how-to-fix-unknown-connection_upgrade-variable
     connectionUpgradeConf =
         [ "map $http_upgrade $connection_upgrade {  "

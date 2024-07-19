@@ -322,11 +322,7 @@ cardano =
                 `requires` Cardano.setup user Preview
                 `requires` commonUserSetup user
             & Sudo.enabledFor user
-            & httpsWebSite perasStaging perasPrivate "me@cardano-scaling.org"
-            & passwordProtected
-                `requires` File.dirExists perasDir
-                `requires` File.ownerGroup perasDir user userGrp
-            & File.ownerGroup htpasswdPath (User "www-data") (Group "www-data")
+            ! httpsWebSite perasStaging [] "me@cardano-scaling.org"
             ! Systemd.nspawned perasContainer
   where
     perasContainer =
@@ -340,51 +336,7 @@ cardano =
                 & Apt.cacheCleaned
                 & User.hasSomePassword' (User "root") (Context "peras")
 
-    passwordProtected :: Property (MetaTypes '[ 'WithInfo])
-    passwordProtected =
-        withPrivData (PrivFile "peras.htpasswd") anyContext $ \getHtpasswd ->
-            property "Configure .htpasswd" $
-                getHtpasswd $ \(PrivData htpasswdContent) -> do
-                    liftPropellor $ File.writeFileContent ProtectedWrite htpasswdPath (lines htpasswdContent)
-                    pure MadeChange
-
-    perasDir = "/var/www/" <> perasStaging <> "/public_html"
-
-    htpasswdPath = perasDir </> ".htpasswd"
-
     perasStaging = "peras-staging.cardano-scaling.org"
-
-    perasPrivate =
-        [ "server {"
-        , "    listen 80;"
-        , "    listen [::]:80;"
-        , "    "
-        , "    root /var/www/peras-staging.cardano-scaling.org/public_html;"
-        , "    index index.html index.htm index.nginx-debian.html;"
-        , "    "
-        , "    server_name peras-staging.cardano-scaling.org;"
-        , "    "
-        , "    listen 443 ssl; # managed by Certbot"
-        , ""
-        , "    auth_basic           \"Restricted Access\";"
-        , "    auth_basic_user_file /var/www/" <> perasStaging <> "/public_html/.htpasswd;"
-        , ""
-        , "    # RSA certificate"
-        , "    ssl_certificate /etc/letsencrypt/live/" <> perasStaging <> "/fullchain.pem; # managed by Certbot"
-        , "    ssl_certificate_key /etc/letsencrypt/live/" <> perasStaging <> "/privkey.pem; # managed by Certbot"
-        , ""
-        , "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot"
-        , ""
-        , "    # Redirect non-https traffic to https"
-        , "    if ($scheme != \"https\") {"
-        , "        return 301 https://$host$request_uri;"
-        , "    } # managed by Certbot"
-        , ""
-        , "    location / {"
-        , "            try_files $uri $uri/ =404;"
-        , "    }"
-        , "}"
-        ]
 
     user = User "curry"
     userGrp = Group "curry"
