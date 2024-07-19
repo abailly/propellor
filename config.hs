@@ -246,6 +246,7 @@ peras =
             & Apt.unattendedUpgrades
             & File.dirExists perasDir
             & File.ownerGroup perasDir (User "www-data") (Group "www-data")
+            & Ssh.authorizedKey (User "root") "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIsRDJTQ2hGutRjE0f/C5YJLKwVji4g9h6lEkrROzC7t"
             & Ssh.installed
             & httpsWebSite perasStaging perasPrivate "me@cardano-scaling.org"
             & passwordProtected
