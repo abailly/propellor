@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Hydra where
 
@@ -6,52 +7,55 @@ import Cardano (shouldDownload)
 import Data.List (isInfixOf)
 import Propellor
 import Propellor.Base (combineModes, doesFileExist, liftIO, readProcessEnv, (<.>), (</>))
+import Propellor.PrivData (withPrivData)
 import qualified Propellor.Property.Apt as Apt
+import Propellor.Property.File (FileWriteMode (..))
 import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import System.Posix (ownerExecuteMode, ownerReadMode, ownerWriteMode)
 
-setup :: User -> Property (MetaTypes '[ 'Targeting 'OSDebian, 'Targeting 'OSBuntish])
+setup :: User -> Property (MetaTypes '[ 'WithInfo, 'Targeting 'OSDebian, 'Targeting 'OSBuntish])
 setup user =
-    property' ("Hydra Node for " <> show user) $ \witness -> do
-        home <- liftIO $ User.homedir user
-        ensureProperty witness $
-            propertyList "Hydra node" $
-                props
-                    & check
-                        (shouldDownload sha256 (home </> archivePath))
-                        ( userScriptProperty
-                            user
-                            ["curl -o " <> archivePath <> " -L " <> hydraNodeArchiveUrl]
-                            `changesFileContent` archivePath
-                        )
-                        `describe` ("Hydra node " <> hydraVersion <> " archive downloaded")
-                    & check
-                        shouldUnpack
-                        ( userScriptProperty
-                            user
-                            ["unzip -qo " <> archivePath]
-                            `changesFileContent` (home </> "hydra-node")
-                            `requires` Apt.installed ["unzip"]
-                        )
-                        `describe` ("Hydra node " <> hydraVersion <> " archive unpacked")
-                    & File.mode (home </> "hydra-node") (combineModes [ownerReadMode, ownerWriteMode, ownerExecuteMode])
-                    & File.hasContent (home </> "hydra-node.environment") (envFile home)
-                    & File.hasContent (home </> "run-hydra.sh") hydraRunFile
-                        `requires` Systemd.stopped "hydra-node"
-                    & File.mode (home </> "run-hydra.sh") (combineModes [ownerReadMode, ownerWriteMode, ownerExecuteMode])
-                    & File.ownerGroup (home </> "run-hydra.sh") user userGrp
-                    & File.hasContent "/etc/systemd/system/hydra-node.service" (serviceFile home)
-                    & Systemd.enabled "hydra-node"
-                    & Systemd.restarted "hydra-node"
+    propertyList "Hydra node" $
+        props
+            & check
+                (shouldDownload sha256 (home </> archivePath))
+                ( userScriptProperty
+                    user
+                    ["curl -o " <> archivePath <> " -L " <> hydraNodeArchiveUrl]
+                    `changesFileContent` archivePath
+                )
+                `describe` ("Hydra node " <> hydraVersion <> " archive downloaded")
+            & check
+                shouldUnpack
+                ( userScriptProperty
+                    user
+                    ["unzip -qo " <> archivePath]
+                    `changesFileContent` (home </> "hydra-node")
+                    `requires` Apt.installed ["unzip"]
+                )
+                `describe` ("Hydra node " <> hydraVersion <> " archive unpacked")
+            & File.mode (home </> "hydra-node") (combineModes [ownerReadMode, ownerWriteMode, ownerExecuteMode])
+            & File.hasContent (home </> "hydra-node.environment") (envFile home)
+            & hydraNodeConfigured home
+                `requires` Systemd.stopped "hydra-node"
+            & File.mode (home </> "run-hydra.sh") (combineModes [ownerReadMode, ownerWriteMode, ownerExecuteMode])
+            & File.ownerGroup (home </> "run-hydra.sh") user userGrp
+            & File.hasContent "/etc/systemd/system/hydra-node.service" (serviceFile home)
+            & Systemd.enabled "hydra-node"
+            & Systemd.restarted "hydra-node"
   where
+    User userName = user
+
+    home = "/home" </> userName
+
     hydraNodeArchiveUrl =
         "https://github.com/input-output-hk/hydra/releases/download"
             </> hydraVersion
             </> "hydra-x86_64-linux-"
-                <> hydraVersion <.> "zip"
+            <> hydraVersion <.> "zip"
 
     sha256 = "760dbc71dfb01501003f80d6fd768ba9734202c908a70d39cb01b99f5abe5dc7"
 
@@ -106,6 +110,21 @@ setup user =
         , "WantedBy=multi-user.target"
         ]
 
+hydraNodeConfigured :: FilePath -> Property (MetaTypes '[ 'WithInfo, 'Targeting 'OSDebian, 'Targeting 'OSBuntish])
+hydraNodeConfigured home =
+    withPrivData (PrivFile "arnaud-hydra.sk") anyContext $ \getHydraKey ->
+        withPrivData (PrivFile "arnaud.sk") anyContext $ \getCardanoKey ->
+            withPrivData (PrivFile "arnaud.funds.sk") anyContext $ \getFundsKey ->
+                property "Configure run-hydra.sh" $ do
+                    getHydraKey $ \(PrivData hydraKey) ->
+                        getCardanoKey $ \(PrivData cardanoKey) ->
+                            getFundsKey $ \(PrivData cardanoFundsKey) -> do
+                                liftIO $ File.writeFileContent ProtectedWrite (home </> "keys" </> "arnaud-hydra.sk") (lines hydraKey)
+                                liftIO $ File.writeFileContent ProtectedWrite (home </> "keys" </> "arnaud.sk") (lines cardanoKey)
+                                liftIO $ File.writeFileContent ProtectedWrite (home </> "keys" </> "arnaud.funds.sk") (lines cardanoFundsKey)
+                                liftIO $ File.writeFileContent NormalWrite (home </> "run-hydra.sh") hydraRunFile
+                                pure MadeChange
+  where
     hydraRunFile =
         [ "#!/usr/bin/env bash"
         , ""
@@ -135,7 +154,7 @@ setup user =
         , "  --cardano-verification-key keys/sasha.cardano.vk \\"
         , "  --hydra-verification-key keys/sasha.hydra.vk  \\"
         , -- franco
-          "  --peer 13.39.83.131:5001 \\"
+          "  --peer  13.39.44.251:5001 \\"
         , "  --cardano-verification-key keys/franco.cardano.vk \\"
         , "  --hydra-verification-key keys/franco.hydra.vk \\"
         , -- daniel
