@@ -275,7 +275,7 @@ cardano =
                 & Apt.stdSourcesList `onChange` Apt.upgrade
                 & Apt.unattendedUpgrades
                 & Apt.cacheCleaned
-                & User.hasSomePassword (User "root")
+                & User.hasSomePassword' (User "root") (Context "peras")
 
     passwordProtected :: Property (MetaTypes '[ 'WithInfo])
     passwordProtected =
