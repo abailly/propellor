@@ -250,6 +250,7 @@ cardano =
             & Tor.hiddenServiceAvailable "ssh" (Port 22)
             & User.hasSomePassword (User "root")
             & File.dirExists "/var/www"
+            & File.ownerGroup "/var/www" user userGrp
             & Cron.runPropellor (Cron.Times "30 * * * *")
             & Systemd.persistentJournal
             & firewall
@@ -290,6 +291,7 @@ cardano =
         ]
 
     user = User "curry"
+    userGrp = Group "curry"
 
 firewall :: Property OS
 firewall =
