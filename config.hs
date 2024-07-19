@@ -244,8 +244,8 @@ peras =
             & alias perasStaging
             & Apt.stdSourcesList
             & Apt.unattendedUpgrades
-            & File.dirExists "/var/www"
-            & File.ownerGroup "/var/www" (User "www-data") (Group "www-data")
+            & File.dirExists perasDir
+            & File.ownerGroup perasDir (User "www-data") (Group "www-data")
             & Ssh.installed
             & httpsWebSite perasStaging perasPrivate "me@cardano-scaling.org"
             & passwordProtected
