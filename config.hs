@@ -82,6 +82,7 @@ clermont =
             & File.dirExists "/var/www"
             & File.ownerGroup "/var/www" user userGrp
             & httpsWebSite punkachienNet punkachien "me@punkachien.net"
+            & httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.com"
             & installRust
             & installHaskell
             & dockerComposeInstalled
@@ -94,6 +95,38 @@ clermont =
     nixGrp = Group "nixbld"
     dockerGrp = Group "docker"
     punkachienNet = "www.punkachien.net"
+    pacificWarNet = "pacific-war.pankzsoft.com"
+
+    pacificWarConfig =
+        [ "server {"
+        , "    listen 80;"
+        , "    listen [::]:80;"
+        , "    "
+        , "    root /var/www/pacific-war.pankzsoft.com/public_html;"
+        , "    index index.html index.htm index.nginx-debian.html;"
+        , "    "
+        , "    server_name pacific-war.pankzsoft.com;"
+        , "    "
+        , "    listen 443 ssl; # managed by Certbot"
+        , ""
+        , "    # RSA certificate"
+        , "    ssl_certificate /etc/letsencrypt/live/pacific-war.pankzsoft.com/fullchain.pem; # managed by Certbot"
+        , "    ssl_certificate_key /etc/letsencrypt/live/pacific-war.pankzsoft.com/privkey.pem; # managed by Certbot"
+        , ""
+        , "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot"
+        , ""
+        , "    # Redirect non-https traffic to https"
+        , "    if ($scheme != \"https\") {"
+        , "        return 301 https://$host$request_uri;"
+        , "    } # managed by Certbot"
+        , ""
+        , "       location / {"
+        , "           proxy_pass http://127.0.0.1:8000;"
+        , "           proxy_set_header X-Real-IP $remote_addr;"
+        , "           proxy_set_header X-Forwarded-Proto $scheme;"
+        , "       }"
+        , "}"
+        ]
 
     dockerComposeInstalled =
         Apt.installed ["docker-compose-plugin"]
