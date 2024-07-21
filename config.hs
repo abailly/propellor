@@ -82,7 +82,7 @@ clermont =
             & File.dirExists "/var/www"
             & File.ownerGroup "/var/www" user userGrp
             & httpsWebSite punkachienNet punkachien "me@punkachien.net"
-            & httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.com"
+            & httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
             & installRust
             & installHaskell
             & dockerComposeInstalled
@@ -95,23 +95,23 @@ clermont =
     nixGrp = Group "nixbld"
     dockerGrp = Group "docker"
     punkachienNet = "www.punkachien.net"
-    pacificWarNet = "pacific-war.pankzsoft.com"
+    pacificWarNet = "pacific-war.pankzsoft.net"
 
     pacificWarConfig =
         [ "server {"
         , "    listen 80;"
         , "    listen [::]:80;"
         , "    "
-        , "    root /var/www/pacific-war.pankzsoft.com/public_html;"
+        , "    root /var/www/pacific-war.pankzsoft.net/public_html;"
         , "    index index.html index.htm index.nginx-debian.html;"
         , "    "
-        , "    server_name pacific-war.pankzsoft.com;"
+        , "    server_name pacific-war.pankzsoft.net;"
         , "    "
         , "    listen 443 ssl; # managed by Certbot"
         , ""
         , "    # RSA certificate"
-        , "    ssl_certificate /etc/letsencrypt/live/pacific-war.pankzsoft.com/fullchain.pem; # managed by Certbot"
-        , "    ssl_certificate_key /etc/letsencrypt/live/pacific-war.pankzsoft.com/privkey.pem; # managed by Certbot"
+        , "    ssl_certificate /etc/letsencrypt/live/pacific-war.pankzsoft.net/fullchain.pem; # managed by Certbot"
+        , "    ssl_certificate_key /etc/letsencrypt/live/pacific-war.pankzsoft.net/privkey.pem; # managed by Certbot"
         , ""
         , "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot"
         , ""
