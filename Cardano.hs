@@ -203,7 +203,7 @@ mithrilSnapshotDownloaded user@(User userName) userGrp network =
 
     mithrilSnapshot = "latest"
 
-    archiveSha256 = "dde2030d987b547e701c57693112d4a14c7676744a8d7bc3dd5ba65a905e8556"
+    archiveSha256 = "0000"
 
     mithrilPath = "/root/mithril-client.deb"
 
