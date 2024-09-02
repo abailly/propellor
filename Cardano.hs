@@ -184,7 +184,7 @@ mithrilSnapshotDownloaded user@(User userName) userGrp network =
                     user
                     [ ". ./mithril-client.environment"
                     , "sudo rm -fr db"
-                    , "mithril-client cardano-db download " <> mithrilSnapshot
+                    , "mithril-client cardano-db snapshot download " <> mithrilSnapshot
                     ]
                     `assume` MadeChange
                     `describe` ("Install Mithril snapshot " <> mithrilSnapshot)
@@ -229,7 +229,7 @@ mithrilSnapshotDownloaded user@(User userName) userGrp network =
                 , ("GENESIS_VERIFICATION_KEY", genesisVerificationKey)
                 ]
 
-        snapshotJson <- readProcessEnv "/usr/bin/mithril-client" ["cardano-db", "show", mithrilSnapshot, "--json"] (Just mithrilEnv)
+        snapshotJson <- readProcessEnv "/usr/bin/mithril-client" ["cardano-db", "snapshot", "show", mithrilSnapshot, "--json"] (Just mithrilEnv)
         lastImmutableFileNumber <-
             readMaybe . head . lines
                 <$> writeReadProcessEnv "jq" ["-c", ".beacon.immutable_file_number"] Nothing (Just $ \hdl -> hPutStr hdl snapshotJson) Nothing
