@@ -353,8 +353,7 @@ cardano =
             & Cron.runPropellor (Cron.Times "30 * * * *")
             & Systemd.persistentJournal
             & firewall
-            & Hydra.setup user
-                `requires` Cardano.setup user Preview
+            & Cardano.setup user Mainnet
                 `requires` commonUserSetup user
             & Sudo.enabledFor user
             ! httpsWebSite perasStaging [] "me@cardano-scaling.org"

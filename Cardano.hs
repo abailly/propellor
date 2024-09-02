@@ -59,10 +59,10 @@ setup user@(User userName) network = setupCardanoNode <!> teardownCardanoNode
                     (shouldDownload sha256 archivePath)
                     ( cmdProperty
                         "curl"
-                        ["-o", archivePath, "-L", "https://github.com/input-output-hk/cardano-node/releases/download/8.7.3/cardano-node-8.7.3-linux.tar.gz"]
+                        ["-o", archivePath, "-L", "https://github.com/IntersectMBO/cardano-node/releases/download/9.1.0/cardano-node-9.1.0-linux.tar.gz"]
                         `changesFileContent` archivePath
                     )
-                    `describe` "Cardano node 8.7.3 archive downloaded"
+                    `describe` "Cardano node 9.1.0 archive downloaded"
                 & File.ownerGroup archivePath user userGrp
                 & check
                     shouldUnpack
@@ -71,7 +71,7 @@ setup user@(User userName) network = setupCardanoNode <!> teardownCardanoNode
                         ["xC", home, "-f", archivePath]
                         `changesFileContent` (home </> "cardano-node")
                     )
-                    `describe` "Cardano node 8.7.3 archive unpacked"
+                    `describe` "Cardano node 9.1.0 archive unpacked"
                 & environmentConfigured
                 & File.hasContent "/etc/systemd/system/cardano-node.service" serviceNode
                 & Apt.removed ["mithril-client"]
@@ -82,7 +82,7 @@ setup user@(User userName) network = setupCardanoNode <!> teardownCardanoNode
     environmentConfigured =
         File.hasContent (home </> "cardano-node.environment") envFile
 
-    sha256 = "fea39964590885eb2bcf7bd8e78cb11f8bde4b29bb10ca743f41c497cfd9f327"
+    sha256 = "48ba01b2f4659922cdccc6ff3a221610ec3b7881254d7bcb16fbb5fc88b1b183"
 
     shouldUnpack = do
         dir <- User.homedir user
@@ -90,14 +90,14 @@ setup user@(User userName) network = setupCardanoNode <!> teardownCardanoNode
         if hasFile
             then
                 not
-                    . ("8.7.3" `elem`)
+                    . ("9.1.0" `elem`)
                     . words
                     . head
                     . lines
                     <$> readProcessEnv (dir </> "cardano-node") ["--version"] (Just [("LD_LIBRARY_PATH", dir)])
             else pure True
 
-    archivePath = home </> "cardano-node-8.7.3.tgz"
+    archivePath = home </> "cardano-node-9.1.0.tgz"
 
     userGrp = Group "curry"
 
@@ -162,7 +162,7 @@ mithrilSnapshotDownloaded user@(User userName) userGrp network =
                 (shouldDownload archiveSha256 mithrilPath)
                 ( cmdProperty
                     "curl"
-                    ["-o", mithrilPath, "-L", "https://github.com/input-output-hk/mithril/releases/download/2403.1/mithril-client-cli_0.5.17+254d266-1_amd64.deb"]
+                    ["-o", mithrilPath, "-L", "https://github.com/input-output-hk/mithril/releases/download/2430.0/mithril-client-cli_0.9.9+52a7beb-1_amd64.deb"]
                     `changesFileContent` mithrilPath
                 )
                 `describe` ("Mithril client " <> mithrilClientVersion <> " package downloaded")
@@ -207,7 +207,7 @@ mithrilSnapshotDownloaded user@(User userName) userGrp network =
 
     mithrilPath = "/root/mithril-client.deb"
 
-    mithrilClientVersion = "0.5.17+254d266"
+    mithrilClientVersion = "0.9.9+52a7beb"
 
     shouldUnpack = do
         let exe = "/usr/bin/mithril-client"
