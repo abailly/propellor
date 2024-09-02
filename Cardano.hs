@@ -52,10 +52,10 @@ setup user@(User userName) network = setupCardanoNode <!> teardownCardanoNode
                     (shouldDownload sha256 archivePath)
                     ( cmdProperty
                         "curl"
-                        ["-o", archivePath, "-L", "https://github.com/IntersectMBO/cardano-node/releases/download/9.1.0/cardano-node-9.1.0-linux.tar.gz"]
+                        ["-o", archivePath, "-L", "https://github.com/IntersectMBO/cardano-node/releases/download/9.1.1/cardano-node-9.1.1-linux.tar.gz"]
                         `changesFileContent` archivePath
                     )
-                    `describe` "Cardano node 9.1.0 archive downloaded"
+                    `describe` "Cardano node 9.1.1 archive downloaded"
                 & File.ownerGroup archivePath user userGrp
                 & check
                     shouldUnpack
@@ -64,7 +64,7 @@ setup user@(User userName) network = setupCardanoNode <!> teardownCardanoNode
                         ["xC", home, "-f", archivePath]
                         `changesFileContent` (home </> "bin" </> "cardano-node")
                     )
-                    `describe` "Cardano node 9.1.0 archive unpacked"
+                    `describe` "Cardano node 9.1.1 archive unpacked"
                 & environmentConfigured
                 & File.hasContent "/etc/systemd/system/cardano-node.service" serviceNode
                 & Apt.removed ["mithril-client"]
@@ -80,18 +80,18 @@ setup user@(User userName) network = setupCardanoNode <!> teardownCardanoNode
 
     shouldUnpack = do
         dir <- User.homedir user
-        hasFile <- doesFileExist (dir </> "cardano-node")
+        hasFile <- doesFileExist (dir </> "bin" </> "cardano-node")
         if hasFile
             then
                 not
-                    . ("9.1.0" `elem`)
+                    . ("9.1.1" `elem`)
                     . words
                     . head
                     . lines
-                    <$> readProcessEnv (dir </> "cardano-node") ["--version"] (Just [("LD_LIBRARY_PATH", dir)])
+                    <$> readProcessEnv (dir </> "bin" </> "cardano-node") ["--version"] (Just [("LD_LIBRARY_PATH", dir)])
             else pure True
 
-    archivePath = home </> "cardano-node-9.1.0.tgz"
+    archivePath = home </> "cardano-node-9.1.1.tgz"
 
     userGrp = Group "curry"
 
