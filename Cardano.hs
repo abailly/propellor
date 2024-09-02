@@ -97,7 +97,7 @@ setup user@(User userName) network = setupCardanoNode <!> teardownCardanoNode
 
     envFile =
         [ "CONFIG=\"" <> home </> "share" </> networkName network </> "config.json\""
-        , "TOPOLOGY=\"" <> home </> networkName network </> "topology.json\""
+        , "TOPOLOGY=\"" <> home </> "share" </> networkName network </> "topology.json\""
         , "DBPATH=\"./db/\""
         , "SOCKETPATH=\"./node.socket\""
         , "HOSTADDR=\"0.0.0.0\""
