@@ -49,13 +49,6 @@ setup user@(User userName) network = setupCardanoNode <!> teardownCardanoNode
         propertyList "Cardano node" $
             props
                 & check
-                    ( do
-                        d <- User.homedir user
-                        not <$> doesDirectoryExist (d </> "cardano-configurations")
-                    )
-                    (Git.pulled user "https://github.com/input-output-hk/cardano-configurations" "cardano-configurations" Nothing)
-                    `describe` "Cardano configurations pulled"
-                & check
                     (shouldDownload sha256 archivePath)
                     ( cmdProperty
                         "curl"
@@ -69,7 +62,7 @@ setup user@(User userName) network = setupCardanoNode <!> teardownCardanoNode
                     ( cmdProperty
                         "tar"
                         ["xC", home, "-f", archivePath]
-                        `changesFileContent` (home </> "cardano-node")
+                        `changesFileContent` (home </> "bin" </> "cardano-node")
                     )
                     `describe` "Cardano node 9.1.0 archive unpacked"
                 & environmentConfigured
@@ -78,6 +71,7 @@ setup user@(User userName) network = setupCardanoNode <!> teardownCardanoNode
                 & mithrilSnapshotDownloaded user userGrp network
                 & Systemd.enabled "cardano-node"
                 & Systemd.restarted "cardano-node"
+                & File.notPresent (home </> "cardano-configuration")
 
     environmentConfigured =
         File.hasContent (home </> "cardano-node.environment") envFile
@@ -102,8 +96,8 @@ setup user@(User userName) network = setupCardanoNode <!> teardownCardanoNode
     userGrp = Group "curry"
 
     envFile =
-        [ "CONFIG=\"" <> home <> "/cardano-configurations/network/" <> networkName network <> "/cardano-node/config.json\""
-        , "TOPOLOGY=\"" <> home <> "/cardano-configurations/network/" <> networkName network <> "/cardano-node/topology.json\""
+        [ "CONFIG=\"" <> home </> "share" </> networkName network </> "config.json\""
+        , "TOPOLOGY=\"" <> home </> networkName network </> "topology.json\""
         , "DBPATH=\"./db/\""
         , "SOCKETPATH=\"./node.socket\""
         , "HOSTADDR=\"0.0.0.0\""
@@ -119,7 +113,7 @@ setup user@(User userName) network = setupCardanoNode <!> teardownCardanoNode
         , "[Service]"
         , "Type=simple"
         , "EnvironmentFile=" <> home <> "/cardano-node.environment"
-        , "ExecStart=" <> home <> "/cardano-node run --config $CONFIG --topology $TOPOLOGY --database-path $DBPATH --socket-path $SOCKETPATH --host-addr $HOSTADDR --port $PORT"
+        , "ExecStart=" <> home </> "bin" </> "cardano-node run --config $CONFIG --topology $TOPOLOGY --database-path $DBPATH --socket-path $SOCKETPATH --host-addr $HOSTADDR --port $PORT"
         , "KillSignal = SIGINT"
         , "RestartKillSignal = SIGINT"
         , "StandardOutput=journal"
