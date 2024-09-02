@@ -184,7 +184,7 @@ mithrilSnapshotDownloaded user@(User userName) userGrp network =
                     user
                     [ ". ./mithril-client.environment"
                     , "sudo rm -fr db"
-                    , "mithril-client cardano-db snapshot download " <> mithrilSnapshot
+                    , "mithril-client cardano-db download " <> mithrilSnapshot
                     ]
                     `assume` MadeChange
                     `describe` ("Install Mithril snapshot " <> mithrilSnapshot)
