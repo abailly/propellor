@@ -5,6 +5,7 @@
 module Radicle where
 
 import Base (OS)
+import qualified Data.List as List
 import Propellor
 import Propellor.Base (
     asks,
@@ -49,7 +50,7 @@ radicleInstalledFor user@(User userName) =
     radAuth :: String -> String -> String -> Property UnixLike
     radAuth hostName privDataSeed privDataPwd =
         check (not <$> doesFileExist (radicleDir </> "keys/radicle")) $
-            userScriptProperty
+            userScriptPropertyPty
                 user
                 -- FIXME: for some reason, having several lines in the script does not work
                 [ "RAD_KEYGEN_SEED="
@@ -136,8 +137,6 @@ data Package = Package
     , version :: String
     }
 
--- downloadAndInstall :: String -> Package -> Property
-
 -- | Removes a directory, and all its contents.
 dirNotPresent :: FilePath -> Property UnixLike
 dirNotPresent dir =
@@ -145,3 +144,16 @@ dirNotPresent dir =
         property (dir ++ " not present") $
             makeChange $
                 removeDirectoryRecursive dir
+
+{- | A property that can satisfied by running a script
+as user (cd'd to their home directory), allocating a pseudo-terminal.
+This is important if the commands being run need to interact expect
+the input to be a terminal.
+-}
+userScriptPropertyPty :: User -> Script -> UncheckedProperty UnixLike
+userScriptPropertyPty (User user) script =
+    cmdProperty
+        "su"
+        ["-P", "--login", "--shell", "/bin/sh", "-c", shellcmd, user]
+  where
+    shellcmd = List.intercalate " ; " ("set -e" : "cd" : script)
