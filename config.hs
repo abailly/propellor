@@ -90,7 +90,7 @@ clermont =
             & dockerComposeInstalled
             & Docker.installed
             & Cron.runPropellor (Cron.Times "30 * * * *")
-            ! Radicle.seedInstalled "seed"
+            & Radicle.seedInstalled "seed"
             & User.hasGroup user (Group "seed")
   where
     root = User "root"
