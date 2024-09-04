@@ -53,7 +53,7 @@ radicleInstalledFor user@(User userName) =
                 user
                 [ "RAD_KEYGEN_SEED=" <> privDataSeed
                 , "RAD_PASSPHRASE=" <> privDataPwd
-                , radicleDir </> "bin" </> "rad auth"
+                , "echo foo"
                 ]
 
     teardownRadicle =
