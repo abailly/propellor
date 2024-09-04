@@ -16,6 +16,8 @@ seedInstalled userName =
         propertyList "Radicle seed installed" $
             props
                 & User.systemAccountFor' user (Just "/home/seed") (Just group)
+                & File.dirExists radicleDir
+                & File.ownerGroup radicleDir user group
                 & downloadAndInstall (Package "radicle" radicleKey radicleUrl radicleSigUrl radicleSHA256Url radicleVersion)
                 & downloadAndInstall (Package "radicle-http" radicleHttpKey radicleHttpUrl radicleHttpSigUrl radicleHttpSHA256Url radicleHttpVersion)
 
@@ -30,6 +32,8 @@ seedInstalled userName =
 
     -- FIXME: should not be hardcoded
     home = "/home" </> userName
+    radicleDir = home </> ".radicle"
+    binFile name = radicleDir </> "bin" </> name
 
     radicleVersion = "1.0.0-rc.17"
     radicleKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL460KIEccS4881p7PPpiiQBsxF+H5tgC6De6crw9rbU"
@@ -75,8 +79,6 @@ seedInstalled userName =
         if not hasFile
             then pure True
             else (/= sha256) . head . words . head . lines <$> readProcess "/usr/bin/sha256sum" [archivePath]
-
-    binFile name = home </> ".radicle" </> "bin" </> name
 
     shouldUnpack exe = do
         hasFile <- doesFileExist exe
