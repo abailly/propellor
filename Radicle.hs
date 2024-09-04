@@ -53,13 +53,9 @@ radicleInstalledFor user@(User userName) =
             userScriptPropertyPty
                 user
                 -- FIXME: for some reason, having several lines in the script does not work
-                [ "RAD_KEYGEN_SEED="
-                    <> privDataSeed
-                    <> " RAD_PASSPHRASE="
-                    <> privDataPwd
-                    <> " "
-                    <> radicleDir </> "bin" </> "rad auth --alias "
-                    <> userName <.> hostName
+                [ "export RAD_KEYGEN_SEED=" <> privDataSeed
+                , "export RAD_PASSPHRASE=" <> privDataPwd
+                , radicleDir </> "bin" </> "rad auth --alias " <> userName <.> hostName
                 ]
 
     teardownRadicle =
