@@ -41,7 +41,9 @@ radicleInstalledFor user@(User userName) =
             withPrivData (PrivFile "radicle-pwd") hostContext $ \getPrivDataPwd ->
                 property' "radicle configured" $ \w ->
                     getPrivDataSeed $ \(PrivData privDataSeed) ->
-                        getPrivDataPwd $ \(PrivData privDataPwd) ->
+                        getPrivDataPwd $ \(PrivData privDataPwd) -> do
+                            liftIO $ putStrLn $ "PrivDataSeed: " <> privDataSeed
+                            liftIO $ putStrLn $ "PrivDataPwd: " <> privDataPwd
                             ensureProperty w (radAuth privDataSeed privDataPwd)
 
     radAuth :: String -> String -> Property UnixLike
