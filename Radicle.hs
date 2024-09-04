@@ -41,11 +41,8 @@ radicleInstalledFor user@(User userName) =
             withPrivData (PrivFile "radicle-pwd") hostContext $ \getPrivDataPwd ->
                 property' "radicle configured" $ \w ->
                     getPrivDataSeed $ \(PrivData privDataSeed) ->
-                        getPrivDataPwd $ \(PrivData privDataPwd) -> do
-                            hasKey <- liftIO $ doesFileExist (radicleDir </> "keys/radicle")
-                            if hasKey
-                                then ensureProperty w (radAuth privDataSeed privDataPwd)
-                                else noChange
+                        getPrivDataPwd $ \(PrivData privDataPwd) ->
+                            ensureProperty w (radAuth privDataSeed privDataPwd)
 
     radAuth :: String -> String -> Property UnixLike
     radAuth privDataSeed privDataPwd =
