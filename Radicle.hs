@@ -6,7 +6,16 @@ module Radicle where
 
 import Base (OS)
 import Propellor
-import Propellor.Base (doesDirectoryExist, doesFileExist, liftIO, readProcess, readProcessEnv, removeDirectoryRecursive, void, withPrivData, (<.>), (</>))
+import Propellor.Base (
+    doesDirectoryExist,
+    doesFileExist,
+    liftIO,
+    readProcess,
+    removeDirectoryRecursive,
+    withPrivData,
+    (<.>),
+    (</>),
+ )
 import qualified Propellor.Property.File as File
 import qualified Propellor.Property.User as User
 
@@ -30,19 +39,23 @@ radicleInstalledFor user@(User userName) =
     configureRadicle =
         withPrivData (PrivFile "radicle-seed") hostContext $ \getPrivDataSeed ->
             withPrivData (PrivFile "radicle-pwd") hostContext $ \getPrivDataPwd ->
-                property "radicle configured" $
+                property' "radicle configured" $ \w ->
                     getPrivDataSeed $ \(PrivData privDataSeed) ->
                         getPrivDataPwd $ \(PrivData privDataPwd) -> do
                             hasKey <- liftIO $ doesFileExist (radicleDir </> "keys/radicle")
                             if hasKey
-                                then
-                                    makeChange $
-                                        void $
-                                            readProcessEnv
-                                                (radicleDir </> "bin/rad")
-                                                ["auth"]
-                                                (Just [("RAD_KEYGEN_SEED", privDataSeed), ("RAD_PASSPHRASE", privDataPwd)])
+                                then ensureProperty w (radAuth privDataSeed privDataPwd)
                                 else noChange
+
+    radAuth :: String -> String -> Property UnixLike
+    radAuth privDataSeed privDataPwd =
+        check (not <$> doesFileExist (radicleDir </> "keys/radicle")) $
+            userScriptProperty
+                user
+                [ "export RAD_KEYGEN_SEED=" <> privDataSeed
+                , "export RAD_PASSPHRASE=" <> privDataPwd
+                , "rad auth"
+                ]
 
     teardownRadicle =
         tightenTargets $
