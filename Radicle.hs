@@ -7,6 +7,7 @@ module Radicle where
 import Base (OS)
 import Propellor
 import Propellor.Base (
+    asks,
     doesDirectoryExist,
     doesFileExist,
     liftIO,
@@ -39,19 +40,28 @@ radicleInstalledFor user@(User userName) =
     configureRadicle =
         withPrivData (PrivFile "radicle-seed") hostContext $ \getPrivDataSeed ->
             withPrivData (PrivFile "radicle-pwd") hostContext $ \getPrivDataPwd ->
-                property' "radicle configured" $ \w ->
+                property' "radicle configured" $ \w -> do
+                    host <- asks hostName
                     getPrivDataSeed $ \(PrivData privDataSeed) ->
-                        getPrivDataPwd $ \(PrivData privDataPwd) -> do
-                            liftIO $ putStrLn $ "PrivDataSeed: " <> privDataSeed
-                            liftIO $ putStrLn $ "PrivDataPwd: " <> privDataPwd
-                            ensureProperty w (radAuth privDataSeed privDataPwd)
+                        getPrivDataPwd $ \(PrivData privDataPwd) ->
+                            ensureProperty w (radAuth host privDataSeed privDataPwd)
 
-    radAuth :: String -> String -> Property UnixLike
-    radAuth privDataSeed privDataPwd =
+    radAuth :: String -> String -> String -> Property UnixLike
+    radAuth hostName privDataSeed privDataPwd =
         check (not <$> doesFileExist (radicleDir </> "keys/radicle")) $
             userScriptProperty
                 user
-                ["RAD_KEYGEN_SEED=" <> privDataSeed <> " RAD_PASSPHRASE=" <> privDataPwd <> " " <> radicleDir </> "bin" </> "rad auth"]
+                -- FIXME: for some reason, having several lines in the script does not work
+                [ "RAD_KEYGEN_SEED="
+                    <> privDataSeed
+                    <> " RAD_PASSPHRASE="
+                    <> privDataPwd
+                    <> " "
+                    <> radicleDir </> "bin" </> "rad auth --alias "
+                    <> userName
+                    <> "@"
+                    <> hostName
+                ]
 
     teardownRadicle =
         tightenTargets $
