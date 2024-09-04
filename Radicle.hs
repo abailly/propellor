@@ -59,13 +59,13 @@ seedInstalled userName =
                                )
                 & File.ownerGroup archivePath user group
                 & check
-                    (shouldUnpack name version)
+                    (shouldUnpack $ binFile name)
                     ( cmdProperty
                         "tar"
-                        ["xC", home, "-f", archivePath]
-                        `changesFileContent` ("home" </> "bin" </> "cardano-node")
+                        ["--strip-components", "1", "-C", home </> ".radicle", "-xf", archivePath]
+                        `changesFileContent` binFile name
                     )
-                    `describe` "Cardano node 9.1.1 archive unpacked"
+                    `describe` ("Radicle " <> version <> " unpacked")
       where
         archivePath = "/home" </> userName </> name <.> "tar.xz"
 
@@ -76,9 +76,10 @@ seedInstalled userName =
             then pure True
             else (/= sha256) . head . words . head . lines <$> readProcess "/usr/bin/sha256sum" [archivePath]
 
-    shouldUnpack name version = do
-        let binFile = home </> ".radicle" </> "bin" </> name
-        hasFile <- doesFileExist binFile
+    binFile name = home </> ".radicle" </> "bin" </> name
+
+    shouldUnpack exe = do
+        hasFile <- doesFileExist exe
         if hasFile
             then
                 not
@@ -86,7 +87,7 @@ seedInstalled userName =
                     . words
                     . head
                     . lines
-                    <$> readProcess binFile ["--version"]
+                    <$> readProcess exe ["--version"]
             else pure True
 
 data Package = Package
