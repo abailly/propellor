@@ -16,6 +16,8 @@ seedInstalled userName =
         propertyList "Radicle seed installed" $
             props
                 & User.systemAccountFor' user (Just "/home/seed") (Just group)
+                & File.notPresent "/home/seed/radicle-httpd-0.17.0-x86_64-unknown-linux-musl"
+                & File.notPresent "/home/seed/radicle-1.0.0-rc.17-x86_64-unknown-linux-musl"
                 & File.dirExists radicleDir
                 & File.ownerGroup radicleDir user group
                 & downloadAndInstall (Package "radicle" radicleKey radicleUrl radicleSigUrl radicleSHA256Url radicleVersion)
