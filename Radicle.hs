@@ -18,14 +18,13 @@ radicleInstalledFor user@(User userName) =
                 props
                     & User.nuked (User "seed") User.YesReallyDeleteHome
                     & File.dirExists radicleDir
-                    & File.dirExists installDir
                     & File.ownerGroup radicleDir user group
                     & downloadAndInstall
-                        installDir
+                        radicleDir
                         (archivePath "radicle")
                         (Package "radicle" radicleKey radicleUrl radicleSigUrl radicleSHA256Url radicleVersion)
                     & downloadAndInstall
-                        installDir
+                        radicleDir
                         (archivePath "radicle-http")
                         (Package "radicle-http" radicleHttpKey radicleHttpUrl radicleHttpSigUrl radicleHttpSHA256Url radicleHttpVersion)
 
@@ -39,7 +38,6 @@ radicleInstalledFor user@(User userName) =
     group = Group userName
 
     radicleDir = home </> ".radicle"
-    installDir = radicleDir </> "bin"
     archivePath name = home </> name <.> "tar.xz"
 
     radicleVersion = "1.0.0-rc.17"
