@@ -1,32 +1,48 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
 module Radicle where
 
-import Base (OSNoInfo)
+import Base (OS)
 import Propellor
-import Propellor.Base (doesDirectoryExist, doesFileExist, readProcess, removeDirectoryRecursive, (<.>), (</>))
+import Propellor.Base (doesDirectoryExist, doesFileExist, liftIO, readProcess, readProcessEnv, removeDirectoryRecursive, void, withPrivData, (<.>), (</>))
 import qualified Propellor.Property.File as File
 import qualified Propellor.Property.User as User
 
-radicleInstalledFor :: User -> RevertableProperty OSNoInfo OSNoInfo
+radicleInstalledFor :: User -> RevertableProperty OS OS
 radicleInstalledFor user@(User userName) =
     setupRadicle <!> teardownRadicle
   where
     setupRadicle =
-        tightenTargets $
-            propertyList "Radicle installed" $
-                props
-                    & User.nuked (User "seed") User.YesReallyDeleteHome
-                    & File.dirExists radicleDir
-                    & File.ownerGroup radicleDir user group
-                    & downloadAndInstall
-                        radicleDir
-                        (archivePath "radicle")
-                        (Package "radicle" radicleKey radicleUrl radicleSigUrl radicleSHA256Url radicleVersion)
-                    & downloadAndInstall
-                        radicleDir
-                        (archivePath "radicle-http")
-                        (Package "radicle-http" radicleHttpKey radicleHttpUrl radicleHttpSigUrl radicleHttpSHA256Url radicleHttpVersion)
+        propertyList "Radicle installed" $
+            props
+                & User.nuked (User "seed") User.YesReallyDeleteHome
+                & File.dirExists radicleDir
+                & File.ownerGroup radicleDir user group
+                & downloadAndInstall
+                    radicleDir
+                    (archivePath "radicle")
+                    (Package "radicle" radicleKey radicleUrl radicleSigUrl radicleSHA256Url radicleVersion)
+                & configureRadicle
+
+    configureRadicle :: Property OS
+    configureRadicle =
+        withPrivData (PrivFile "radicle-seed") hostContext $ \getPrivDataSeed ->
+            withPrivData (PrivFile "radicle-pwd") hostContext $ \getPrivDataPwd ->
+                property "radicle configured" $
+                    getPrivDataSeed $ \(PrivData privDataSeed) ->
+                        getPrivDataPwd $ \(PrivData privDataPwd) -> do
+                            hasKey <- liftIO $ doesFileExist (radicleDir </> "keys/radicle")
+                            if hasKey
+                                then
+                                    makeChange $
+                                        void $
+                                            readProcessEnv
+                                                (radicleDir </> "bin/rad")
+                                                ["auth"]
+                                                (Just [("RAD_KEYGEN_SEED", privDataSeed), ("RAD_PASSPHRASE", privDataPwd)])
+                                else noChange
 
     teardownRadicle =
         tightenTargets $

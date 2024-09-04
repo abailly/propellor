@@ -13,6 +13,7 @@ import qualified Propellor.Property.Git as Git
 import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
+
 import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess, readProcessEnv, writeReadProcessEnv)
 import System.FilePath ((<.>), (</>))
 import System.IO (hPutStr)
