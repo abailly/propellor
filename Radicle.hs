@@ -4,7 +4,7 @@ module Radicle where
 
 import Base (OSNoInfo)
 import Propellor
-import Propellor.Base (doesFileExist, readProcess, (<.>), (</>))
+import Propellor.Base (doesDirectoryExist, doesFileExist, readProcess, removeDirectoryRecursive, (<.>), (</>))
 import qualified Propellor.Property.File as File
 import qualified Propellor.Property.User as User
 
@@ -104,3 +104,11 @@ data Package = Package
     }
 
 -- downloadAndInstall :: String -> Package -> Property
+
+-- | Removes a directory, and all its contents.
+dirNotPresent :: FilePath -> Property UnixLike
+dirNotPresent dir =
+    check (doesDirectoryExist dir) $
+        property (dir ++ " not present") $
+            makeChange $
+                removeDirectoryRecursive dir
