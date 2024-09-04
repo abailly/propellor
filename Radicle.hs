@@ -51,9 +51,7 @@ radicleInstalledFor user@(User userName) =
         check (not <$> doesFileExist (radicleDir </> "keys/radicle")) $
             userScriptProperty
                 user
-                [ "export RAD_KEYGEN_SEED=" <> privDataSeed
-                , "export RAD_PASSPHRASE=" <> privDataPwd
-                , "rad auth"
+                [ "RAD_KEYGEN_SEED=" <> privDataSeed <> " RAD_PASSPHRASE=" <> privDataPwd <> " rad auth"
                 ]
 
     teardownRadicle =
