@@ -37,12 +37,11 @@ setup user@(User userName) network = setupCardanoNode <!> teardownCardanoNode
                     (Systemd.disabled "cardano-node" `requires` Systemd.stopped "cardano-node")
                 & File.notPresent "/etc/systemd/system/cardano-node.service"
                 & File.notPresent (home </> "cardano-node.environment")
-                & File.notPresent (home </> "cardano-node")
+                & File.notPresent (home </> "bin" </> "cardano-node")
                 & File.notPresent (home </> "mithril-client.environment")
                 & File.notPresent "/root/mithril-client.deb"
                 & Apt.removed ["mithril-client"]
                 & File.notPresent (home </> "cardano-configurations")
-                & File.notPresent (home </> "cardano-node")
 
     setupCardanoNode :: Property OSNoInfo
     setupCardanoNode =

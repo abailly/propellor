@@ -1,6 +1,7 @@
 -- This is the main configuration file for Propellor, and is used to build
 -- the propellor program.    https://propellor.branchable.com/
 {-# LANGUAGE DataKinds #-}
+{-# OPTIONS_GHC -Wno-unused-imports #-}
 
 import Base (OS)
 import Cardano (CardanoNetwork (..))
@@ -23,6 +24,7 @@ import qualified Propellor.Property.Tor as Tor
 import qualified Propellor.Property.User as User
 import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess)
+import qualified Radicle
 import System.Posix (ownerExecuteMode, ownerReadMode, ownerWriteMode)
 import User (commonUserSetup)
 import Web (httpsWebSite)
@@ -88,6 +90,8 @@ clermont =
             & dockerComposeInstalled
             & Docker.installed
             & Cron.runPropellor (Cron.Times "30 * * * *")
+            & Radicle.seedInstalled "seed"
+            & User.hasGroup user (Group "seed")
   where
     root = User "root"
     user = User "curry"

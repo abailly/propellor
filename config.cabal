@@ -7,7 +7,7 @@ Version: 0
 
 Executable propellor-config
   Main-Is: config.hs
-  Other-Modules: Cardano, Hydra, User, Base, Web
+  Other-Modules: Cardano, Hydra, User, Base, Web, Radicle
   GHC-Options: -threaded -Wall -fno-warn-tabs -O0
   Extensions: TypeOperators
   Build-Depends: propellor >= 3.0, base >= 4.9, unix, unix-compat, filepath
