@@ -35,6 +35,22 @@ radicleInstalledFor user@(User userName) =
                     (archivePath "radicle")
                     (Package "radicle" radicleKey radicleUrl radicleSigUrl radicleSHA256Url radicleVersion)
                 & configureRadicle
+                & nodeRunning
+
+    nodeRunning :: Property OS
+    nodeRunning =
+        withPrivData (PrivFile "radicle-pwd") hostContext $ \getPrivDataPwd ->
+            property' "radicle node running" $ \w -> do
+                getPrivDataPwd $ \(PrivData privDataPwd) ->
+                    ensureProperty
+                        w
+                        ( userScriptPropertyPty
+                            user
+                            [ "export RAD_PASSPHRASE=" <> privDataPwd
+                            , radicleDir </> "bin" </> "rad node start"
+                            ]
+                            `assume` NoChange
+                        )
 
     configureRadicle :: Property OS
     configureRadicle =
