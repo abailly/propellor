@@ -52,7 +52,6 @@ radicleInstalledFor user@(User userName) =
         check (not <$> doesFileExist (radicleDir </> "keys/radicle")) $
             userScriptPropertyPty
                 user
-                -- FIXME: for some reason, having several lines in the script does not work
                 [ "export RAD_KEYGEN_SEED=" <> privDataSeed
                 , "export RAD_PASSPHRASE=" <> privDataPwd
                 , radicleDir </> "bin" </> "rad auth --alias " <> userName <.> hostName
@@ -145,6 +144,8 @@ dirNotPresent dir =
 as user (cd'd to their home directory), allocating a pseudo-terminal.
 This is important if the commands being run need to interact expect
 the input to be a terminal.
+
+NOTE: The `Script`'s lines should not end with a newline.
 -}
 userScriptPropertyPty :: User -> Script -> UncheckedProperty UnixLike
 userScriptPropertyPty (User user) script =
