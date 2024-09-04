@@ -18,6 +18,7 @@ radicleInstalledFor user@(User userName) =
                 props
                     & User.nuked (User "seed") User.YesReallyDeleteHome
                     & File.dirExists radicleDir
+                    & File.dirExists installDir
                     & File.ownerGroup radicleDir user group
                     & downloadAndInstall
                         installDir
