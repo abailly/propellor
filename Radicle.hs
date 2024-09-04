@@ -20,6 +20,66 @@ import Propellor.Base (
 import qualified Propellor.Property.File as File
 import qualified Propellor.Property.User as User
 
+radiclePackage :: Package
+radiclePackage =
+    Package "radicle" radicleKey radicleUrl radicleSigUrl radicleSHA256Url radicleVersion
+  where
+    radicleVersion = "1.0.0-rc.17"
+    radicleKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL460KIEccS4881p7PPpiiQBsxF+H5tgC6De6crw9rbU"
+    radicleUrl = "https://files.radicle.xyz/releases/latest/radicle-1.0.0-rc.17-x86_64-unknown-linux-musl.tar.xz"
+    radicleSigUrl = "https://files.radicle.xyz/releases/latest/radicle-1.0.0-rc.17-x86_64-unknown-linux-musl.tar.xz.sig"
+    radicleSHA256Url = "https://files.radicle.xyz/releases/latest/radicle-1.0.0-rc.17-x86_64-unknown-linux-musl.tar.xz.sha256"
+
+radicleHttpPackage :: Package
+radicleHttpPackage =
+    Package "radicle-http" radicleHttpKey radicleHttpUrl radicleHttpSigUrl radicleHttpSHA256Url radicleHttpVersion
+  where
+    radicleHttpVersion = "0.17.0"
+    radicleHttpKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKU7IHRsae2q1/qd8NaWxfGhPEFGHwK1dcxvSjNdttjb"
+    radicleHttpUrl = "https://files.radicle.xyz/releases/radicle-httpd/latest/radicle-httpd-0.17.0-x86_64-unknown-linux-musl.tar.xz"
+    radicleHttpSigUrl = "https://files.radicle.xyz/releases/radicle-httpd/latest/radicle-httpd-0.17.0-x86_64-unknown-linux-musl.tar.xz.sig"
+    radicleHttpSHA256Url = "https://files.radicle.xyz/releases/radicle-httpd/latest/radicle-httpd-0.17.0-x86_64-unknown-linux-musl.tar.xz.sha256"
+
+radicleSeedInstalled :: RevertableProperty OS OS
+radicleSeedInstalled =
+    setupRadicleSeed <!> teardownRadicleSeed
+  where
+    userName = "seed"
+
+    home = "/home" </> userName
+    group = Group userName
+    user = User userName
+
+    usrLocal = "/usr/local"
+    radicleDir = home </> ".radicle"
+    archivePath name = "/tmp" </> name <.> "tar.xz"
+
+    setupRadicleSeed =
+        tightenTargets $
+            propertyList "Radicle seed installed" $
+                props
+                    & User.systemAccountFor' user (Just home) (Just group)
+                    & File.dirExists radicleDir
+                    & File.ownerGroup radicleDir user group
+                    & downloadAndInstall
+                        user
+                        group
+                        usrLocal
+                        (archivePath "radicle")
+                        radiclePackage
+                    & downloadAndInstall
+                        user
+                        group
+                        usrLocal
+                        (archivePath "radicle-http")
+                        radicleHttpPackage
+
+    teardownRadicleSeed =
+        tightenTargets $
+            propertyList "Radicle seed removed" $
+                props
+                    & User.nuked user User.YesReallyDeleteHome
+
 radicleInstalledFor :: User -> RevertableProperty OS OS
 radicleInstalledFor user@(User userName) =
     setupRadicle <!> teardownRadicle
@@ -27,13 +87,14 @@ radicleInstalledFor user@(User userName) =
     setupRadicle =
         propertyList "Radicle installed" $
             props
-                & User.nuked (User "seed") User.YesReallyDeleteHome
                 & File.dirExists radicleDir
                 & File.ownerGroup radicleDir user group
                 & downloadAndInstall
+                    user
+                    group
                     radicleDir
                     (archivePath "radicle")
-                    (Package "radicle" radicleKey radicleUrl radicleSigUrl radicleSHA256Url radicleVersion)
+                    radiclePackage
                 & configureRadicle
                 & nodeRunning
 
@@ -75,7 +136,24 @@ radicleInstalledFor user@(User userName) =
     teardownRadicle =
         tightenTargets $
             propertyList "Radicle removed" $
-                props & dirNotPresent radicleDir
+                props
+                    & nodeStopped
+                    & dirNotPresent radicleDir
+
+    nodeStopped :: Property OS
+    nodeStopped =
+        withPrivData (PrivFile "radicle-pwd") hostContext $ \getPrivDataPwd ->
+            property' "radicle node stopped" $ \w -> do
+                getPrivDataPwd $ \(PrivData privDataPwd) ->
+                    ensureProperty
+                        w
+                        ( userScriptPropertyPty
+                            user
+                            [ "export RAD_PASSPHRASE=" <> privDataPwd
+                            , radicleDir </> "bin" </> "rad node stop"
+                            ]
+                            `assume` NoChange
+                        )
 
     -- FIXME: should not be hardcoded
     home = "/home" </> userName
@@ -84,20 +162,16 @@ radicleInstalledFor user@(User userName) =
     radicleDir = home </> ".radicle"
     archivePath name = home </> name <.> "tar.xz"
 
-    radicleVersion = "1.0.0-rc.17"
-    radicleKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL460KIEccS4881p7PPpiiQBsxF+H5tgC6De6crw9rbU"
-    radicleUrl = "https://files.radicle.xyz/releases/latest/radicle-1.0.0-rc.17-x86_64-unknown-linux-musl.tar.xz"
-    radicleSigUrl = "https://files.radicle.xyz/releases/latest/radicle-1.0.0-rc.17-x86_64-unknown-linux-musl.tar.xz.sig"
-    radicleSHA256Url = "https://files.radicle.xyz/releases/latest/radicle-1.0.0-rc.17-x86_64-unknown-linux-musl.tar.xz.sha256"
-
-    radicleHttpVersion = "0.17.0"
-    radicleHttpKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKU7IHRsae2q1/qd8NaWxfGhPEFGHwK1dcxvSjNdttjb"
-    radicleHttpUrl = "https://files.radicle.xyz/releases/radicle-httpd/latest/radicle-httpd-0.17.0-x86_64-unknown-linux-musl.tar.xz"
-    radicleHttpSigUrl = "https://files.radicle.xyz/releases/radicle-httpd/latest/radicle-httpd-0.17.0-x86_64-unknown-linux-musl.tar.xz.sig"
-    radicleHttpSHA256Url = "https://files.radicle.xyz/releases/radicle-httpd/latest/radicle-httpd-0.17.0-x86_64-unknown-linux-musl.tar.xz.sha256"
-
-    downloadAndInstall installDir archive Package{name, url, sha256Url, version} =
-        check (shouldUnpack $ installDir </> name) $
+downloadAndInstall ::
+    User ->
+    Group ->
+    FilePath ->
+    FilePath ->
+    Package ->
+    Property OS
+downloadAndInstall user group installDir archive Package{name, url, sha256Url, version} =
+    tightenTargets $
+        check (shouldUnpack (installDir </> name) version) $
             propertyList ("Download and install " <> name) $
                 props
                     & check
@@ -119,24 +193,26 @@ radicleInstalledFor user@(User userName) =
                       )
                         `describe` ("Radicle " <> version <> " unpacked")
 
-    shouldDownload sha256Url archive = do
-        sha256 <- head . words . head . lines <$> readProcess "curl" ["-o", "-", "-L", sha256Url]
-        hasFile <- doesFileExist archive
-        if not hasFile
-            then pure True
-            else (/= sha256) . head . words . head . lines <$> readProcess "/usr/bin/sha256sum" [archive]
+shouldDownload :: String -> FilePath -> IO Bool
+shouldDownload sha256Url archive = do
+    sha256 <- head . words . head . lines <$> readProcess "curl" ["-o", "-", "-L", sha256Url]
+    hasFile <- doesFileExist archive
+    if not hasFile
+        then pure True
+        else (/= sha256) . head . words . head . lines <$> readProcess "/usr/bin/sha256sum" [archive]
 
-    shouldUnpack exe = do
-        hasFile <- doesFileExist exe
-        if hasFile
-            then
-                not
-                    . (radicleVersion `elem`)
-                    . words
-                    . head
-                    . lines
-                    <$> readProcess exe ["--version"]
-            else pure True
+shouldUnpack :: FilePath -> String -> IO Bool
+shouldUnpack exe radicleVersion = do
+    hasFile <- doesFileExist exe
+    if hasFile
+        then
+            not
+                . (radicleVersion `elem`)
+                . words
+                . head
+                . lines
+                <$> readProcess exe ["--version"]
+        else pure True
 
 data Package = Package
     { name :: String
