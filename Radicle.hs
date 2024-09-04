@@ -58,9 +58,7 @@ radicleInstalledFor user@(User userName) =
                     <> privDataPwd
                     <> " "
                     <> radicleDir </> "bin" </> "rad auth --alias "
-                    <> userName
-                    <> "@"
-                    <> hostName
+                    <> userName <.> hostName
                 ]
 
     teardownRadicle =
