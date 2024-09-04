@@ -11,7 +11,6 @@ import Propellor.Base (
     asks,
     doesDirectoryExist,
     doesFileExist,
-    liftIO,
     readProcess,
     removeDirectoryRecursive,
     withPrivData,
@@ -60,7 +59,7 @@ radicleInstalledFor user@(User userName) =
     teardownRadicle =
         tightenTargets $
             propertyList "Radicle removed" $
-                props
+                props & dirNotPresent radicleDir
 
     -- FIXME: should not be hardcoded
     home = "/home" </> userName
