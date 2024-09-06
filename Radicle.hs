@@ -209,7 +209,7 @@ configureRadicle user@(User userName) =
 
 radAuth :: User -> String -> String -> String -> Property UnixLike
 radAuth user nodeName privDataSeed privDataPwd =
-    check keysExist $
+    check (not <$> keysExist) $
         userScriptPropertyPty
             user
             [ "export RAD_KEYGEN_SEED=" <> privDataSeed
