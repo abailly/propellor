@@ -76,7 +76,7 @@ setup user@(User userName) network = setupCardanoNode <!> teardownCardanoNode
     environmentConfigured =
         File.hasContent (home </> "cardano-node.environment") envFile
 
-    sha256 = "48ba01b2f4659922cdccc6ff3a221610ec3b7881254d7bcb16fbb5fc88b1b183"
+    sha256 = "fcdcb16822217980fcd608214d053b24f30355beb2679bc85fe2e49c12fa42bc"
 
     shouldUnpack = do
         dir <- User.homedir user
@@ -197,7 +197,7 @@ mithrilSnapshotDownloaded user@(User userName) userGrp network =
 
     mithrilSnapshot = "latest"
 
-    archiveSha256 = "0000"
+    archiveSha256 = "fb26bfdf739ba96576d954a4d1b54e9481867226ae116870716481f5001cb063"
 
     mithrilPath = "/root/mithril-client.deb"
 
