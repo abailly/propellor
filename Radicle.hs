@@ -58,7 +58,9 @@ radicleSeedInstalled =
         tightenTargets $
             propertyList "Radicle seed installed" $
                 props
-                    & User.systemAccountFor' user (Just home) (Just group)
+                    & User.accountFor user
+                    & User.systemGroup group
+                    & User.hasGroup user group
                     & File.dirExists radicleDir
                     & File.ownerGroup radicleDir user group
                     & downloadAndInstall
