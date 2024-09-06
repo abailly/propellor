@@ -73,6 +73,7 @@ radicleSeedInstalled =
                         usrLocal
                         (archivePath "radicle-http")
                         radicleHttpPackage
+                    & configureRadicle user
 
     teardownRadicleSeed =
         tightenTargets $
@@ -95,43 +96,8 @@ radicleInstalledFor user@(User userName) =
                     radicleDir
                     (archivePath "radicle")
                     radiclePackage
-                & configureRadicle
-                & nodeRunning
-
-    nodeRunning :: Property OS
-    nodeRunning =
-        withPrivData (PrivFile "radicle-pwd") hostContext $ \getPrivDataPwd ->
-            property' "radicle node running" $ \w -> do
-                getPrivDataPwd $ \(PrivData privDataPwd) ->
-                    ensureProperty
-                        w
-                        ( userScriptPropertyPty
-                            user
-                            [ "export RAD_PASSPHRASE=" <> privDataPwd
-                            , radicleDir </> "bin" </> "rad node start"
-                            ]
-                            `assume` NoChange
-                        )
-
-    configureRadicle :: Property OS
-    configureRadicle =
-        withPrivData (PrivFile "radicle-seed") hostContext $ \getPrivDataSeed ->
-            withPrivData (PrivFile "radicle-pwd") hostContext $ \getPrivDataPwd ->
-                property' "radicle configured" $ \w -> do
-                    host <- asks hostName
-                    getPrivDataSeed $ \(PrivData privDataSeed) ->
-                        getPrivDataPwd $ \(PrivData privDataPwd) ->
-                            ensureProperty w (radAuth host privDataSeed privDataPwd)
-
-    radAuth :: String -> String -> String -> Property UnixLike
-    radAuth hostName privDataSeed privDataPwd =
-        check (not <$> doesFileExist (radicleDir </> "keys/radicle")) $
-            userScriptPropertyPty
-                user
-                [ "export RAD_KEYGEN_SEED=" <> privDataSeed
-                , "export RAD_PASSPHRASE=" <> privDataPwd
-                , radicleDir </> "bin" </> "rad auth --alias " <> userName <.> hostName
-                ]
+                & configureRadicle user
+                & nodeRunning user (radicleDir </> "bin" </> "rad")
 
     teardownRadicle =
         tightenTargets $
@@ -213,6 +179,45 @@ shouldUnpack exe radicleVersion = do
                 . lines
                 <$> readProcess exe ["--version"]
         else pure True
+
+nodeRunning :: User -> FilePath -> Property OS
+nodeRunning user radExe =
+    withPrivData (PrivFile "radicle-pwd") hostContext $ \getPrivDataPwd ->
+        property' "radicle node running" $ \w -> do
+            getPrivDataPwd $ \(PrivData privDataPwd) ->
+                ensureProperty
+                    w
+                    ( userScriptPropertyPty
+                        user
+                        [ "export RAD_PASSPHRASE=" <> privDataPwd
+                        , radExe <> " node start"
+                        ]
+                        `assume` NoChange
+                    )
+
+configureRadicle :: User -> Property OS
+configureRadicle user@(User userName) =
+    withPrivData (PrivFile "radicle-seed") hostContext $ \getPrivDataSeed ->
+        withPrivData (PrivFile "radicle-pwd") hostContext $ \getPrivDataPwd ->
+            property' "radicle configured" $ \w -> do
+                host <- asks hostName
+                getPrivDataSeed $ \(PrivData privDataSeed) ->
+                    getPrivDataPwd $ \(PrivData privDataPwd) ->
+                        ensureProperty w (radAuth user (userName <.> host) privDataSeed privDataPwd)
+
+radAuth :: User -> String -> String -> String -> Property UnixLike
+radAuth user nodeName privDataSeed privDataPwd =
+    check keysExist $
+        userScriptPropertyPty
+            user
+            [ "export RAD_KEYGEN_SEED=" <> privDataSeed
+            , "export RAD_PASSPHRASE=" <> privDataPwd
+            , "rad auth --alias " <> nodeName
+            ]
+  where
+    keysExist = do
+        radicleDir <- User.homedir user
+        doesFileExist (radicleDir </> "keys/radicle")
 
 data Package = Package
     { name :: String
