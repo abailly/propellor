@@ -92,7 +92,10 @@ radicleSeedInstalled =
                     & File.notPresent "/etc/systemd/system/radicle-node.service"
                     & User.nuked user User.YesReallyDeleteHome
 
-    seeds = [Seed "rad:z3DHQu16u3Do8Da4WMytx36qdanz5" "z6MkgrwQNecpatYWTPnzvZfWt6jpxZq1zK7zuz8QmndpMrGJ"]
+    seeds =
+        [ Seed "rad:z3DHQu16u3Do8Da4WMytx36qdanz5" "z6MkgrwQNecpatYWTPnzvZfWt6jpxZq1zK7zuz8QmndpMrGJ"
+        , Seed "rad:z3DHQu16u3Do8Da4WMytx36qdanz5" "z6MkhgPg6WShnhJcmfwox4G5yL3EvJ2zW8L31SZLD95yUi11"
+        ]
 
 data Seed = Seed
     { repo :: String
