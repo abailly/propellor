@@ -182,6 +182,39 @@ shouldUnpack exe radicleVersion = do
                 <$> readProcess exe ["--version"]
         else pure True
 
+nodeConfigured :: User -> Property OS
+nodeConfigured user@(User userName) =
+    tightenTargets $
+        propertyList "Radicle node configured" $
+            props
+                & configFileForNode
+                & File.ownerGroup configFilePath user group
+  where
+    group = Group userName
+
+    configFilePath = "/home" </> userName </> ".radicle" </> "config.json"
+
+    configFileForNode :: Property OS
+    configFileForNode =
+        property' "radicle node config file" $ \w -> do
+            host <- asks hostName
+            ensureProperty w $
+                ( File.hasContent configFilePath (configFile host)
+                    <> File.ownerGroup configFilePath user group
+                )
+
+    configFile host =
+        [ "{"
+        , "  \"node\": {"
+        , "    \"alias\": \"" <> userName <.> host <> "\","
+        , "    \"externalAddresses\": [\"" <> host <> ":8776\"],"
+        , "    \"seedingPolicy\": {"
+        , "      \"default\": \"block\""
+        , "    }"
+        , "  }"
+        , "}"
+        ]
+
 nodeRunning :: User -> FilePath -> Property OS
 nodeRunning user radExe =
     withPrivData (PrivFile "radicle-pwd") hostContext $ \getPrivDataPwd ->
