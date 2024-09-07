@@ -76,6 +76,7 @@ radicleSeedInstalled =
                         (archivePath "radicle-http")
                         radicleHttpPackage
                     & configureRadicle user
+                    & nodeConfigured user
 
     teardownRadicleSeed =
         tightenTargets $
