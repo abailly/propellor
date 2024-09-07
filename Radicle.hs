@@ -80,6 +80,7 @@ radicleSeedInstalled =
                     & serviceConfigured user
                     & Systemd.enabled "radicle-node"
                     & Systemd.restarted "radicle-node"
+                    & seeding user "/usr/local" seeds
 
     teardownRadicleSeed =
         tightenTargets $
@@ -90,6 +91,29 @@ radicleSeedInstalled =
                         (Systemd.disabled "radicle-node" `requires` Systemd.stopped "radicle-node")
                     & File.notPresent "/etc/systemd/system/radicle-node.service"
                     & User.nuked user User.YesReallyDeleteHome
+
+    seeds = [Seed "rad:z3DHQu16u3Do8Da4WMytx36qdanz5" "z6MkgrwQNecpatYWTPnzvZfWt6jpxZq1zK7zuz8QmndpMrGJ"]
+
+data Seed = Seed
+    { repo :: String
+    , nid :: String
+    }
+
+seeding :: User -> FilePath -> [Seed] -> Property OS
+seeding user radicleDir seeds =
+    withPrivData (PrivFile "radicle-pwd") hostContext $ \getPrivDataPwd ->
+        property' "radicle node service file" $ \w ->
+            getPrivDataPwd $ \(PrivData privDataPwd) ->
+                ensureProperty w $
+                    mconcat (map (seeded privDataPwd) seeds)
+  where
+    seeded pwd Seed{repo, nid} =
+        userScriptPropertyPty
+            user
+            [ "export RAD_PASSPHRASE=" <> pwd
+            , radicleDir </> "bin" </> "rad seed " <> repo <> " --from " <> nid
+            ]
+            `assume` NoChange
 
 serviceConfigured :: User -> Property OS
 serviceConfigured user@(User userName) =
