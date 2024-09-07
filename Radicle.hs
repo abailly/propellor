@@ -18,6 +18,7 @@ import Propellor.Base (
     (</>),
  )
 import qualified Propellor.Property.File as File
+import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.User as User
 
 radiclePackage :: Package
@@ -76,13 +77,38 @@ radicleSeedInstalled =
                         (archivePath "radicle-http")
                         radicleHttpPackage
                     & configureRadicle user
-                    & nodeConfigured user
+                    & File.hasContent "/etc/systemd/system/radicle-node.service" nodeService
+                        `requires` nodeConfigured user
+                    & Systemd.enabled "radicle-node"
+                    & Systemd.restarted "radicle-node"
 
     teardownRadicleSeed =
         tightenTargets $
             propertyList "Radicle seed removed" $
                 props
+                    & check
+                        (doesFileExist "/etc/systemd/system/radicle-node.service")
+                        (Systemd.disabled "radicle-node" `requires` Systemd.stopped "radicle-node")
+                    & File.notPresent "/etc/systemd/system/radicle-node.service"
                     & User.nuked user User.YesReallyDeleteHome
+    nodeService =
+        [ "[Unit]"
+        , "Description=Radicle Node"
+        , "After=network.target network-online.target"
+        , "Requires=network-online.target"
+        , ""
+        , "[Service]"
+        , "User=seed"
+        , "Group=seed"
+        , "ExecStart=/usr/local/bin/radicle-node --listen 0.0.0.0:8776 --force"
+        , "Environment=RAD_HOME=/home/" <> userName </> ".radicle RUST_BACKTRACE=1 RUST_LOG=info"
+        , "KillMode=process"
+        , "Restart=always"
+        , "RestartSec=3"
+        , ""
+        , "[Install]"
+        , "WantedBy=multi-user.target"
+        ]
 
 radicleInstalledFor :: User -> RevertableProperty OS OS
 radicleInstalledFor user@(User userName) =
