@@ -361,7 +361,7 @@ cardano =
             & Sudo.enabledFor user
             ! httpsWebSite perasStaging [] "me@cardano-scaling.org"
             ! Systemd.nspawned perasContainer
-            & Radicle.radicleSeedInstalled
+            ! Radicle.radicleSeedInstalled
   where
     perasContainer =
         Systemd.debContainer "peras" $
