@@ -77,8 +77,7 @@ radicleSeedInstalled =
                         (archivePath "radicle-http")
                         radicleHttpPackage
                     & configureRadicle user
-                    & File.hasContent "/etc/systemd/system/radicle-node.service" nodeService
-                        `requires` nodeConfigured user
+                    & serviceConfigured user
                     & Systemd.enabled "radicle-node"
                     & Systemd.restarted "radicle-node"
 
@@ -91,7 +90,50 @@ radicleSeedInstalled =
                         (Systemd.disabled "radicle-node" `requires` Systemd.stopped "radicle-node")
                     & File.notPresent "/etc/systemd/system/radicle-node.service"
                     & User.nuked user User.YesReallyDeleteHome
-    nodeService =
+
+serviceConfigured :: User -> Property OS
+serviceConfigured user@(User userName) =
+    tightenTargets $
+        propertyList "Radicle node configured" $
+            props
+                & configFileForNode
+                & File.ownerGroup configFilePath user group
+                & serviceFileForNode
+  where
+    group = Group userName
+
+    configFilePath = "/home" </> userName </> ".radicle" </> "config.json"
+
+    configFileForNode :: Property OS
+    configFileForNode =
+        property' "radicle node config file" $ \w -> do
+            host <- asks hostName
+            ensureProperty w $
+                ( File.hasContent configFilePath (configFile host)
+                    <> File.ownerGroup configFilePath user group
+                )
+
+    serviceFileForNode :: Property OS
+    serviceFileForNode =
+        withPrivData (PrivFile "radicle-pwd") hostContext $ \getPrivDataPwd ->
+            property' "radicle node service file" $ \w ->
+                getPrivDataPwd $ \(PrivData privDataPwd) ->
+                    ensureProperty w $
+                        File.hasContent "/etc/systemd/system/radicle-node.service" (nodeService privDataPwd)
+
+    configFile host =
+        [ "{"
+        , "  \"node\": {"
+        , "    \"alias\": \"" <> userName <.> host <> "\","
+        , "    \"externalAddresses\": [\"" <> host <> ":8776\"],"
+        , "    \"seedingPolicy\": {"
+        , "      \"default\": \"block\""
+        , "    }"
+        , "  }"
+        , "}"
+        ]
+
+    nodeService radiclePwd =
         [ "[Unit]"
         , "Description=Radicle Node"
         , "After=network.target network-online.target"
@@ -101,7 +143,7 @@ radicleSeedInstalled =
         , "User=seed"
         , "Group=seed"
         , "ExecStart=/usr/local/bin/radicle-node --listen 0.0.0.0:8776 --force"
-        , "Environment=RAD_HOME=/home/" <> userName </> ".radicle RUST_BACKTRACE=1 RUST_LOG=info"
+        , "Environment=RAD_HOME=/home/" <> userName </> ".radicle RUST_BACKTRACE=1 RUST_LOG=info RAD_PASSPHRASE=" <> radiclePwd
         , "KillMode=process"
         , "Restart=always"
         , "RestartSec=3"
@@ -208,39 +250,6 @@ shouldUnpack exe radicleVersion = do
                 . lines
                 <$> readProcess exe ["--version"]
         else pure True
-
-nodeConfigured :: User -> Property OS
-nodeConfigured user@(User userName) =
-    tightenTargets $
-        propertyList "Radicle node configured" $
-            props
-                & configFileForNode
-                & File.ownerGroup configFilePath user group
-  where
-    group = Group userName
-
-    configFilePath = "/home" </> userName </> ".radicle" </> "config.json"
-
-    configFileForNode :: Property OS
-    configFileForNode =
-        property' "radicle node config file" $ \w -> do
-            host <- asks hostName
-            ensureProperty w $
-                ( File.hasContent configFilePath (configFile host)
-                    <> File.ownerGroup configFilePath user group
-                )
-
-    configFile host =
-        [ "{"
-        , "  \"node\": {"
-        , "    \"alias\": \"" <> userName <.> host <> "\","
-        , "    \"externalAddresses\": [\"" <> host <> ":8776\"],"
-        , "    \"seedingPolicy\": {"
-        , "      \"default\": \"block\""
-        , "    }"
-        , "  }"
-        , "}"
-        ]
 
 nodeRunning :: User -> FilePath -> Property OS
 nodeRunning user radExe =
