@@ -391,6 +391,7 @@ firewall =
             & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 3001))
             & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 5001))
             & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 5002))
+            & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 8776))
             & dropEverything
 
 {- | A basic rule to drop every input packet
