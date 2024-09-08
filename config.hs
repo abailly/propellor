@@ -350,6 +350,7 @@ cardano =
             & Ssh.installed
             & Tor.installed
             & Tor.hiddenServiceAvailable "ssh" (Port 22)
+            & Tor.hiddenServiceAvailable "radicle" (Port 8776)
             & User.hasSomePassword (User "root")
             & File.dirExists "/var/www"
             & File.ownerGroup "/var/www" user userGrp
