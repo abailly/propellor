@@ -359,6 +359,7 @@ cardano =
             & firewall
             & Cardano.setup user Mainnet
                 `requires` commonUserSetup user
+            & Systemd.stopped "hydra-node"
             & Sudo.enabledFor user
             ! httpsWebSite perasStaging [] "me@cardano-scaling.org"
             ! Systemd.nspawned perasContainer
