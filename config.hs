@@ -77,6 +77,7 @@ clermont =
             & installNix
             & File.hasContent "/etc/nix/nix.conf" nixConf
             & Systemd.started "nix-daemon.service"
+            & Tor.installed
             & Ssh.installed
             & Systemd.persistentJournal
             & setupUser user
