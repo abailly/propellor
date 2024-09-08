@@ -157,11 +157,14 @@ serviceConfigured user@(User userName) =
                     ensureProperty w $
                         File.hasContent "/etc/systemd/system/radicle-node.service" (nodeService privDataPwd)
 
+    -- TODO: should not be hardcoded but deduced from Tor service output?
+    onionAddress = "tk7hobv7lpe6axiq6wlkarevp3dsnzvo7s6wuefloe7shbsvnkpm75yd.onion:8776"
+
     configFile host =
         [ "{"
         , "  \"node\": {"
         , "    \"alias\": \"" <> userName <.> host <> "\","
-        , "    \"externalAddresses\": [\"" <> host <> ":8776\"],"
+        , "    \"externalAddresses\": [\"" <> host <> ":8776\", \"" <> onionAddress <> "\"],"
         , "    \"seedingPolicy\": {"
         , "      \"default\": \"block\""
         , "    }"
