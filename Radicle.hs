@@ -1,5 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
 module Radicle where
@@ -93,14 +94,18 @@ radicleSeedInstalled =
                     & User.nuked user User.YesReallyDeleteHome
 
     seeds =
-        [ Seed "rad:z3DHQu16u3Do8Da4WMytx36qdanz5" "z6MkgrwQNecpatYWTPnzvZfWt6jpxZq1zK7zuz8QmndpMrGJ"
-        , Seed "rad:z3DHQu16u3Do8Da4WMytx36qdanz5" "z6MkhgPg6WShnhJcmfwox4G5yL3EvJ2zW8L31SZLD95yUi11"
+        [ SeedFollowed "rad:z3DHQu16u3Do8Da4WMytx36qdanz5" "z6MkgrwQNecpatYWTPnzvZfWt6jpxZq1zK7zuz8QmndpMrGJ"
         ]
 
-data Seed = Seed
-    { repo :: String
-    , nid :: String
-    }
+data Seed
+    = SeedAll
+        { repo :: String
+        , nid :: String
+        }
+    | SeedFollowed
+        { repo :: String
+        , nid :: String
+        }
 
 seeding :: User -> FilePath -> [Seed] -> Property OS
 seeding user radicleDir seeds =
@@ -110,13 +115,17 @@ seeding user radicleDir seeds =
                 ensureProperty w $
                     mconcat (map (seeded privDataPwd) seeds)
   where
-    seeded pwd Seed{repo, nid} =
+    seeded pwd seed =
         userScriptPropertyPty
             user
             [ "export RAD_PASSPHRASE=" <> pwd
-            , radicleDir </> "bin" </> "rad seed " <> repo <> " --from " <> nid
+            , radicleDir </> "bin" </> "rad seed " <> repo seed <> " --from " <> nid seed <> " --scope " <> scope seed
             ]
             `assume` NoChange
+
+    scope = \case
+        SeedAll{} -> "all"
+        SeedFollowed{} -> "followed"
 
 serviceConfigured :: User -> Property OS
 serviceConfigured user@(User userName) =
