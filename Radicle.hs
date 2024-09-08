@@ -12,6 +12,7 @@ import Propellor.Base (
     asks,
     doesDirectoryExist,
     doesFileExist,
+    liftIO,
     readProcess,
     removeDirectoryRecursive,
     withPrivData,
@@ -165,6 +166,10 @@ serviceConfigured user@(User userName) =
         , "  \"node\": {"
         , "    \"alias\": \"" <> userName <.> host <> "\","
         , "    \"externalAddresses\": [\"" <> host <> ":8776\", \"" <> onionAddress <> "\"],"
+        , "    \"onion\": {"
+        , "        \"mode\": \"proxy\","
+        , "        \"address\": \"127.0.0.1:9050\""
+        , "    },"
         , "    \"seedingPolicy\": {"
         , "      \"default\": \"block\""
         , "    }"
@@ -312,8 +317,73 @@ configureRadicle user@(User userName) =
             property' "radicle configured" $ \w -> do
                 host <- asks hostName
                 getPrivDataSeed $ \(PrivData privDataSeed) ->
-                    getPrivDataPwd $ \(PrivData privDataPwd) ->
-                        ensureProperty w (radAuth user (userName <.> host) privDataSeed privDataPwd)
+                    getPrivDataPwd $ \(PrivData privDataPwd) -> do
+                        dir <- liftIO $ User.homedir user
+                        ensureProperty
+                            w
+                            ( radAuth user (userName <.> host) privDataSeed privDataPwd
+                                <> File.hasContent (dir </> ".radicle" </> "config.json") (radicleConfig host)
+                            )
+  where
+    radicleConfig host =
+        [ "{"
+        , "  \"publicExplorer\": \"https://app.radicle.xyz/nodes/$host/$rid$path\","
+        , "  \"preferredSeeds\": ["
+        , "    \"z6MkrLMMsiPWUcNPHcRajuMi9mDfYckSoJyPwwnknocNYPm7@seed.radicle.garden:8776\","
+        , "    \"z6Mkmqogy2qEM2ummccUthFEaaHvyYmYBYh3dbe9W4ebScxo@ash.radicle.garden:8776\","
+        , "    \"z6MkfiRENtzUJiU1kxLhxWMWFCiGGxGi6jEbj33Pq9zBVQkK@cardano.hydra.bzh:8776\""
+        , "  ],"
+        , "  \"web\": {"
+        , "    \"pinned\": {"
+        , "      \"repositories\": []"
+        , "    }"
+        , "  },"
+        , "  \"cli\": {"
+        , "    \"hints\": true"
+        , "  },"
+        , "  \"node\": {"
+        , "    \"alias\": \"" <> userName <.> host <> "\","
+        , "    \"listen\": [\"0.0.0.0:8776\"],"
+        , "    \"onion\": {"
+        , "        \"mode\": \"proxy\","
+        , "        \"address\": \"127.0.0.1:9050\""
+        , "    },"
+        , "    \"peers\": {"
+        , "      \"type\": \"dynamic\""
+        , "    },"
+        , "    \"connect\": [],"
+        , "    \"externalAddresses\": [],"
+        , "    \"network\": \"main\","
+        , "    \"log\": \"INFO\","
+        , "    \"relay\": \"auto\","
+        , "    \"limits\": {"
+        , "      \"routingMaxSize\": 1000,"
+        , "      \"routingMaxAge\": 604800,"
+        , "      \"gossipMaxAge\": 1209600,"
+        , "      \"fetchConcurrency\": 1,"
+        , "      \"maxOpenFiles\": 4096,"
+        , "      \"rate\": {"
+        , "        \"inbound\": {"
+        , "          \"fillRate\": 5.0,"
+        , "          \"capacity\": 1024"
+        , "        },"
+        , "        \"outbound\": {"
+        , "          \"fillRate\": 10.0,"
+        , "          \"capacity\": 2048"
+        , "        }"
+        , "      },"
+        , "      \"connection\": {"
+        , "        \"inbound\": 128,"
+        , "        \"outbound\": 16"
+        , "      }"
+        , "    },"
+        , "    \"workers\": 8,"
+        , "    \"seedingPolicy\": {"
+        , "      \"default\": \"block\""
+        , "    }"
+        , "  }"
+        , "}"
+        ]
 
 radAuth :: User -> String -> String -> String -> Property UnixLike
 radAuth user nodeName privDataSeed privDataPwd =
