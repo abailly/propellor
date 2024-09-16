@@ -27,11 +27,11 @@ radiclePackage :: Package
 radiclePackage =
     Package "radicle" radicleKey radicleUrl radicleSigUrl radicleSHA256Url radicleVersion
   where
-    radicleVersion = "1.0.0-rc.17"
+    radicleVersion = "1.0.0"
     radicleKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL460KIEccS4881p7PPpiiQBsxF+H5tgC6De6crw9rbU"
-    radicleUrl = "https://files.radicle.xyz/releases/latest/radicle-1.0.0-rc.17-x86_64-unknown-linux-musl.tar.xz"
-    radicleSigUrl = "https://files.radicle.xyz/releases/latest/radicle-1.0.0-rc.17-x86_64-unknown-linux-musl.tar.xz.sig"
-    radicleSHA256Url = "https://files.radicle.xyz/releases/latest/radicle-1.0.0-rc.17-x86_64-unknown-linux-musl.tar.xz.sha256"
+    radicleUrl = "https://files.radicle.xyz/releases/latest/radicle-1.0.0-x86_64-unknown-linux-musl.tar.xz"
+    radicleSigUrl = "https://files.radicle.xyz/releases/latest/radicle-1.0.0-x86_64-unknown-linux-musl.tar.xz.sig"
+    radicleSHA256Url = "https://files.radicle.xyz/releases/latest/radicle-1.0.0-x86_64-unknown-linux-musl.tar.xz.sha256"
 
 radicleHttpPackage :: Package
 radicleHttpPackage =
