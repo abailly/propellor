@@ -327,7 +327,6 @@ downloadAndInstall user group installDir archive Package{name, url, sha256Url, v
                                         <> name
                                         <> " downloaded"
                                    )
-                    & File.ownerGroup archive user group
                     & ( cmdProperty
                             "tar"
                             ["--strip-components", "1", "-C", installDir, "-xf", archive]
