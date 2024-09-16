@@ -5,7 +5,7 @@
 
 module Cardano where
 
-import Base (OSNoInfo)
+import Base (OS, OSNoInfo)
 import Propellor
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.File as File
@@ -48,61 +48,28 @@ setup user@(User userName) network = setupCardanoNode <!> teardownCardanoNode
     setupCardanoNode =
         propertyList "Cardano node" $
             props
-                & check
-                    (shouldDownload sha256 archivePath)
-                    ( cmdProperty
-                        "curl"
-                        ["-o", archivePath, "-L", "https://github.com/IntersectMBO/cardano-node/releases/download/9.1.1/cardano-node-9.1.1-linux.tar.gz"]
-                        `changesFileContent` archivePath
-                    )
-                    `describe` "Cardano node 9.1.1 archive downloaded"
-                & File.ownerGroup archivePath user userGrp
-                & check
-                    shouldUnpack
-                    ( cmdProperty
-                        "tar"
-                        ["xC", home, "-f", archivePath]
-                        `changesFileContent` (home </> "bin" </> "cardano-node")
-                    )
-                    `describe` "Cardano node 9.1.1 archive unpacked"
+                & installed baseDir
                 & environmentConfigured
                 & File.hasContent "/etc/systemd/system/cardano-node.service" serviceNode
                 & Apt.removed ["mithril-client"]
                 & mithrilSnapshotDownloaded user userGrp network
                 & Systemd.enabled "cardano-node"
                 & Systemd.restarted "cardano-node"
-                & File.notPresent (home </> "cardano-configuration")
 
     environmentConfigured =
         File.hasContent (home </> "cardano-node.environment") envFile
 
-    sha256 = "fcdcb16822217980fcd608214d053b24f30355beb2679bc85fe2e49c12fa42bc"
-
-    shouldUnpack = do
-        dir <- User.homedir user
-        hasFile <- doesFileExist (dir </> "bin" </> "cardano-node")
-        if hasFile
-            then
-                not
-                    . ("9.1.1" `elem`)
-                    . words
-                    . head
-                    . lines
-                    <$> readProcessEnv (dir </> "bin" </> "cardano-node") ["--version"] (Just [("LD_LIBRARY_PATH", dir)])
-            else pure True
-
-    archivePath = home </> "cardano-node-9.1.1.tgz"
-
     userGrp = Group "curry"
 
+    baseDir = "/usr/local"
+
     envFile =
-        [ "CONFIG=\"" <> home </> "share" </> networkName network </> "config.json\""
-        , "TOPOLOGY=\"" <> home </> "share" </> networkName network </> "topology.json\""
+        [ "CONFIG=\"" <> baseDir </> "share" </> networkName network </> "config.json\""
+        , "TOPOLOGY=\"" <> baseDir </> "share" </> networkName network </> "topology.json\""
         , "DBPATH=\"./db/\""
         , "SOCKETPATH=\"./node.socket\""
         , "HOSTADDR=\"0.0.0.0\""
         , "PORT=\"3001\""
-        , "LD_LIBRARY_PATH=\"" <> home <> "\""
         ]
 
     serviceNode =
@@ -113,7 +80,7 @@ setup user@(User userName) network = setupCardanoNode <!> teardownCardanoNode
         , "[Service]"
         , "Type=simple"
         , "EnvironmentFile=" <> home <> "/cardano-node.environment"
-        , "ExecStart=" <> home </> "bin" </> "cardano-node run --config $CONFIG --topology $TOPOLOGY --database-path $DBPATH --socket-path $SOCKETPATH --host-addr $HOSTADDR --port $PORT"
+        , "ExecStart=" <> baseDir </> "bin" </> "cardano-node run --config $CONFIG --topology $TOPOLOGY --database-path $DBPATH --socket-path $SOCKETPATH --host-addr $HOSTADDR --port $PORT"
         , "KillSignal = SIGINT"
         , "RestartKillSignal = SIGINT"
         , "StandardOutput=journal"
@@ -137,6 +104,46 @@ networkName :: CardanoNetwork -> String
 networkName = \case
     Mainnet -> "mainnet"
     Preview -> "preview"
+
+installed :: FilePath -> Property OSNoInfo
+installed baseDir =
+    tightenTargets $
+        propertyList ("Cardano-node installed in " <> baseDir) $
+            props
+                & check
+                    (shouldDownload sha256 archivePath)
+                    ( cmdProperty
+                        "curl"
+                        ["-o", archivePath, "-L", "https://github.com/IntersectMBO/cardano-node/releases/download/9.1.1/cardano-node-9.1.1-linux.tar.gz"]
+                        `changesFileContent` archivePath
+                    )
+                    `describe` "Cardano node 9.1.1 archive downloaded"
+                & check
+                    shouldUnpack
+                    ( cmdProperty
+                        "tar"
+                        ["xC", baseDir, "-f", archivePath]
+                        `changesFileContent` exePath
+                    )
+                    `describe` "Cardano node 9.1.1 archive unpacked"
+  where
+    archivePath = "/tmp/cardano-node-9.1.1.tgz"
+
+    sha256 = "fcdcb16822217980fcd608214d053b24f30355beb2679bc85fe2e49c12fa42bc"
+
+    exePath = baseDir </> "bin" </> "cardano-node"
+
+    shouldUnpack = do
+        hasFile <- doesFileExist exePath
+        if hasFile
+            then
+                not
+                    . ("9.1.1" `elem`)
+                    . words
+                    . head
+                    . lines
+                    <$> readProcessEnv exePath ["--version"] Nothing
+            else pure True
 
 mithrilSnapshotDownloaded ::
     User ->
@@ -243,3 +250,10 @@ shouldDownload sha256 archivePath = do
     if not hasFile
         then pure True
         else (/= sha256) . head . words . head . lines <$> readProcess "/usr/bin/sha256sum" [archivePath]
+
+tartarusSetup :: User -> Property OS
+tartarusSetup _user =
+    tightenTargets $
+        propertyList "Tartarus setup" $
+            props
+                & Cardano.installed "/usr/local"

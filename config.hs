@@ -365,6 +365,7 @@ cardano =
             ! httpsWebSite perasStaging [] "me@cardano-scaling.org"
             ! Systemd.nspawned perasContainer
             & Radicle.radicleSeedInstalled
+            & Cardano.tartarusSetup user
   where
     perasContainer =
         Systemd.debContainer "peras" $
