@@ -86,7 +86,19 @@ clermont =
             & File.ownerGroup "/var/www" user userGrp
             & httpsWebSite punkachienNet punkachien "me@punkachien.net"
             & httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
+            & User.accountFor (User "git")
             & Apt.installed ["cgit", "fcgiwrap"]
+            & "/etc/cgitrc"
+                `File.hasContent` [ "clone-url=https://git.punkachien.net/git/$CGIT_REPO_URL git://git.punkachien.net/$CGIT_REPO_URL"
+                                  , "enable-http-clone=1"
+                                  , "root-title=Pankzsoft git repositories"
+                                  , "root-desc="
+                                  , "enable-index-owner=0"
+                                  , "snapshots=tar.gz"
+                                  , "enable-git-config=1"
+                                  , "scan-path=/home/git"
+                                  ]
+                `describe` "cgit configured"
             & Systemd.started "fcgiwrap"
             & httpsWebSite gitPunkachienNet cgit "contact@pankzsoft.net"
             & installRust
