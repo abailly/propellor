@@ -109,6 +109,7 @@ clermont =
             & Docker.installed
             & Cron.runPropellor (Cron.Times "30 * * * *")
             & Radicle.radicleInstalledFor user
+            & firewall
   where
     root = User "root"
     user = User "curry"
@@ -329,6 +330,17 @@ clermont =
         , "    }"
         , "}"
         ]
+
+    firewall :: Property OS
+    firewall =
+        propertyList "firewall accepts ssh and web " $
+            props
+                & flush INPUT
+                & firewallPreamble
+                & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 22))
+                & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 80))
+                & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 443))
+                & dropEverything
 
 peras :: Host
 peras =
