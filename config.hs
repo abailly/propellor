@@ -87,7 +87,9 @@ clermont =
             & httpsWebSite punkachienNet punkachien "me@punkachien.net"
             & httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
             & User.accountFor (User "git")
-            & Ssh.userKeys (User "git") hostContext [(SshEd25519, "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC8aDeQyneOJA8KJegRWsJyf7qWbyKet5j0GACCDw7KS arnaud@Arnaud-MBP-Perso.local")]
+            & User.hasLoginShell (User "git") "/usr/bin/git-shell"
+            & Ssh.authorizedKey (User "git") "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC8aDeQyneOJA8KJegRWsJyf7qWbyKet5j0GACCDw7KS arnaud@Arnaud-MBP-Perso.local"
+            & Ssh.authorizedKey (User "git") "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPKjKQVBrq9YUm7nOrcMXXWJnw7lfUk9wp3/MWrfEhgH xavier.vdw@gmail.com"
             & User.hasGroup (User "www-data") (Group "git")
             ! Git.daemonRunning "/home/git"
             & Apt.installed ["cgit", "fcgiwrap"]
