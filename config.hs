@@ -312,6 +312,7 @@ clermont =
         , "    } # managed by Certbot"
         , ""
         , "    location / {"
+        , "        root /usr/share/cgit;"
         , "        include          fastcgi_params;"
         , "        fastcgi_param    SCRIPT_FILENAME /usr/lib/cgit/cgit.cgi;"
         , "        fastcgi_pass     unix:/run/fcgiwrap.socket;"
