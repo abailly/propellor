@@ -87,9 +87,9 @@ clermont =
             & httpsWebSite punkachienNet punkachien "me@punkachien.net"
             & httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
             & User.accountFor (User "git")
-            & Ssh.authorizedKeys (User "git") hostContext
+            & Ssh.userKeys (User "git") hostContext [(SshEd25519, "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC8aDeQyneOJA8KJegRWsJyf7qWbyKet5j0GACCDw7KS arnaud@Arnaud-MBP-Perso.local")]
             & User.hasGroup (User "www-data") (Group "git")
-            & Git.daemonRunning "/home/git"
+            ! Git.daemonRunning "/home/git"
             & Apt.installed ["cgit", "fcgiwrap"]
             & "/etc/cgitrc"
                 `File.hasContent` [ "clone-url=https://git.punkachien.net/git/$CGIT_REPO_URL git://git.punkachien.net/$CGIT_REPO_URL"
