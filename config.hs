@@ -87,6 +87,7 @@ clermont =
             & httpsWebSite punkachienNet punkachien "me@punkachien.net"
             & httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
             & User.accountFor (User "git")
+            & Ssh.authorizedKeys (User "git") hostContext
             & User.hasGroup (User "www-data") (Group "git")
             & Git.daemonRunning "/home/git"
             & Apt.installed ["cgit", "fcgiwrap"]
@@ -340,7 +341,6 @@ clermont =
                 & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 22))
                 & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 80))
                 & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 443))
-                & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 9418))
                 & dropEverything
 
 peras :: Host
