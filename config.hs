@@ -86,6 +86,9 @@ clermont =
             & File.ownerGroup "/var/www" user userGrp
             & httpsWebSite punkachienNet punkachien "me@punkachien.net"
             & httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
+            & Apt.installed ["cgit", "fcgiwrap"]
+            & Systemd.started "fcgiwrap"
+            & httpsWebSite gitPunkachienNet cgit "contact@pankzsoft.net"
             & installRust
             & installHaskell
             & dockerComposeInstalled
@@ -99,6 +102,7 @@ clermont =
     nixGrp = Group "nixbld"
     dockerGrp = Group "docker"
     punkachienNet = "www.punkachien.net"
+    gitPunkachienNet = "git.punkachien.net"
     pacificWarNet = "pacific-war.pankzsoft.net"
 
     pacificWarConfig =
@@ -269,6 +273,40 @@ clermont =
         , ""
         , "    location / {"
         , "            try_files $uri $uri/ =404;"
+        , "    }"
+        , "}"
+        ]
+
+    cgit =
+        [ "server {"
+        , "    server_name  git.punkachien.net;"
+        , ""
+        , "    root /var/www/git.punkachien.net/public_html;"
+        , "    index index.html index.htm index.nginx-debian.html;"
+        , "    "
+        , "    server_name git.punkachien.net;"
+        , "    "
+        , "    listen 443 ssl; # managed by Certbot"
+        , ""
+        , "    # RSA certificate"
+        , "    ssl_certificate /etc/letsencrypt/live/git.punkachien.net/fullchain.pem; # managed by Certbot"
+        , "    ssl_certificate_key /etc/letsencrypt/live/git.punkachien.net/privkey.pem; # managed by Certbot"
+        , ""
+        , "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot"
+        , ""
+        , "    # Redirect non-https traffic to https"
+        , "    if ($scheme != \"https\") {"
+        , "        return 301 https://$host$request_uri;"
+        , "    } # managed by Certbot"
+        , ""
+        , "    location / {"
+        , "        include          fastcgi_params;"
+        , "        fastcgi_param    SCRIPT_FILENAME /var/www/html/cgit/cgi/cgit.cgi;"
+        , "        fastcgi_pass     unix:/run/fcgiwrap.socket;"
+        , ""
+        , "        fastcgi_param    PATH_INFO    $uri;"
+        , "        fastcgi_param    QUERY_STRING $args;"
+        , "        fastcgi_param    HTTP_HOST    $server_name;"
         , "    }"
         , "}"
         ]
