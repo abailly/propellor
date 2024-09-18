@@ -340,6 +340,7 @@ clermont =
                 & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 22))
                 & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 80))
                 & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 443))
+                & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 9418))
                 & dropEverything
 
 peras :: Host
