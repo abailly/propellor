@@ -92,7 +92,7 @@ clermont =
             & Ssh.authorizedKey (User "git") "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPKjKQVBrq9YUm7nOrcMXXWJnw7lfUk9wp3/MWrfEhgH xavier.vdw@gmail.com"
             & Git.bareRepo "dotfiles" (User "git") Git.SharedAll
             & Git.bareRepo "lambda-nantes" (User "git") Git.SharedAll
-            & Git.bareRepoDefaultBranch "lambda-nantes" "main"
+            & bareRepoDefaultBranch (User "git") "lambda-nantes" "main"
             & User.hasGroup (User "www-data") (Group "git")
             ! Git.daemonRunning "/home/git"
             & Apt.installed ["cgit", "fcgiwrap"]
@@ -565,3 +565,12 @@ dockerKey =
             , "=0YYh"
             , "-----END PGP PUBLIC KEY BLOCK-----"
             ]
+
+bareRepoDefaultBranch :: User -> FilePath -> String -> Property UnixLike
+bareRepoDefaultBranch user repo branch =
+    userScriptProperty
+        user
+        [ "GIT_DIR=" <> repo <> " git symbolic-ref HEAD refs/heads/" ++ branch
+        ]
+        `changesFileContent` (repo </> "HEAD")
+        `describe` ("git repo at " ++ repo ++ " has default branch " ++ branch)
