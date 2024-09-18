@@ -313,6 +313,7 @@ clermont =
         , ""
         , "    location / {"
         , "        root /usr/share/cgit;"
+        , "        try_files $uri $uri/ =404;"
         , "        include          fastcgi_params;"
         , "        fastcgi_param    SCRIPT_FILENAME /usr/lib/cgit/cgit.cgi;"
         , "        fastcgi_pass     unix:/run/fcgiwrap.socket;"
