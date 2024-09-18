@@ -301,7 +301,7 @@ clermont =
         , ""
         , "    location / {"
         , "        include          fastcgi_params;"
-        , "        fastcgi_param    SCRIPT_FILENAME /var/www/html/cgit/cgi/cgit.cgi;"
+        , "        fastcgi_param    SCRIPT_FILENAME /usr/lib/cgit/cgit.cgi;"
         , "        fastcgi_pass     unix:/run/fcgiwrap.socket;"
         , ""
         , "        fastcgi_param    PATH_INFO    $uri;"
