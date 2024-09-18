@@ -91,6 +91,7 @@ clermont =
             & Ssh.authorizedKey (User "git") "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC8aDeQyneOJA8KJegRWsJyf7qWbyKet5j0GACCDw7KS arnaud@Arnaud-MBP-Perso.local"
             & Ssh.authorizedKey (User "git") "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPKjKQVBrq9YUm7nOrcMXXWJnw7lfUk9wp3/MWrfEhgH xavier.vdw@gmail.com"
             & Git.bareRepo "dotfiles" (User "git") Git.SharedAll
+            & Git.bareRepo "lambda-nantes" (User "git") Git.SharedAll
             & User.hasGroup (User "www-data") (Group "git")
             ! Git.daemonRunning "/home/git"
             & Apt.installed ["cgit", "fcgiwrap"]
