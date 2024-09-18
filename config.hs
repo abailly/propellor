@@ -88,6 +88,7 @@ clermont =
             & httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
             & User.accountFor (User "git")
             & User.hasGroup (User "www-data") (Group "git")
+            & Git.daemonRunning "/home/git"
             & Apt.installed ["cgit", "fcgiwrap"]
             & "/etc/cgitrc"
                 `File.hasContent` [ "clone-url=https://git.punkachien.net/git/$CGIT_REPO_URL git://git.punkachien.net/$CGIT_REPO_URL"
