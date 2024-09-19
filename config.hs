@@ -348,7 +348,7 @@ clermont =
         , "        fastcgi_param    SERVER_NAME  $server_name;"
         , "    }"
         , ""
-        , "    location ~ \\.(css|gif|jpg|png)$ {"
+        , "    location ~ \\.(css|gif|jpg|png|ico)$ {"
         , "        root /usr/share/cgit/ ;"
         , "        try_files $uri $uri/ =404 ;"
         , "    }"
