@@ -9,7 +9,6 @@ import qualified Cardano
 import qualified Hydra
 import Propellor
 import Propellor.Base (combineModes, withPrivData, (</>))
-import qualified Propellor.Property.Apache as Nginx
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.Cron as Cron
 import qualified Propellor.Property.Docker as Docker
@@ -18,6 +17,7 @@ import qualified Propellor.Property.File as File
 import Propellor.Property.Firewall (Chain (..), ConnectionState (..), Proto (..), Rules (..), Table (..), Target (..), rule)
 import qualified Propellor.Property.Firewall as Firewall
 import qualified Propellor.Property.Git as Git
+import qualified Propellor.Property.Nginx as Nginx
 import qualified Propellor.Property.Ssh as Ssh
 import qualified Propellor.Property.Sudo as Sudo
 import qualified Propellor.Property.Systemd as Systemd
@@ -89,7 +89,7 @@ clermont =
             & httpsWebSite punkachienNet punkachien "me@punkachien.net"
             & httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
             & httpsWebSite gitPankzsoftNet cgit "contact@pankzsoft.net"
-            & Nginx.siteDisabled "git.punkachien.net"
+            ! Nginx.siteEnabled "git.punkachien.net" []
             & installRust
             & installHaskell
             & dockerComposeInstalled
