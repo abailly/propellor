@@ -84,32 +84,10 @@ clermont =
             ! Cardano.setup user Mainnet
             & File.dirExists "/var/www"
             & File.ownerGroup "/var/www" user userGrp
+            & cgitInstalled
             & httpsWebSite punkachienNet punkachien "me@punkachien.net"
             & httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
-            & User.accountFor (User "git")
-            & User.hasLoginShell (User "git") "/usr/bin/git-shell"
-            & Ssh.authorizedKey (User "git") "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC8aDeQyneOJA8KJegRWsJyf7qWbyKet5j0GACCDw7KS arnaud@Arnaud-MBP-Perso.local"
-            & Ssh.authorizedKey (User "git") "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPKjKQVBrq9YUm7nOrcMXXWJnw7lfUk9wp3/MWrfEhgH xavier.vdw@gmail.com"
-            & Git.bareRepo "dotfiles" (User "git") Git.SharedAll
-            & Git.bareRepo "lambda-nantes" (User "git") Git.SharedAll
-            & bareRepoDefaultBranch (User "git") "lambda-nantes" "main"
-            & User.hasGroup (User "www-data") (Group "git")
-            ! Git.daemonRunning "/home/git"
-            & Apt.installed ["cgit", "fcgiwrap"]
-            & "/etc/cgitrc"
-                `File.hasContent` [ "clone-url=https://git.punkachien.net/$CGIT_REPO_URL git@git.punkachien.net:$CGIT_REPO_URL"
-                                  , "enable-http-clone=1"
-                                  , "root-title=Pankzsoft git repositories"
-                                  , "root-desc="
-                                  , "enable-index-owner=0"
-                                  , "snapshots=tar.gz"
-                                  , "enable-git-config=1"
-                                  , "scan-path=/home/git"
-                                  , "virtual-root=/"
-                                  ]
-                `describe` "cgit configured"
-            & Systemd.started "fcgiwrap"
-            & httpsWebSite gitPunkachienNet cgit "contact@pankzsoft.net"
+            & httpsWebSite gitPankzsoftNet cgit "contact@pankzsoft.net"
             & installRust
             & installHaskell
             & dockerComposeInstalled
@@ -124,7 +102,7 @@ clermont =
     nixGrp = Group "nixbld"
     dockerGrp = Group "docker"
     punkachienNet = "www.punkachien.net"
-    gitPunkachienNet = "git.punkachien.net"
+    gitPankzsoftNet = "git.pankzsoft.net"
     pacificWarNet = "pacific-war.pankzsoft.net"
 
     pacificWarConfig =
@@ -301,18 +279,18 @@ clermont =
 
     cgit =
         [ "server {"
-        , "    server_name  git.punkachien.net;"
+        , "    server_name  git.pankzsoft.net;"
         , ""
-        , "    root /var/www/git.punkachien.net/public_html;"
+        , "    root /var/www/git.pankzsoft.net/public_html;"
         , "    index index.html index.htm index.nginx-debian.html;"
         , "    "
-        , "    server_name git.punkachien.net;"
+        , "    server_name git.pankzsoft.net;"
         , "    "
         , "    listen 443 ssl; # managed by Certbot"
         , ""
         , "    # RSA certificate"
-        , "    ssl_certificate /etc/letsencrypt/live/git.punkachien.net/fullchain.pem; # managed by Certbot"
-        , "    ssl_certificate_key /etc/letsencrypt/live/git.punkachien.net/privkey.pem; # managed by Certbot"
+        , "    ssl_certificate /etc/letsencrypt/live/git.pankzsoft.net/fullchain.pem; # managed by Certbot"
+        , "    ssl_certificate_key /etc/letsencrypt/live/git.pankzsoft.net/privkey.pem; # managed by Certbot"
         , ""
         , "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot"
         , ""
@@ -365,6 +343,47 @@ clermont =
                 & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 80))
                 & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 443))
                 & dropEverything
+
+cgitInstalled :: Property OS
+cgitInstalled =
+    tightenTargets $
+        propertyList "cgit installed" $
+            props
+                & Apt.installed ["git", "cgit", "fcgiwrap"]
+                & User.accountFor (User "git")
+                & User.hasLoginShell (User "git") "/usr/bin/git-shell"
+                & gitUserHasAuthorizedKeys authorizedKeys
+                & gitRepositories ["dotfiles", "lambda-nantes"]
+                & bareRepoDefaultBranch (User "git") "lambda-nantes" "main"
+                & User.hasGroup (User "www-data") (Group "git")
+                & "/etc/cgitrc"
+                    `File.hasContent` [ "clone-url=https://git.pankzsoft.net/$CGIT_REPO_URL git@git.pankzsoft.net:$CGIT_REPO_URL"
+                                      , "enable-http-clone=1"
+                                      , "root-title=Pankzsoft git repositories"
+                                      , "root-desc="
+                                      , "enable-index-owner=0"
+                                      , "snapshots=tar.gz"
+                                      , "enable-git-config=1"
+                                      , "scan-path=/home/git"
+                                      , "virtual-root=/"
+                                      ]
+                    `describe` "cgit configured"
+                & Systemd.started "fcgiwrap"
+  where
+    gitRepositories =
+        flip describe "Git repositories present"
+            . mconcat
+            . map (\repo -> Git.bareRepo repo (User "git") Git.SharedAll)
+
+    gitUserHasAuthorizedKeys =
+        flip describe "Git authorized users configured"
+            . mconcat
+            . map (Ssh.authorizedKey (User "git"))
+
+    authorizedKeys =
+        [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC8aDeQyneOJA8KJegRWsJyf7qWbyKet5j0GACCDw7KS arnaud@Arnaud-MBP-Perso.local"
+        , "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPKjKQVBrq9YUm7nOrcMXXWJnw7lfUk9wp3/MWrfEhgH xavier.vdw@gmail.com"
+        ]
 
 peras :: Host
 peras =
