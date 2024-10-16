@@ -385,6 +385,7 @@ cgitInstalled =
     authorizedKeys =
         [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC8aDeQyneOJA8KJegRWsJyf7qWbyKet5j0GACCDw7KS arnaud@Arnaud-MBP-Perso.local"
         , "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPKjKQVBrq9YUm7nOrcMXXWJnw7lfUk9wp3/MWrfEhgH xavier.vdw@gmail.com"
+        , "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDCjxwnPDdr0lQqKiQbDpNaCdvbiNbT1afswe1eIaEk/1wKuAYu4fs/V6QdvHeLhheNOpGC6WOe6eGd07aBp65MPeQm/NhLgsw9PAbQ9zYi+ReoyXYbfwqqEArZIMvlwUqNAuwoG2Q+LtUVChYSn4N+COrWgpzKyfSwh97/0KjtFdm9jfekteaIeFzfl3Fq1sLotBw2fWoLi0tzbKs2J8Q1NxgdmcS9StUw6xIUZ0dDc9b8wC85gvPQS2TrnIh1hfhe5753n6V/48quKrCBBlzHJlwyseaVihChJiDIkqCigerVD4jN2BmEucLMOEiGaXunpVftsGuYRoQ5so7Jd1HH"
         ]
 
 peras :: Host
