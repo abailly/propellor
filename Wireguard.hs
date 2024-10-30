@@ -114,4 +114,4 @@ clientInstalled serverPublicKey serverEndpoint =
     interfaceUp ifaceName = do
       out <- lines <$> readProcess "wg" ["show", "interfaces"]
       pure $
-        (not (null out) && (not . (ifaceName `elem`) . words . head $ out))
+        (not (null out) && ((ifaceName `elem`) . words . head $ out))
