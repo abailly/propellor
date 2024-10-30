@@ -29,6 +29,7 @@ import qualified Radicle
 import System.Posix (ownerExecuteMode, ownerReadMode, ownerWriteMode)
 import User (commonUserSetup)
 import Web (httpsWebSite)
+import qualified Wireguard
 
 main :: IO ()
 main = defaultMain hosts
@@ -480,6 +481,7 @@ cardano =
             ! httpsWebSite perasStaging [] "me@cardano-scaling.org"
             ! Systemd.nspawned perasContainer
             & Radicle.radicleSeedInstalled
+            & Wireguard.installed
             & Cardano.tartarusSetup user
   where
     perasContainer =
