@@ -49,7 +49,7 @@ installed =
       property' ("wireguard interface " <> ifName) $ \w ->
         getPrivData $ \(PrivData privateKey) ->
           ensureProperty w $
-            check (doesFileExist fileName) (scriptProperty ["wg-quick up " <> ifName])
+            check (not <$> doesFileExist fileName) (scriptProperty ["wg-quick up " <> ifName])
               `assume` MadeChange
               `requires` File.hasContent fileName (configuration privateKey)
    where
