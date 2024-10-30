@@ -24,7 +24,7 @@ import Propellor (
   (&),
   (<!>),
  )
-import Propellor.Base (Result (MadeChange), doesFileExist, withPrivData)
+import Propellor.Base (Result (MadeChange), doesFileExist, readProcess, withPrivData)
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.File as File
 
@@ -86,7 +86,7 @@ clientInstalled serverPublicKey serverEndpoint =
       property' "Wireguard client installed" $ \w ->
         getPrivData $ \(PrivData privateKey) ->
           ensureProperty w $
-            check (not <$> doesFileExist fileName) (scriptProperty ["wg-quick up " <> ifName])
+            check (interfaceUp ifName) (scriptProperty ["wg-quick up " <> ifName])
               `assume` MadeChange
               `requires` File.hasContent fileName (configuration privateKey)
               `requires` Apt.installed ["wireguard"]
@@ -109,3 +109,12 @@ clientInstalled serverPublicKey serverEndpoint =
       , "AllowedIPs = 10.10.0.0/16"
       , "Endpoint = " <> host <> ":" <> show port
       ]
+
+    interfaceUp :: String -> IO Bool
+    interfaceUp ifaceName =
+      not
+        . (ifaceName `elem`)
+        . words
+        . head
+        . lines
+        <$> readProcess "wg" ["show", "interfaces"]
