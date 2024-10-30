@@ -111,10 +111,7 @@ clientInstalled serverPublicKey serverEndpoint =
       ]
 
     interfaceUp :: String -> IO Bool
-    interfaceUp ifaceName =
-      not
-        . (ifaceName `elem`)
-        . words
-        . head
-        . lines
-        <$> readProcess "wg" ["show", "interfaces"]
+    interfaceUp ifaceName = do
+      out <- lines <$> readProcess "wg" ["show", "interfaces"]
+      pure $
+        (not (null out) && (not . (ifaceName `elem`) . words . head $ out))
