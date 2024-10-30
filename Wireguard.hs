@@ -11,6 +11,7 @@ import Propellor (
   Property,
   RevertableProperty,
   assume,
+  check,
   ensureProperty,
   hostContext,
   property',
@@ -22,7 +23,7 @@ import Propellor (
   (&),
   (<!>),
  )
-import Propellor.Base (Result (MadeChange), withPrivData)
+import Propellor.Base (Result (MadeChange), doesFileExist, withPrivData)
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.File as File
 
@@ -48,9 +49,11 @@ installed =
       property' ("wireguard interface " <> ifName) $ \w ->
         getPrivData $ \(PrivData privateKey) ->
           ensureProperty w $
-            scriptProperty ["wg-quick up " <> ifName]
+            check (doesFileExist fileName) (scriptProperty ["wg-quick up " <> ifName])
               `assume` MadeChange
-              `requires` File.hasContent ("/etc/wireguard/" <> ifName <> ".conf") (configFile privateKey)
+              `requires` File.hasContent fileName (configuration privateKey)
+   where
+    fileName = "/etc/wireguard/" <> ifName <> ".conf"
 
   teardownWireguard :: Property OS
   teardownWireguard =
@@ -59,7 +62,7 @@ installed =
         props
           & Apt.removed ["wireguard"]
 
-  configFile privateKey =
+  configuration privateKey =
     [ "[Interface]"
     , "Address = 10.10.0.1/16"
     , "SaveConfig = true"
