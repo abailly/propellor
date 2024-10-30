@@ -5,6 +5,7 @@ module Wireguard where
 
 import Base (OS)
 import Data.String (IsString)
+import Data.Word (Word16)
 import Propellor (
   PrivData (..),
   PrivDataField (..),
@@ -30,16 +31,14 @@ import qualified Propellor.Property.File as File
 newtype IFace = IFace String
   deriving newtype (Show, Eq, IsString)
 
-installed :: RevertableProperty OS OS
-installed =
+serverInstalled :: RevertableProperty OS OS
+serverInstalled =
   setupWireguard <!> teardownWireguard
  where
   setupWireguard :: Property OS
   setupWireguard =
     propertyList "Wireguard installed" $
-      props
-        & Apt.installed ["wireguard"]
-        & interfaceConfigured wg0
+      props & interfaceConfigured wg0
 
   wg0 = IFace "wg0"
 
@@ -52,6 +51,7 @@ installed =
             check (not <$> doesFileExist fileName) (scriptProperty ["wg-quick up " <> ifName])
               `assume` MadeChange
               `requires` File.hasContent fileName (configuration privateKey)
+              `requires` Apt.installed ["wireguard"]
    where
     fileName = "/etc/wireguard/" <> ifName <> ".conf"
 
@@ -69,3 +69,43 @@ installed =
     , "PrivateKey = " <> privateKey
     , "ListenPort = 51820"
     ]
+
+newtype WgPublicKey = WgPublicKey String
+  deriving newtype (Show, Eq, IsString)
+
+data Endpoint = Endpoint String Word16
+  deriving (Show, Eq)
+
+clientInstalled :: WgPublicKey -> Endpoint -> Property OS
+clientInstalled serverPublicKey serverEndpoint =
+  setupWireguard
+ where
+  setupWireguard :: Property OS
+  setupWireguard =
+    withPrivData (PrivFile "wireguard-key") hostContext $ \getPrivData ->
+      property' "Wireguard client installed" $ \w ->
+        getPrivData $ \(PrivData privateKey) ->
+          ensureProperty w $
+            check (not <$> doesFileExist fileName) (scriptProperty ["wg-quick up " <> ifName])
+              `assume` MadeChange
+              `requires` File.hasContent fileName (configuration privateKey)
+              `requires` Apt.installed ["wireguard"]
+   where
+    ifName = "wg0"
+    fileName = "/etc/wireguard/" <> ifName <> ".conf"
+
+    configuration privateKey =
+      [ "[Interface]"
+      , "Address = 10.10.0.3/16"
+      , "SaveConfig = true"
+      , "PrivateKey = " <> privateKey
+      ]
+        <> peerConfiguration serverPublicKey serverEndpoint
+
+    peerConfiguration :: WgPublicKey -> Endpoint -> [String]
+    peerConfiguration (WgPublicKey pubKey) (Endpoint host port) =
+      [ "[Peer]"
+      , "PublicKey = " <> pubKey
+      , "AllowedIPs = 10.10.0.0/16"
+      , "Endpoint = " <> host <> ":" <> show port
+      ]

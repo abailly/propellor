@@ -97,6 +97,9 @@ clermont =
             & Docker.installed
             & Cron.runPropellor (Cron.Times "30 * * * *")
             & Radicle.radicleInstalledFor user
+            & Wireguard.clientInstalled
+              (Wireguard.WgPublicKey "G+8Gq0jVZ6h9qJ188ycHY5X61FhJ7jMEC7ptdp7dwV0=")
+              (Wireguard.Endpoint "95.217.84.233" 51820)
             & firewall
   where
     root = User "root"
@@ -347,6 +350,7 @@ clermont =
                 & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 443))
                 & dropEverything
 
+
 cgitInstalled :: Property OS
 cgitInstalled =
     tightenTargets $
@@ -481,7 +485,7 @@ cardano =
             ! httpsWebSite perasStaging [] "me@cardano-scaling.org"
             ! Systemd.nspawned perasContainer
             & Radicle.radicleSeedInstalled
-            & Wireguard.installed
+            & Wireguard.serverInstalled
             & Cardano.tartarusSetup user
   where
     perasContainer =
