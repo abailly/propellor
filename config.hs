@@ -485,6 +485,7 @@ cardano =
             & Sudo.enabledFor user
             ! httpsWebSite perasStaging [] "me@cardano-scaling.org"
             ! Systemd.nspawned perasContainer
+            & Apt.removed [ "nginx"]
             & Radicle.radicleSeedInstalled
             & Wireguard.serverInstalled
             & Cardano.tartarusSetup user
