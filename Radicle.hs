@@ -6,7 +6,6 @@
 module Radicle where
 
 import Base (OS)
-import qualified Cardano as Apt
 import qualified Data.List as List
 import Propellor
 import Propellor.Base (
@@ -20,6 +19,7 @@ import Propellor.Base (
   (<.>),
   (</>),
  )
+import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.User as User
@@ -188,13 +188,13 @@ serviceConfigured user@(User userName) =
 httpServiceConfigured :: User -> Property OS
 httpServiceConfigured (User userName) =
   tightenTargets $
-    propertyList "Radicle node configured" $
+    propertyList "HTTP radicle service configured" $
       props
         & File.hasContent "/etc/systemd/system/radicle-http.service" httpService
         & Systemd.enabled "radicle-http"
         & Systemd.restarted "radicle-http"
         & File.hasContent "/etc/systemd/system/caddy.service" caddyService
-        & Apt.installed "caddy"
+        & Apt.installed ["caddy"]
         & File.hasContent "/etc/caddy/Caddyfile" caddyFile
         & Systemd.enabled "caddy"
         & Systemd.restarted "caddy"
