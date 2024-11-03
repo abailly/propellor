@@ -163,7 +163,7 @@ mithrilSnapshotDownloaded user@(User userName) userGrp network =
                 (shouldDownload archiveSha256 mithrilPath)
                 ( cmdProperty
                     "curl"
-                    ["-o", mithrilPath, "-L", "https://github.com/input-output-hk/mithril/releases/download/2430.0/mithril-client-cli_0.9.9+52a7beb-1_amd64.deb"]
+                    ["-o", mithrilPath, "-L", "https://github.com/input-output-hk/mithril/releases/download/"<> mithrilRelease <> "/mithril-client-cli_" <> mithrilClientVersion <> "-1_amd64.deb"]
                     `changesFileContent` mithrilPath
                 )
                 `describe` ("Mithril client " <> mithrilClientVersion <> " package downloaded")
@@ -209,6 +209,8 @@ mithrilSnapshotDownloaded user@(User userName) userGrp network =
     mithrilPath = "/root/mithril-client.deb"
 
     mithrilClientVersion = "0.9.9+52a7beb"
+
+    mithrilRelease = "2430.0"
 
     shouldUnpack = do
         let exe = "/usr/bin/mithril-client"

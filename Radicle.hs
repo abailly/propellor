@@ -83,6 +83,7 @@ radicleSeedInstalled =
                     & Systemd.enabled "radicle-node"
                     & Systemd.restarted "radicle-node"
                     & seeding user "/usr/local" seeds
+                    & httpServiceConfigured user
 
     teardownRadicleSeed =
         tightenTargets $
@@ -170,8 +171,8 @@ serviceConfigured user@(User userName) =
         , "Requires=network-online.target"
         , ""
         , "[Service]"
-        , "User=seed"
-        , "Group=seed"
+        , "User=" <> userName
+        , "Group=" <> userName
         , "ExecStart=/usr/local/bin/radicle-node --listen 0.0.0.0:8776 --force"
         , "Environment=RAD_HOME=/home/" <> userName </> ".radicle RUST_BACKTRACE=1 RUST_LOG=info RAD_PASSPHRASE=" <> radiclePwd
         , "KillMode=process"
@@ -181,6 +182,34 @@ serviceConfigured user@(User userName) =
         , "[Install]"
         , "WantedBy=multi-user.target"
         ]
+
+httpServiceConfigured :: User -> Property OS
+httpServiceConfigured user@(User userName) =
+    tightenTargets $
+        propertyList "Radicle node configured" $
+            props
+                & File.hasContent "/etc/systemd/system/radicle-http.service"  httpService
+                & Systemd.enabled "radicle-http"
+                & Systemd.restarted "radicle-http"
+  where
+
+    httpService = [ "[Unit]"
+       , "Description=Radicle HTTP Daemon"
+       , "After=network.target network-online.target"
+       , "Requires=network-online.target"
+       , ""
+       , "[Service]"
+       , "User=" <> userName
+       , "Group=" <> userName
+       , "ExecStart=/usr/local/bin/radicle-httpd --listen 127.0.0.1:8080"
+       , "Environment=RAD_HOME=/home/" <> userName <> "/.radicle RUST_BACKTRACE=1 RUST_LOG=info"
+       , "KillMode=process"
+       , "Restart=always"
+       , "RestartSec=1"
+       , ""
+       , "[Install]"
+       , "WantedBy=multi-user.target"
+       ]
 
 configFileForNode :: User -> (String -> [String]) -> Property OS
 configFileForNode user@(User userName) configuration =
