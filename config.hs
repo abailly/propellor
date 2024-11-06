@@ -75,7 +75,7 @@ clermont =
             & Apt.stdSourcesList
             & Apt.unattendedUpgrades
             & Apt.update
-            & Apt.installed (basePackages <> [ "podman", "catatonit" ])
+            & Apt.installed (basePackages <> [ "podman", "catatonit", "yaml2json" ])
             & installNix
             & File.hasContent "/etc/nix/nix.conf" nixConf
             & Systemd.started "nix-daemon.service"
