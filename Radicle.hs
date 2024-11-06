@@ -23,7 +23,6 @@ import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.User as User
-import qualified Web
 
 radiclePackage :: Package
 radiclePackage =
