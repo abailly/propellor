@@ -75,7 +75,7 @@ clermont =
             & Apt.stdSourcesList
             & Apt.unattendedUpgrades
             & Apt.update
-            & Apt.installed (basePackages <> [ "podman", "catatonit", "yaml2json" ])
+            & Apt.installed (basePackages <> [ "podman", "catatonit", "yaml2json", "nodejs", "npm" ])
             & installNix
             & File.hasContent "/etc/nix/nix.conf" nixConf
             & Systemd.started "nix-daemon.service"
@@ -176,7 +176,7 @@ clermont =
         , ""
         , "echo \"building $branch at $new_commit\""
         , ""
-        , "build_dir=\"$TMPDIR/$branch\""
+        , "build_dir=\"/tmp/$branch\""
         , ""
         , "[[ -d \"$build_dir\" ]] ||  mkdir -p \"$build_dir\""
         , ""
@@ -184,7 +184,7 @@ clermont =
         , "git archive --worktree-attributes $new_commit | tar x -C \"$build_dir\""
         , ""
         , "pushd \"$build_dir\""
-        , ""
+        , "export PATH=${HOME}/.ghcup/bin:$PATH"
         , "./build.hs build"
         ]
 
