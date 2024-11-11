@@ -189,7 +189,8 @@ clermont =
         , "pushd \"$build_dir\""
         , "export PATH=${HOME}/.ghcup/bin:$PATH"
         , "./build.hs build"
-        , "if [[ \"refs/heads/master\" -eq \"$branch\" ]]; then"
+        , "if [[ refs/heads/master == \"$branch\" ]]; then"
+        , "  [[ -d ${HOME}/.local/bin ]] || mkdir -p ${HOME}/.local/bin"
         , "  cp \"$build_dir/bin/sensei-exe\" ${HOME}/.local/bin/"
         , "fi"
         ]
