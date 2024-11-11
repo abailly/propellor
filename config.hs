@@ -167,8 +167,25 @@ clermont =
                     `requires` File.applyPath "/home/curry/.config" "sensei/client.json" (\f -> File.ownerGroup f u userGrp)
 
     senseiUpdateHook =
-        [ "#!/bin/sh"
-        , "echo \"Updating $1 from $2 to $3\""
+        [ "#!/usr/bin/env bash"
+        , "# A script to build references"
+        , ""
+        , "branch = $1"
+        , "old_commit = $2"
+        , "new_commit = $3"
+        , ""
+        , "echo \"building $1branch at $new_commit\""
+        , ""
+        , "build_dir = \"$TMPDIR/$branch\""
+        , ""
+        , "[[ -d \"$build_dir\" ]] ||  mkdir -p \"$build_dir\""
+        , ""
+        , "# extract commit to build directory"
+        , "git archive --worktree-attributes $new_commit | tar x -C \"$build_dir\""
+        , ""
+        , "pushd \"$build_dir\""
+        , ""
+        , "./build.hs build"
         ]
 
     nixConf =
