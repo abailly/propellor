@@ -191,6 +191,7 @@ clermont =
     , "./build.hs build"
     , "if [[ refs/heads/master == \"$branch\" ]]; then"
     , "  [[ -d ${HOME}/.local/bin ]] || mkdir -p ${HOME}/.local/bin"
+    , "  [[ -f ${HOME}/.local/bin/sensei-exe ]] && rm ${HOME}/.local/bin/sensei-exe"
     , "  cp \"$build_dir/bin/sensei-exe\" ${HOME}/.local/bin/"
     , "fi"
     ]
