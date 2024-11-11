@@ -423,7 +423,7 @@ clermont =
             )
 
   senseiEnv dir serverKey =
-    [ "SENSEI_SERVER_CONFIG_DIR=\"" <> dir </> ".config" </> "sensei"
+    [ "SENSEI_SERVER_CONFIG_DIR=" <> dir </> ".config" </> "sensei"
     , "SENSEI_SERVER_KEY=" <> serverKey
     , "SENSEI_SERVER_NAME=sensei.pankzsoft.net"
     , "SENSEI_SERVER_PORT=23456"
@@ -437,7 +437,7 @@ clermont =
     , "After=multi-user.target"
     , ""
     , "[Service]"
-    , "EnvironmentFile=" <> dir <> "/.sensei.environment"
+    , "EnvironmentFile=" <> dir </> ".sensei.environment"
     , "Type=simple"
     , "ExecStart=" <> dir </> ".local" </> "bin" </> "sensei-exe server"
     , "KillSignal = SIGINT"
