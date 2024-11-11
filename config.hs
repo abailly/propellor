@@ -30,6 +30,7 @@ import System.Posix (ownerExecuteMode, ownerReadMode, ownerWriteMode)
 import User (commonUserSetup)
 import Web (httpsWebSite)
 import qualified Wireguard
+import Propellor.Property.User (homedir)
 
 main :: IO ()
 main = defaultMain hosts
@@ -90,9 +91,10 @@ clermont =
             & httpsWebSite punkachienNet punkachien "me@punkachien.net"
             & httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
             & httpsWebSite gitPankzsoftNet cgit "contact@pankzsoft.net"
+            & httpsWebSite "sensei.app.pankzsoft.com" senseiWebConfig "contact@pankzsoft.com"
             ! Nginx.siteEnabled "git.punkachien.net" []
             & installRust
-            & installHaskell
+            & haskellInstalled
             & dockerComposeInstalled
             & Docker.installed
             & Cron.runPropellor (Cron.Times "30 * * * *")
@@ -186,6 +188,9 @@ clermont =
         , "pushd \"$build_dir\""
         , "export PATH=${HOME}/.ghcup/bin:$PATH"
         , "./build.hs build"
+        , "if [[ \"refs/heads/master\" -eq \"$branch\" ]]; then"
+        , "  cp \"$build_dir/bin/sensei-exe\" ${HOME}/.local/bin/"
+        , "fi"
         ]
 
     nixConf =
@@ -215,7 +220,7 @@ clermont =
     doesNotHaveRust =
         not <$> doesFileExist "/opt/rust/bin/rustc"
 
-    installHaskell =
+    haskellInstalled =
         check
             doesNotHaveHaskell
             ( userScriptProperty
@@ -300,6 +305,35 @@ clermont =
         , "}"
         ]
 
+    senseiWebConfig =
+        [ "server {"
+        , "    listen 80;"
+        , "    listen [::]:80;"
+        , "    "
+        , "    root /var/www/sensei.app.pankzsoft.com/public_html;"
+        , "    index index.html index.htm index.nginx-debian.html;"
+        , "    "
+        , "    server_name sensei.app.pankzsoft.com;"
+        , "    "
+        , "    listen 443 ssl; # managed by Certbot"
+        , ""
+        , "    # RSA certificate"
+        , "    ssl_certificate /etc/letsencrypt/live/sensei.app.pankzsoft.com/fullchain.pem; # managed by Certbot"
+        , "    ssl_certificate_key /etc/letsencrypt/live/sensei.app.pankzsoft.com/privkey.pem; # managed by Certbot"
+        , ""
+        , "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot"
+        , ""
+        , "    # Redirect non-https traffic to https"
+        , "    if ($scheme != \"https\") {"
+        , "        return 301 https://$host$request_uri;"
+        , "    } # managed by Certbot"
+        , ""
+        , "    location / {"
+        , "            try_files $uri $uri/ =404;"
+        , "    }"
+        , "}"
+        ]
+
     cgit =
         [ "server {"
         , "    server_name  git.pankzsoft.net;"
@@ -367,6 +401,42 @@ clermont =
                 & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 80))
                 & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 443))
                 & dropEverything
+
+    senseiServerInstalled =
+        propertyList "sensei service running" $
+            props
+              & File.hasContent "/etc/systemd/system/sensei.service" senseiService
+                & Systemd.enabled "sensei"
+                & Systemd.restarted "sensei"
+
+    curryHome = "/home/curry"
+
+    senseiService =
+        [ "[Unit]"
+        , "Description=Sensei"
+        , "After=multi-user.target"
+        , ""
+        , "[Service]"
+        , "Type=simple"
+        , "ExecStart=" <> curryHome </> ".local" </> "bin" </> "sensei-exe server"
+        , "KillSignal = SIGINT"
+        , "RestartKillSignal = SIGINT"
+        , "StandardOutput=journal"
+        , "StandardError=journal"
+        , "SyslogIdentifier=sensei"
+        , ""
+        , "LimitNOFILE=32768"
+        , ""
+        , "Restart=on-failure"
+        , "RestartSec=15s"
+        , "StartLimitIntervalSec=0"
+        , "WorkingDirectory=~"
+        , "User=curry"
+        , "Group=curry"
+        , ""
+        , "[Install]"
+        , "WantedBy=multi-user.target"
+        ]
 
 
 cgitInstalled :: Property OS
