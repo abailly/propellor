@@ -92,6 +92,7 @@ clermont =
             & httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
             & httpsWebSite gitPankzsoftNet cgit "contact@pankzsoft.net"
             & httpsWebSite "sensei.app.pankzsoft.com" senseiWebConfig "contact@pankzsoft.com"
+            & senseiServerInstalled
             ! Nginx.siteEnabled "git.punkachien.net" []
             & installRust
             & haskellInstalled
