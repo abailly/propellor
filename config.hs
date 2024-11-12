@@ -419,6 +419,7 @@ clermont =
             w
             ( propertyList "service configured" $
                 props
+                  & File.hasContent (dir </> ".config" </> "sensei" </> "sensei.jwk") [serverKey]
                   & File.hasContent (dir </> ".sensei.environment") (senseiEnv dir serverKey)
                   & File.hasContent "/etc/systemd/system/sensei.service" (senseiService dir)
                   & Systemd.enabled "sensei"
