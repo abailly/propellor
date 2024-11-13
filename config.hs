@@ -432,6 +432,7 @@ clermont =
     , "SENSEI_SERVER_NAME=sensei.pankzsoft.net"
     , "SENSEI_SERVER_PORT=23456"
     , "SENSEI_SERVER_ROOT_USER=arnaud"
+    , "SENSEI_SERVER_ROOT_PASSWORD=[\"a0PpgdW5p18oVNdHGlvwqw==\",\"JDJiJDEwJFl5Tm5lYlUzbno2bVRMYkZFanR1b3VtaFNXbVVpcURBRkN0bnJuazEvdUtxVGJYVEhmVENH\"]"
     , "ENVIRONMENT=prod"
     ]
 
