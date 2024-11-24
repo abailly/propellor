@@ -179,6 +179,7 @@ clermont =
     , ""
     , "if expr \"${branch}\" : '.*/tags/.*' > /dev/null 2>&1; then"
     , "  echo \"got tag ${branch}, not building\""
+    , "  exit 0"
     , "fi"
     , ""
     , "echo \"building $branch at $new_commit\""
