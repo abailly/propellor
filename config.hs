@@ -37,7 +37,7 @@ main = defaultMain hosts
 
 -- The hosts propellor knows about.
 hosts :: [Host]
-hosts = [clermont, cardano, peras]
+hosts = [clermont, cardano]
 
 basePackages :: [String]
 basePackages =
@@ -413,6 +413,7 @@ clermont =
         & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 22))
         & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 80))
         & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 443))
+        & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 5551))
         & dropEverything
 
   senseiServerInstalled :: Property OS
@@ -510,71 +511,6 @@ cgitInstalled =
     [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC8aDeQyneOJA8KJegRWsJyf7qWbyKet5j0GACCDw7KS arnaud@Arnaud-MBP-Perso.local"
     , "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPKjKQVBrq9YUm7nOrcMXXWJnw7lfUk9wp3/MWrfEhgH xavier.vdw@gmail.com"
     , "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDCjxwnPDdr0lQqKiQbDpNaCdvbiNbT1afswe1eIaEk/1wKuAYu4fs/V6QdvHeLhheNOpGC6WOe6eGd07aBp65MPeQm/NhLgsw9PAbQ9zYi+ReoyXYbfwqqEArZIMvlwUqNAuwoG2Q+LtUVChYSn4N+COrWgpzKyfSwh97/0KjtFdm9jfekteaIeFzfl3Fq1sLotBw2fWoLi0tzbKs2J8Q1NxgdmcS9StUw6xIUZ0dDc9b8wC85gvPQS2TrnIh1hfhe5753n6V/48quKrCBBlzHJlwyseaVihChJiDIkqCigerVD4jN2BmEucLMOEiGaXunpVftsGuYRoQ5so7Jd1HH"
-    ]
-
-peras :: Host
-peras =
-  host "peras-staging.cardano-scaling.org" $
-    props
-      & osDebian Unstable X86_64
-      & alias perasStaging
-      & Apt.stdSourcesList
-      & Apt.unattendedUpgrades
-      & Apt.installed ["rsync"]
-      & File.dirExists perasDir
-      & File.ownerGroup perasDir (User "www-data") (Group "www-data")
-      & Ssh.authorizedKey (User "root") "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIsRDJTQ2hGutRjE0f/C5YJLKwVji4g9h6lEkrROzC7t"
-      & Ssh.installed
-      & httpsWebSite perasStaging perasPrivate "me@cardano-scaling.org"
-      & passwordProtected
-        `requires` File.dirExists perasDir
-        `requires` File.ownerGroup perasDir (User "www-data") (Group "www-data")
-      & File.ownerGroup htpasswdPath (User "www-data") (Group "www-data")
- where
-  passwordProtected :: Property (MetaTypes '[ 'WithInfo])
-  passwordProtected =
-    withPrivData (PrivFile "peras.htpasswd") anyContext $ \getHtpasswd ->
-      property "Configure .htpasswd" $
-        getHtpasswd $ \(PrivData htpasswdContent) -> do
-          liftPropellor $ File.writeFileContent ProtectedWrite htpasswdPath (lines htpasswdContent)
-          pure MadeChange
-
-  perasDir = "/var/www/" <> perasStaging <> "/public_html"
-
-  htpasswdPath = perasDir </> ".htpasswd"
-
-  perasStaging = "peras-staging.cardano-scaling.org"
-
-  perasPrivate =
-    [ "server {"
-    , "    listen 80;"
-    , "    listen [::]:80;"
-    , "    "
-    , "    root /var/www/peras-staging.cardano-scaling.org/public_html;"
-    , "    index index.html index.htm index.nginx-debian.html;"
-    , "    "
-    , "    server_name peras-staging.cardano-scaling.org;"
-    , "    "
-    , "    listen 443 ssl; # managed by Certbot"
-    , ""
-    , "    auth_basic           \"Restricted Access\";"
-    , "    auth_basic_user_file /var/www/" <> perasStaging <> "/public_html/.htpasswd;"
-    , ""
-    , "    # RSA certificate"
-    , "    ssl_certificate /etc/letsencrypt/live/" <> perasStaging <> "/fullchain.pem; # managed by Certbot"
-    , "    ssl_certificate_key /etc/letsencrypt/live/" <> perasStaging <> "/privkey.pem; # managed by Certbot"
-    , ""
-    , "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot"
-    , ""
-    , "    # Redirect non-https traffic to https"
-    , "    if ($scheme != \"https\") {"
-    , "        return 301 https://$host$request_uri;"
-    , "    } # managed by Certbot"
-    , ""
-    , "    location / {"
-    , "            try_files $uri $uri/ =404;"
-    , "    }"
-    , "}"
     ]
 
 cardano :: Host
