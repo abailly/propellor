@@ -52,7 +52,7 @@ setup user@(User userName) network = setupCardanoNode <!> teardownCardanoNode
         & environmentConfigured
         & File.hasContent "/etc/systemd/system/cardano-node.service" serviceNode
         & Apt.removed ["mithril-client"]
-        -- ! mithrilSnapshotDownloaded user userGrp network
+        & mithrilSnapshotDownloaded user userGrp network
         & Systemd.enabled "cardano-node"
         & Systemd.restarted "cardano-node"
 
@@ -204,13 +204,13 @@ mithrilSnapshotDownloaded user@(User userName) userGrp network =
 
   mithrilSnapshot = "latest"
 
-  archiveSha256 = "74b0b3c0d0c610015825f7126fb4ff68609193ec8a99d98591851ff18785668f"
+  archiveSha256 = "d2369791350713898a5ede5d9743937700a851200e7574eb76db58eda4345bf3"
 
   mithrilPath = "/root/mithril-client.deb"
 
-  mithrilClientVersion = "0.9.9+52a7beb"
+  mithrilClientVersion = "0.10.5+c6c7eba"
 
-  mithrilRelease = "2430.0"
+  mithrilRelease = "2450.0"
 
   shouldUnpack = do
     let exe = "/usr/bin/mithril-client"
