@@ -1,6 +1,7 @@
 -- This is the main configuration file for Propellor, and is used to build
 -- the propellor program.    https://propellor.branchable.com/
 {-# LANGUAGE DataKinds #-}
+{-# OPTIONS_GHC -Wno-deferred-out-of-scope-variables #-}
 {-# OPTIONS_GHC -Wno-unused-imports #-}
 
 import Base (OS)
@@ -84,7 +85,7 @@ clermont =
       & Ssh.installed
       & Systemd.persistentJournal
       & setupUser user
-      ! Cardano.setup user Mainnet
+      & Cardano.setup user Preprod
       & File.dirExists "/var/www"
       & File.ownerGroup "/var/www" user userGrp
       & cgitInstalled
