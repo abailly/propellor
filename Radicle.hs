@@ -30,9 +30,9 @@ radiclePackage =
  where
   radicleVersion = "1.0.0"
   radicleKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL460KIEccS4881p7PPpiiQBsxF+H5tgC6De6crw9rbU"
-  radicleUrl = "https://files.radicle.xyz/releases/latest/radicle-1.0.0-x86_64-unknown-linux-musl.tar.xz"
-  radicleSigUrl = "https://files.radicle.xyz/releases/latest/radicle-1.0.0-x86_64-unknown-linux-musl.tar.xz.sig"
-  radicleSHA256Url = "https://files.radicle.xyz/releases/latest/radicle-1.0.0-x86_64-unknown-linux-musl.tar.xz.sha256"
+  radicleUrl = "https://files.radicle.xyz/releases/" <> radicleVersion <> "/radicle-1.0.0-x86_64-unknown-linux-musl.tar.xz"
+  radicleSigUrl = "https://files.radicle.xyz/releases/" <> radicleVersion <> "/radicle-1.0.0-x86_64-unknown-linux-musl.tar.xz.sig"
+  radicleSHA256Url = "https://files.radicle.xyz/releases/" <> radicleVersion <> "/radicle-1.0.0-x86_64-unknown-linux-musl.tar.xz.sha256"
 
 radicleHttpPackage :: Package
 radicleHttpPackage =
@@ -40,9 +40,9 @@ radicleHttpPackage =
  where
   radicleHttpVersion = "0.17.0"
   radicleHttpKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKU7IHRsae2q1/qd8NaWxfGhPEFGHwK1dcxvSjNdttjb"
-  radicleHttpUrl = "https://files.radicle.xyz/releases/radicle-httpd/latest/radicle-httpd-0.17.0-x86_64-unknown-linux-musl.tar.xz"
-  radicleHttpSigUrl = "https://files.radicle.xyz/releases/radicle-httpd/latest/radicle-httpd-0.17.0-x86_64-unknown-linux-musl.tar.xz.sig"
-  radicleHttpSHA256Url = "https://files.radicle.xyz/releases/radicle-httpd/latest/radicle-httpd-0.17.0-x86_64-unknown-linux-musl.tar.xz.sha256"
+  radicleHttpUrl = "https://files.radicle.xyz/releases/radicle-httpd/" <> radicleHttpVersion <> "/radicle-httpd-0.17.0-x86_64-unknown-linux-musl.tar.xz"
+  radicleHttpSigUrl = "https://files.radicle.xyz/releases/radicle-httpd/" <> radicleHttpVersion <> "/radicle-httpd-0.17.0-x86_64-unknown-linux-musl.tar.xz.sig"
+  radicleHttpSHA256Url = "https://files.radicle.xyz/releases/radicle-httpd/" <> radicleHttpVersion <> "/radicle-httpd-0.17.0-x86_64-unknown-linux-musl.tar.xz.sha256"
 
 radicleSeedInstalled :: RevertableProperty OS OS
 radicleSeedInstalled =
