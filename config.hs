@@ -416,6 +416,7 @@ clermont =
         & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 80))
         & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 443))
         & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 5551))
+        & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 3001))
         & dropEverything
 
   senseiServerInstalled :: Property OS
