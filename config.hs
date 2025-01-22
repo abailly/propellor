@@ -77,7 +77,7 @@ clermont =
       & Apt.stdSourcesList
       & Apt.unattendedUpgrades
       & Apt.update
-      & Apt.installed (basePackages <> ["podman", "catatonit", "yaml2json", "nodejs", "npm"])
+      & Apt.installed (basePackages <> ["podman", "catatonit", "yaml2json", "nodejs", "npm", "debootstrap"])
       & Apt.autoRemove
       & installNix
       & File.hasContent "/etc/nix/nix.conf" nixConf
@@ -417,6 +417,7 @@ clermont =
         & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 443))
         & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 5551))
         & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 3001))
+        & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 9003))
         & dropEverything
 
   senseiServerInstalled :: Property OS
