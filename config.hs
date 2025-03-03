@@ -86,7 +86,7 @@ clermont =
       & Ssh.installed
       & Systemd.persistentJournal
       & setupUser user
-      & Cardano.setup user Preprod
+      --      & Cardano.setup user Preprod
       & File.dirExists "/var/www"
       & File.ownerGroup "/var/www" user userGrp
       & cgitInstalled
