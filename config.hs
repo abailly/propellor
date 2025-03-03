@@ -95,10 +95,10 @@ clermont =
       & httpsWebSite gitPankzsoftNet cgit "contact@pankzsoft.net"
       & httpsWebSite "sensei.pankzsoft.net" senseiWebConfig "contact@pankzsoft.net"
       & httpsWebSite depositWalletNet depositWallet "me@punkachien.net"
-        `requires` File.dirExists "/var/www/deposit.pankzsoft.net"
-        `requires` File.ownerGroup "/var/www/deposit.pankzsoft.net" user userGrp
-        `requires` File.dirExists "/var/www/deposit.pankzsoft.net/public_html"
         `requires` File.ownerGroup "/var/www/deposit.pankzsoft.net/public_html" user userGrp
+        `requires` File.dirExists "/var/www/deposit.pankzsoft.net/public_html"
+        `requires` File.ownerGroup "/var/www/deposit.pankzsoft.net" user userGrp
+        `requires` File.dirExists "/var/www/deposit.pankzsoft.net"
       & senseiServerInstalled
       ! Nginx.siteEnabled "git.punkachien.net" []
       & installRust
