@@ -94,6 +94,7 @@ clermont =
       & httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
       & httpsWebSite gitPankzsoftNet cgit "contact@pankzsoft.net"
       & httpsWebSite "sensei.pankzsoft.net" senseiWebConfig "contact@pankzsoft.net"
+      & httpsWebSite depositWalletNet depositWallet "me@punkachien.net"
       & senseiServerInstalled
       ! Nginx.siteEnabled "git.punkachien.net" []
       & installRust
@@ -115,6 +116,7 @@ clermont =
   punkachienNet = "www.punkachien.net"
   gitPankzsoftNet = "git.pankzsoft.net"
   pacificWarNet = "pacific-war.pankzsoft.net"
+  depositWalletNet = "deposit.pankzsoft.net"
 
   pacificWarConfig =
     [ "server {"
@@ -304,6 +306,35 @@ clermont =
     , "    # RSA certificate"
     , "    ssl_certificate /etc/letsencrypt/live/www.punkachien.net/fullchain.pem; # managed by Certbot"
     , "    ssl_certificate_key /etc/letsencrypt/live/www.punkachien.net/privkey.pem; # managed by Certbot"
+    , ""
+    , "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot"
+    , ""
+    , "    # Redirect non-https traffic to https"
+    , "    if ($scheme != \"https\") {"
+    , "        return 301 https://$host$request_uri;"
+    , "    } # managed by Certbot"
+    , ""
+    , "    location / {"
+    , "            try_files $uri $uri/ =404;"
+    , "    }"
+    , "}"
+    ]
+
+  depositWallet =
+    [ "server {"
+    , "    listen 80;"
+    , "    listen [::]:80;"
+    , "    "
+    , "    root /var/www/deposit.pankzsoft.net/public_html;"
+    , "    index index.html index.htm index.nginx-debian.html;"
+    , "    "
+    , "    server_name deposit.pankzsoft.net;"
+    , "    "
+    , "    listen 443 ssl; # managed by Certbot"
+    , ""
+    , "    # RSA certificate"
+    , "    ssl_certificate /etc/letsencrypt/live/deposit.pankzsoft.net/fullchain.pem; # managed by Certbot"
+    , "    ssl_certificate_key /etc/letsencrypt/live/deposit.pankzsoft.net/privkey.pem; # managed by Certbot"
     , ""
     , "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot"
     , ""
