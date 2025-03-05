@@ -95,9 +95,11 @@ clermont =
       & httpsWebSite gitPankzsoftNet cgit "contact@pankzsoft.net"
       & httpsWebSite "sensei.pankzsoft.net" senseiWebConfig "contact@pankzsoft.net"
       & httpsWebSite depositWalletNet depositWallet "me@punkachien.net"
-        `requires` File.ownerGroup "/var/www/deposit.pankzsoft.net/public_html" user userGrp
-        `requires` File.dirExists "/var/www/deposit.pankzsoft.net/public_html"
-        `requires` File.ownerGroup "/var/www/deposit.pankzsoft.net" user userGrp
+        `requires` passwordProtected
+        `requires` File.ownerGroup htpasswdPath wwwDataUser wwwDataGrp
+        `requires` File.ownerGroup depositDir wwwDataUser wwwDataGrp
+        `requires` File.dirExists depositDir
+        `requires` File.ownerGroup "/var/www/deposit.pankzsoft.net" wwwDataUser wwwDataGrp
         `requires` File.dirExists "/var/www/deposit.pankzsoft.net"
       & senseiServerInstalled
       ! Nginx.siteEnabled "git.punkachien.net" []
@@ -323,22 +325,41 @@ clermont =
     , "    }"
     , "}"
     ]
+  wwwDataUser = User "www-data"
+  wwwDataGrp = Group "www-data"
+
+  passwordProtected :: Property (MetaTypes '[ 'WithInfo])
+  passwordProtected =
+    withPrivData (PrivFile "deposit.htpasswd") anyContext $ \getHtpasswd ->
+      property "Configure .htpasswd" $
+        getHtpasswd $ \(PrivData htpasswdContent) -> do
+          liftPropellor $ File.writeFileContent ProtectedWrite htpasswdPath (lines htpasswdContent)
+          pure MadeChange
+
+  depositDir = "/var/www/" <> depositStaging <> "/public_html"
+
+  htpasswdPath = depositDir </> ".htpasswd"
+
+  depositStaging = "deposit.pankzsoft.net"
 
   depositWallet =
     [ "server {"
     , "    listen 80;"
     , "    listen [::]:80;"
     , "    "
-    , "    root /var/www/deposit.pankzsoft.net/public_html;"
+    , "    root " <> depositDir <> ";"
     , "    index index.html index.htm index.nginx-debian.html;"
     , "    "
-    , "    server_name deposit.pankzsoft.net;"
+    , "    server_name " <> depositStaging <> ";"
     , "    "
     , "    listen 443 ssl; # managed by Certbot"
     , ""
+    , "    auth_basic           \"Restricted Access\";"
+    , "    auth_basic_user_file " <> htpasswdPath <> ";"
+    , ""
     , "    # RSA certificate"
-    , "    ssl_certificate /etc/letsencrypt/live/deposit.pankzsoft.net/fullchain.pem; # managed by Certbot"
-    , "    ssl_certificate_key /etc/letsencrypt/live/deposit.pankzsoft.net/privkey.pem; # managed by Certbot"
+    , "    ssl_certificate /etc/letsencrypt/live/" <> depositStaging <> "/fullchain.pem; # managed by Certbot"
+    , "    ssl_certificate_key /etc/letsencrypt/live/" <> depositStaging <> "/privkey.pem; # managed by Certbot"
     , ""
     , "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot"
     , ""
