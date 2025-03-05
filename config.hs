@@ -95,8 +95,8 @@ clermont =
       & httpsWebSite gitPankzsoftNet cgit "contact@pankzsoft.net"
       & httpsWebSite "sensei.pankzsoft.net" senseiWebConfig "contact@pankzsoft.net"
       & httpsWebSite depositWalletNet depositWallet "me@punkachien.net"
-        `requires` passwordProtected
         `requires` File.ownerGroup htpasswdPath wwwDataUser wwwDataGrp
+        `requires` passwordProtected
         `requires` File.ownerGroup depositDir wwwDataUser wwwDataGrp
         `requires` File.dirExists depositDir
         `requires` File.ownerGroup "/var/www/deposit.pankzsoft.net" wwwDataUser wwwDataGrp
