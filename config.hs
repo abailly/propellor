@@ -267,19 +267,21 @@ clermont =
     home <- User.homedir user
     not <$> doesDirectoryExist (home </> ".ghcup" </> "bin")
 
+  nixVersion = "2.24.12"
+
   shouldInstallNix =
-    not . ("2.15.0" `elem`) . words <$> readProcess "/nix/var/nix/profiles/default/bin/nix" ["--version"]
+    not . (nixVersion `elem`) . words <$> readProcess "/nix/var/nix/profiles/default/bin/nix" ["--version"]
 
   installNix =
     check
       shouldInstallNix
       ( scriptProperty
-          [ "curl -o install-nix-2.15.0 https://releases.nixos.org/nix/nix-2.15.0/install"
-          , "chmod +x ./install-nix-2.15.0"
-          , "./install-nix-2.15.0 --daemon < /dev/null"
+          [ "curl -o install-nix-" <> nixVersion <> " https://releases.nixos.org/nix/nix-" <> nixVersion <> "/install"
+          , "chmod +x ./install-nix-" <> nixVersion
+          , "./install-nix-" <> nixVersion <> " --daemon < /dev/null"
           ]
       )
-      `describe` "Nix 2.15.0 installed"
+      `describe` ("Nix " <> nixVersion <> " installed")
 
   stackInstalled =
     check
