@@ -22,8 +22,8 @@ import Text.Read (readMaybe)
 data CardanoNetwork = Mainnet | Preview | Preprod
   deriving stock (Eq, Show)
 
-setup :: User -> CardanoNetwork -> RevertableProperty OSNoInfo OSNoInfo
-setup user@(User userName) network = setupCardanoNode <!> teardownCardanoNode
+setup :: User -> String -> CardanoNetwork -> RevertableProperty OSNoInfo OSNoInfo
+setup user@(User userName) cardanoNodeVersion network = setupCardanoNode <!> teardownCardanoNode
  where
   -- FIXME: How do I make this part of a property?
   home = "/home" </> userName
@@ -47,7 +47,7 @@ setup user@(User userName) network = setupCardanoNode <!> teardownCardanoNode
   setupCardanoNode =
     propertyList "Cardano node" $
       props
-        & installed baseDir
+        & installed cardanoNodeVersion baseDir
         & environmentConfigured
         & File.hasContent "/etc/systemd/system/cardano-node.service" serviceNode
         & Apt.removed ["mithril-client"]
@@ -105,8 +105,8 @@ networkName = \case
   Preprod -> "preprod"
   Preview -> "preview"
 
-installed :: FilePath -> Property OSNoInfo
-installed baseDir =
+installed :: String -> FilePath -> Property OSNoInfo
+installed cardanoNodeVersion baseDir =
   tightenTargets $
     propertyList ("Cardano-node installed in " <> baseDir) $
       props
@@ -114,10 +114,10 @@ installed baseDir =
           (shouldDownload sha256 archivePath)
           ( cmdProperty
               "curl"
-              ["-o", archivePath, "-L", "https://github.com/IntersectMBO/cardano-node/releases/download/10.1.3/cardano-node-10.1.3-linux.tar.gz"]
+              ["-o", archivePath, "-L", "https://github.com/IntersectMBO/cardano-node/releases/download/" <> cardanoNodeVersion <> "/cardano-node-" <> cardanoNodeVersion <> "-linux.tar.gz"]
               `changesFileContent` archivePath
           )
-          `describe` "Cardano node 10.1.3 archive downloaded"
+          `describe` ("Cardano node " <> cardanoNodeVersion <> " archive downloaded")
         & check
           shouldUnpack
           ( cmdProperty
@@ -125,9 +125,9 @@ installed baseDir =
               ["xC", baseDir, "-f", archivePath]
               `changesFileContent` exePath
           )
-          `describe` "Cardano node 10.1.3 archive unpacked"
+          `describe` ("Cardano node " <> cardanoNodeVersion <> " archive unpacked")
  where
-  archivePath = "/tmp/cardano-node-10.1.3.tgz"
+  archivePath = "/tmp/cardano-node-" <> cardanoNodeVersion <> ".tgz"
 
   sha256 = "fcdcb16822217980fcd608214d053b24f30355beb2679bc85fe2e49c12fa42bc"
 
@@ -138,7 +138,7 @@ installed baseDir =
     if hasFile
       then
         not
-          . ("10.1.3" `elem`)
+          . (cardanoNodeVersion `elem`)
           . words
           . head
           . lines
@@ -206,13 +206,13 @@ mithrilSnapshotDownloaded user@(User userName) userGrp network =
 
   mithrilSnapshot = "latest"
 
-  archiveSha256 = "d2369791350713898a5ede5d9743937700a851200e7574eb76db58eda4345bf3"
+  archiveSha256 = "f1f15fe5a45d8462f10a5dd04fbdfbe0267f9b6edf39681035cad5b9cf1e514a"
 
   mithrilPath = "/root/mithril-client.deb"
 
-  mithrilClientVersion = "0.10.5+c6c7eba"
+  mithrilClientVersion = "0.12.1+b1a2faa"
 
-  mithrilRelease = "2450.0"
+  mithrilRelease = "2517.1"
 
   shouldUnpack = do
     let exe = "/usr/bin/mithril-client"
@@ -260,4 +260,4 @@ tartarusSetup _user =
   tightenTargets $
     propertyList "Tartarus setup" $
       props
-        & Cardano.installed "/usr/local"
+        & Cardano.installed "10.4.1" "/usr/local"

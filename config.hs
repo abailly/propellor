@@ -595,7 +595,7 @@ cardano =
       & Cron.runPropellor (Cron.Times "30 * * * *")
       & Systemd.persistentJournal
       & firewall
-      & Cardano.setup user Mainnet
+      & Cardano.setup user "10.4.1" Mainnet
         `requires` commonUserSetup user
       & Systemd.stopped "hydra-node"
       & Sudo.enabledFor user
