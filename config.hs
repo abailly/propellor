@@ -5,6 +5,7 @@
 {-# OPTIONS_GHC -Wno-unused-imports #-}
 
 import Base (OS)
+import qualified CardanoUp
 import Cardano (CardanoNetwork (..))
 import qualified Cardano
 import qualified Hydra
@@ -86,7 +87,8 @@ clermont =
       & Ssh.installed
       & Systemd.persistentJournal
       & setupUser user
-      --      & Cardano.setup user Preprod
+      -- & Cardano.setup user Preview
+      & CardanoUp.install
       & File.dirExists "/var/www"
       & File.ownerGroup "/var/www" user userGrp
       & cgitInstalled
