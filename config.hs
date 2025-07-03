@@ -169,7 +169,7 @@ clermont =
         & commonUserSetup u
         & User.hasGroup u nixGrp
         & User.hasGroup u dockerGrp
-        & Git.cloned user "git@github.com:abailly-iohk/dotfiles" "/home/curry/dotfiles" Nothing
+        & Git.cloned user "git@github.com:abailly/dotfiles" "/home/curry/dotfiles" Nothing
         & File.hasContent "/home/curry/sensei/hooks/update" senseiUpdateHook
           `requires` stackInstalled
           `requires` Git.bareRepo "sensei" user Git.NotShared
