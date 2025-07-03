@@ -78,7 +78,7 @@ clermont =
       & Apt.stdSourcesList
       & Apt.unattendedUpgrades
       & Apt.update
-      & Apt.installed (basePackages <> ["podman", "catatonit", "yaml2json", "nodejs", "npm", "debootstrap", "librocksdb-dev", "libclang-dev", "just"])
+      & Apt.installed (basePackages <> ["podman", "catatonit", "yaml2json", "nodejs", "npm", "debootstrap", "librocksdb-dev", "libclang-dev", "just", "yq"])
       & Apt.autoRemove
       & installNix
       & File.hasContent "/etc/nix/nix.conf" nixConf
