@@ -18,6 +18,7 @@ import Propellor.Base (
   withPrivData,
   (<.>),
   (</>),
+  takeDirectory
  )
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.File as File
@@ -429,10 +430,12 @@ nodeRunning user radExe =
           ( userScriptPropertyPty
               user
               [ "export RAD_PASSPHRASE=" <> privDataPwd
-              , radExe <> " node start"
+              , radExe <> " node start --path " <> radicleNodePath
               ]
               `assume` NoChange
           )
+ where
+   radicleNodePath = takeDirectory radExe </> "radicle-node"
 
 authenticateRadicle :: User -> FilePath -> Property OS
 authenticateRadicle user@(User userName) exePath =
