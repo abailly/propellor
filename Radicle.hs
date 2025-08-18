@@ -422,7 +422,7 @@ shouldUnpack exe radicleVersion = do
 nodeRunning :: User -> FilePath -> Property OS
 nodeRunning user radExe =
   withPrivData (PrivFile "radicle-pwd") hostContext $ \getPrivDataPwd ->
-    property' "radicle node running" $ \w -> do
+    property' ("radicle node " <> radExe <> " running") $ \w -> do
       getPrivDataPwd $ \(PrivData privDataPwd) ->
         ensureProperty
           w
