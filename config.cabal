@@ -7,7 +7,7 @@ Version: 0
 
 Executable propellor-config
   Main-Is: config.hs
-  Other-Modules: Cardano, CardanoUp, Hydra, User, Base, Web, Radicle, Wireguard
+  Other-Modules: Cardano, CardanoUp, Hydra, User, Base, Web, Radicle, Wireguard, Rust
   GHC-Options: -threaded -Wall -fno-warn-tabs -O0
   Extensions: TypeOperators
   Build-Depends: propellor >= 3.0, base >= 4.9, unix, unix-compat, filepath
