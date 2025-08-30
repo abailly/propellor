@@ -582,7 +582,6 @@ cardano =
   host "cardano.hydra.bzh" $
     props
       & osDebian Unstable X86_64
-      & alias perasStaging
       & Apt.stdSourcesList
       & Apt.unattendedUpgrades
       & Apt.installed ["etckeeper"]
@@ -597,30 +596,15 @@ cardano =
       & Cron.runPropellor (Cron.Times "30 * * * *")
       & Systemd.persistentJournal
       & firewall
-      & Cardano.setup user "10.4.1" Mainnet
+      & Cardano.setup user "10.5.1" Mainnet
         `requires` commonUserSetup user
       & Systemd.stopped "hydra-node"
       & Sudo.enabledFor user
-      ! httpsWebSite perasStaging [] "me@cardano-scaling.org"
-      ! Systemd.nspawned perasContainer
       & Apt.removed ["nginx"]
       & Radicle.radicleSeedInstalled
       & Wireguard.serverInstalled
       & Cardano.tartarusSetup user
  where
-  perasContainer =
-    Systemd.debContainer "peras" $
-      props
-        & osDebian Unstable X86_64
-        & Apt.removed ["exim4", "exim4-base", "exim4-daemon-light"]
-          `onChange` Apt.autoRemove
-        & Apt.stdSourcesList `onChange` Apt.upgrade
-        & Apt.unattendedUpgrades
-        & Apt.cacheCleaned
-        & User.hasSomePassword' (User "root") (Context "peras")
-
-  perasStaging = "peras-staging.cardano-scaling.org"
-
   user = User "curry"
   userGrp = Group "curry"
 
