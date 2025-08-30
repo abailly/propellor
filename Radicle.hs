@@ -82,10 +82,9 @@ radicleCIInstalled user = setupRadicleCI <!> teardownRadicleCI
     setupRadicleCI =
       propertyList "Radicle CI installed" $
         props
-          & radicleInstalledFor user
-          & rustInstalled user
           & crateInstalled user ["radicle-ci-broker", "radicle-native-ci"]
-
+            `requires` rustInstalled user
+            `requires` radicleInstalledFor user
     teardownRadicleCI =
       tightenTargets $
         propertyList "Radicle CI removed" $

@@ -22,7 +22,8 @@ rustInstalled user =
 
 crateInstalled :: User -> [String] -> RevertableProperty OSNoInfo OSNoInfo
 crateInstalled user@(User userName) crates =
-  (mconcat $ installCrate <$> crates) <!> (tightenTargets $ mconcat $ uninstallCrate <$> crates)
+  (mconcat $ installCrate <$> crates)
+    <!> (tightenTargets $ mconcat $ uninstallCrate <$> crates)
   where
     home = "/home" </> userName
 
@@ -38,12 +39,12 @@ crateInstalled user@(User userName) crates =
         `describe` ("Installed crate " <> crateName)
 
     uninstallCrate crateName =
-        ( userScriptProperty
-            user
-            [ "cargo install " <> crateName
-            ]
-        )
-          `assume` MadeChange
+      ( userScriptProperty
+          user
+          [ "cargo install " <> crateName
+          ]
+      )
+        `assume` MadeChange
 
     crateNotInstalled crateName =
       not
