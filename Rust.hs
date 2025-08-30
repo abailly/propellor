@@ -21,7 +21,7 @@ rustInstalled user =
     `describe` "Rustup toolchain installed"
 
 crateInstalled :: User -> String -> Property OSNoInfo
-crateInstalled user crateName =
+crateInstalled user@(User userName) crateName =
   check
     crateNotInstalled
     ( userScriptProperty
@@ -32,7 +32,7 @@ crateInstalled user crateName =
     `requires` rustInstalled user
     `describe` ("Installed crate " <> crateName)
   where
-    crateNotInstalled = any (crateName `isInfixOf`) . lines <$> readProcess "/opt/rust/bin/cargo" ["install", "--list"]
+    crateNotInstalled = any (crateName `isInfixOf`) . lines <$> readProcess "su" [ "-c", "/opt/rust/bin/cargo install --list", userName ]
 
 doesNotHaveRust :: IO Bool
 doesNotHaveRust =
