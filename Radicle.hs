@@ -41,9 +41,9 @@ radicleHttpPackage =
  where
   radicleHttpVersion = "0.20.0"
   radicleHttpKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKU7IHRsae2q1/qd8NaWxfGhPEFGHwK1dcxvSjNdttjb"
-  radicleHttpUrl = "https://files.radicle.xyz/releases/radicle-httpd/" <> radicleHttpVersion <> "/radicle-httpd-0.17.0-x86_64-unknown-linux-musl.tar.xz"
-  radicleHttpSigUrl = "https://files.radicle.xyz/releases/radicle-httpd/" <> radicleHttpVersion <> "/radicle-httpd-0.17.0-x86_64-unknown-linux-musl.tar.xz.sig"
-  radicleHttpSHA256Url = "https://files.radicle.xyz/releases/radicle-httpd/" <> radicleHttpVersion <> "/radicle-httpd-0.17.0-x86_64-unknown-linux-musl.tar.xz.sha256"
+  radicleHttpUrl = "https://files.radicle.xyz/releases/radicle-httpd/" <> radicleHttpVersion <> "/radicle-httpd-" <> radicleHttpVersion <> "-x86_64-unknown-linux-musl.tar.xz"
+  radicleHttpSigUrl = "https://files.radicle.xyz/releases/radicle-httpd/" <> radicleHttpVersion <> "/radicle-httpd-" <> radicleHttpVersion <> "-x86_64-unknown-linux-musl.tar.xz.sig"
+  radicleHttpSHA256Url = "https://files.radicle.xyz/releases/radicle-httpd/" <> radicleHttpVersion <> "/radicle-httpd-" <> radicleHttpVersion <> "-x86_64-unknown-linux-musl.tar.xz.sha256"
 
 radicleSeedInstalled :: RevertableProperty OS OS
 radicleSeedInstalled =
@@ -390,7 +390,8 @@ downloadAndInstall user group installDir archive Package{name, url, sha256Url, v
             )
             `describe` ( "Archive for "
                           <> name
-                          <> " downloaded"
+                          <> " downloaded from "
+                          <> url
                        )
           & ( cmdProperty
                 "tar"
