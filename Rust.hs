@@ -34,7 +34,7 @@ crateInstalled user@(User userName) crateName =
   where
     home = "/home" </> userName
 
-    crateNotInstalled = any (crateName `isInfixOf`) . lines <$> readProcess "/usr/bin/find" [home </> ".cargo" </> "registry"]
+    crateNotInstalled = not . any (crateName `isInfixOf`) . lines <$> readProcess "/usr/bin/find" [home </> ".cargo" </> "registry"]
 
 doesNotHaveRust :: IO Bool
 doesNotHaveRust =
