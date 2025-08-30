@@ -24,7 +24,7 @@ import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.User as User
-import Rust (rustInstalled, crateInstalled)
+import Rust (crateInstalled, rustInstalled)
 
 radiclePackage :: Package
 radiclePackage =
@@ -32,9 +32,24 @@ radiclePackage =
   where
     radicleVersion = "1.3.0"
     radicleKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL460KIEccS4881p7PPpiiQBsxF+H5tgC6De6crw9rbU"
-    radicleUrl = "https://files.radicle.xyz/releases/" <> radicleVersion <> "/radicle-" <> radicleVersion <> "-x86_64-unknown-linux-musl.tar.xz"
-    radicleSigUrl = "https://files.radicle.xyz/releases/" <> radicleVersion <> "/radicle-" <> radicleVersion <> "-x86_64-unknown-linux-musl.tar.xz.sig"
-    radicleSHA256Url = "https://files.radicle.xyz/releases/" <> radicleVersion <> "/radicle-" <> radicleVersion <> "-x86_64-unknown-linux-musl.tar.xz.sha256"
+    radicleUrl =
+      "https://files.radicle.xyz/releases/"
+        <> radicleVersion
+        <> "/radicle-"
+        <> radicleVersion
+        <> "-x86_64-unknown-linux-musl.tar.xz"
+    radicleSigUrl =
+      "https://files.radicle.xyz/releases/"
+        <> radicleVersion
+        <> "/radicle-"
+        <> radicleVersion
+        <> "-x86_64-unknown-linux-musl.tar.xz.sig"
+    radicleSHA256Url =
+      "https://files.radicle.xyz/releases/"
+        <> radicleVersion
+        <> "/radicle-"
+        <> radicleVersion
+        <> "-x86_64-unknown-linux-musl.tar.xz.sha256"
 
 radicleHttpPackage :: Package
 radicleHttpPackage =
@@ -42,24 +57,40 @@ radicleHttpPackage =
   where
     radicleHttpVersion = "0.20.0"
     radicleHttpKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKU7IHRsae2q1/qd8NaWxfGhPEFGHwK1dcxvSjNdttjb"
-    radicleHttpUrl = "https://files.radicle.xyz/releases/radicle-httpd/" <> radicleHttpVersion <> "/radicle-httpd-" <> radicleHttpVersion <> "-x86_64-unknown-linux-musl.tar.xz"
-    radicleHttpSigUrl = "https://files.radicle.xyz/releases/radicle-httpd/" <> radicleHttpVersion <> "/radicle-httpd-" <> radicleHttpVersion <> "-x86_64-unknown-linux-musl.tar.xz.sig"
-    radicleHttpSHA256Url = "https://files.radicle.xyz/releases/radicle-httpd/" <> radicleHttpVersion <> "/radicle-httpd-" <> radicleHttpVersion <> "-x86_64-unknown-linux-musl.tar.xz.sha256"
+    radicleHttpUrl =
+      "https://files.radicle.xyz/releases/radicle-httpd/"
+        <> radicleHttpVersion
+        <> "/radicle-httpd-"
+        <> radicleHttpVersion
+        <> "-x86_64-unknown-linux-musl.tar.xz"
+    radicleHttpSigUrl =
+      "https://files.radicle.xyz/releases/radicle-httpd/"
+        <> radicleHttpVersion
+        <> "/radicle-httpd-"
+        <> radicleHttpVersion
+        <> "-x86_64-unknown-linux-musl.tar.xz.sig"
+    radicleHttpSHA256Url =
+      "https://files.radicle.xyz/releases/radicle-httpd/"
+        <> radicleHttpVersion
+        <> "/radicle-httpd-"
+        <> radicleHttpVersion
+        <> "-x86_64-unknown-linux-musl.tar.xz.sha256"
 
 radicleCIInstalled :: User -> RevertableProperty OS OS
 radicleCIInstalled user = setupRadicleCI <!> teardownRadicleCI
   where
     setupRadicleCI =
-        propertyList "Radicle CI installed" $
-          props
-            & radicleInstalledFor user
-            & rustInstalled user
-            & crateInstalled user "radicle-ci-broker"
+      propertyList "Radicle CI installed" $
+        props
+          & radicleInstalledFor user
+          & rustInstalled user
+          & crateInstalled user ["radicle-ci-broker", "radicle-native-ci"]
 
     teardownRadicleCI =
       tightenTargets $
         propertyList "Radicle CI removed" $
           props
+            ! crateInstalled user ["radicle-ci-broker", "radicle-native-ci"]
 
 radicleSeedInstalled :: RevertableProperty OS OS
 radicleSeedInstalled =

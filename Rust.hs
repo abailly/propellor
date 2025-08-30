@@ -20,21 +20,37 @@ rustInstalled user =
     `requires` Apt.installed ["gcc", "build-essential", "m4", "pkgconf", "libssl-dev"]
     `describe` "Rustup toolchain installed"
 
-crateInstalled :: User -> String -> Property OSNoInfo
-crateInstalled user@(User userName) crateName =
-  check
-    crateNotInstalled
-    ( userScriptProperty
-        user
-        [ "cargo install " <> crateName
-        ]
-    )
-    `requires` rustInstalled user
-    `describe` ("Installed crate " <> crateName)
+crateInstalled :: User -> [String] -> RevertableProperty OSNoInfo OSNoInfo
+crateInstalled user@(User userName) crates =
+  (mconcat $ installCrate <$> crates) <!> (mconcat $ uninstallCrate <$> crates)
   where
     home = "/home" </> userName
 
-    crateNotInstalled = not . any (crateName `isInfixOf`) . lines <$> readProcess "/usr/bin/find" [home </> ".cargo" </> "registry"]
+    installCrate crateName =
+      check
+        (crateNotInstalled crateName)
+        ( userScriptProperty
+            user
+            [ "cargo install " <> crateName
+            ]
+        )
+        `requires` rustInstalled user
+        `describe` ("Installed crate " <> crateName)
+
+    uninstallCrate crateName =
+      tightenTargets $
+        ( userScriptProperty
+            user
+            [ "cargo install " <> crateName
+            ]
+        )
+          `assume` MadeChange
+
+    crateNotInstalled crateName =
+      not
+        . any (crateName `isInfixOf`)
+        . lines
+        <$> readProcess "/usr/bin/find" [home </> ".cargo" </> "registry"]
 
 doesNotHaveRust :: IO Bool
 doesNotHaveRust =
