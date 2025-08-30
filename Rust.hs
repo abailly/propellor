@@ -3,7 +3,7 @@ module Rust where
 import Base (OSNoInfo)
 import Data.List (isInfixOf)
 import Propellor
-import Propellor.Base (doesFileExist, readProcess)
+import Propellor.Base (doesFileExist, readProcess, (</>))
 import qualified Propellor.Property.Apt as Apt
 
 rustInstalled :: User -> Property OSNoInfo
@@ -32,7 +32,9 @@ crateInstalled user@(User userName) crateName =
     `requires` rustInstalled user
     `describe` ("Installed crate " <> crateName)
   where
-    crateNotInstalled = any (crateName `isInfixOf`) . lines <$> readProcess "su" [ "-c", "/opt/rust/bin/cargo install --list", userName ]
+    home = "/home" </> userName
+
+    crateNotInstalled = any (crateName `isInfixOf`) . lines <$> readProcess "/usr/bin/find" [home </> ".cargo" </> "registry"]
 
 doesNotHaveRust :: IO Bool
 doesNotHaveRust =
