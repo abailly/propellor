@@ -29,7 +29,7 @@ radiclePackage :: Package
 radiclePackage =
   Package "radicle" radicleKey radicleUrl radicleSigUrl radicleSHA256Url radicleVersion
  where
-  radicleVersion = "1.2.0"
+  radicleVersion = "1.3.0"
   radicleKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL460KIEccS4881p7PPpiiQBsxF+H5tgC6De6crw9rbU"
   radicleUrl = "https://files.radicle.xyz/releases/" <> radicleVersion <> "/radicle-" <> radicleVersion <> "-x86_64-unknown-linux-musl.tar.xz"
   radicleSigUrl = "https://files.radicle.xyz/releases/" <> radicleVersion <> "/radicle-" <> radicleVersion <> "-x86_64-unknown-linux-musl.tar.xz.sig"
@@ -39,7 +39,7 @@ radicleHttpPackage :: Package
 radicleHttpPackage =
   Package "radicle-http" radicleHttpKey radicleHttpUrl radicleHttpSigUrl radicleHttpSHA256Url radicleHttpVersion
  where
-  radicleHttpVersion = "0.17.0"
+  radicleHttpVersion = "0.20.0"
   radicleHttpKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKU7IHRsae2q1/qd8NaWxfGhPEFGHwK1dcxvSjNdttjb"
   radicleHttpUrl = "https://files.radicle.xyz/releases/radicle-httpd/" <> radicleHttpVersion <> "/radicle-httpd-0.17.0-x86_64-unknown-linux-musl.tar.xz"
   radicleHttpSigUrl = "https://files.radicle.xyz/releases/radicle-httpd/" <> radicleHttpVersion <> "/radicle-httpd-0.17.0-x86_64-unknown-linux-musl.tar.xz.sig"
