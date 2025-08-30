@@ -129,7 +129,7 @@ installed cardanoNodeVersion baseDir =
  where
   archivePath = "/tmp/cardano-node-" <> cardanoNodeVersion <> ".tgz"
 
-  sha256 = "fcdcb16822217980fcd608214d053b24f30355beb2679bc85fe2e49c12fa42bc"
+  sha256 = "de8f1cc0f3aec0520040786c122b585354378143196013afa6560285d36f0420"
 
   exePath = baseDir </> "bin" </> "cardano-node"
 
@@ -206,13 +206,13 @@ mithrilSnapshotDownloaded user@(User userName) userGrp network =
 
   mithrilSnapshot = "latest"
 
-  archiveSha256 = "f1f15fe5a45d8462f10a5dd04fbdfbe0267f9b6edf39681035cad5b9cf1e514a"
+  archiveSha256 = "654b50de191b9984a5b37687b72c7ad27ac5aea101c2396bd68fd981f654ddf9"
 
   mithrilPath = "/root/mithril-client.deb"
 
-  mithrilClientVersion = "0.12.1+b1a2faa"
+  mithrilClientVersion = "0.12.11+7bf7033"
 
-  mithrilRelease = "2517.1"
+  mithrilRelease = "2524.0"
 
   shouldUnpack = do
     let exe = "/usr/bin/mithril-client"
