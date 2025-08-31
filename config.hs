@@ -98,9 +98,10 @@ clermont =
       & httpsWebSite gitPankzsoftNet cgit "contact@pankzsoft.net"
       & httpsWebSite "sensei.pankzsoft.net" senseiWebConfig "contact@pankzsoft.net"
       & httpsWebSite ciPunkachienNet ciWebConfig "contact@pankzsoft.net"
+        `requires` passwordProtected "ci.htpasswd"
       & httpsWebSite depositWalletNet depositWallet "me@punkachien.net"
         `requires` File.ownerGroup htpasswdPath wwwDataUser wwwDataGrp
-        `requires` passwordProtected
+        `requires` passwordProtected "deposit.htpasswd"
         `requires` File.ownerGroup depositDir wwwDataUser wwwDataGrp
         `requires` File.dirExists depositDir
         `requires` File.ownerGroup "/var/www/deposit.pankzsoft.net" wwwDataUser wwwDataGrp
@@ -352,9 +353,9 @@ clermont =
         "}"
       ]
 
-    passwordProtected :: Property (MetaTypes '[ 'WithInfo])
-    passwordProtected =
-      withPrivData (PrivFile "deposit.htpasswd") anyContext $ \getHtpasswd ->
+    passwordProtected :: String -> Property (MetaTypes '[ 'WithInfo])
+    passwordProtected passwdFile =
+      withPrivData (PrivFile passwdFile) anyContext $ \getHtpasswd ->
         property "Configure .htpasswd" $
           getHtpasswd $ \(PrivData htpasswdContent) -> do
             liftPropellor $ File.writeFileContent ProtectedWrite htpasswdPath (lines htpasswdContent)
