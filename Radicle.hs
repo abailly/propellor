@@ -153,9 +153,10 @@ radicleCIInstalled user@(User userName) host authorizedNodes = setupRadicleCI <!
         "triggers:",
         "  - adapter: native",
         "    filters:",
-        "    - !And"
+        "    - !And",
+        "      - !Or"
       ]
-        <> map (\nid -> "      - !Node " <> show nid) authorizedNodes
+        <> map (\nid -> "        - !Node " <> show nid) authorizedNodes
         <> [ "      - !HasFile \".radicle/native.yaml\"",
              "      - !Or",
              "        - !DefaultBranch",
