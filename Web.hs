@@ -25,6 +25,7 @@ httpsWebSite domainName nginxConfig email =
     webSiteConfigured =
         propertyList ("Configured HTTPS website for " <> show domainName) $
             props
+                & siteContentExists
                 & Nginx.siteEnabled domainName nginxConfig
                     `onChange` selfSignedCert domainName
                     `requires` File.hasContent "/etc/nginx/conf.d/connection-upgrade.conf" connectionUpgradeConf
@@ -37,6 +38,18 @@ httpsWebSite domainName nginxConfig email =
         , "    ''      close;"
         , "}"
         ]
+
+    domainDir = "/var/www" </> domainName
+
+    siteContentExists =
+      File.ownerGroup domainDir wwwDataUser wwwDataGrp
+        `requires` File.dirExists domainDir
+
+wwwDataUser :: User
+wwwDataUser = User "www-data"
+
+wwwDataGrp :: Group
+wwwDataGrp = Group "www-data"
 
 letsEncryptCertsInstalled :: AgreeTOS -> [String] -> Property DebianLike
 letsEncryptCertsInstalled (AgreeTOS memail) domains =

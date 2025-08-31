@@ -32,7 +32,7 @@ import qualified Radicle
 import Rust (rustInstalled)
 import System.Posix (ownerExecuteMode, ownerReadMode, ownerWriteMode)
 import User (commonUserSetup)
-import Web (httpsWebSite)
+import Web (httpsWebSite, wwwDataGrp, wwwDataUser)
 import qualified Wireguard
 
 main :: IO ()
@@ -97,6 +97,7 @@ clermont =
       & httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
       & httpsWebSite gitPankzsoftNet cgit "contact@pankzsoft.net"
       & httpsWebSite "sensei.pankzsoft.net" senseiWebConfig "contact@pankzsoft.net"
+      & httpsWebSite "ci.punkachien.net" ciWebConfig "contact@pankzsoft.net"
       & httpsWebSite depositWalletNet depositWallet "me@punkachien.net"
         `requires` File.ownerGroup htpasswdPath wwwDataUser wwwDataGrp
         `requires` passwordProtected
@@ -315,8 +316,35 @@ clermont =
         "    }",
         "}"
       ]
-    wwwDataUser = User "www-data"
-    wwwDataGrp = Group "www-data"
+
+    ciWebConfig =
+      [ "server {",
+        "    listen 80;",
+        "    listen [::]:80;",
+        "    ",
+        "    root /var/www/ci.punkachien.net/public_html;",
+        "    index index.html index.htm index.nginx-debian.html;",
+        "    ",
+        "    server_name ci.punkachien.net;",
+        "    ",
+        "    listen 443 ssl; # managed by Certbot",
+        "",
+        "    # RSA certificate",
+        "    ssl_certificate /etc/letsencrypt/live/ci.punkachien.net/fullchain.pem; # managed by Certbot",
+        "    ssl_certificate_key /etc/letsencrypt/live/ci.punkachien.net/privkey.pem; # managed by Certbot",
+        "",
+        "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot",
+        "",
+        "    # Redirect non-https traffic to https",
+        "    if ($scheme != \"https\") {",
+        "        return 301 https://$host$request_uri;",
+        "    } # managed by Certbot",
+        "",
+        "    location / {",
+        "            try_files $uri $uri/ =404;",
+        "    }",
+        "}"
+      ]
 
     passwordProtected :: Property (MetaTypes '[ 'WithInfo])
     passwordProtected =

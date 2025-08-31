@@ -80,8 +80,6 @@ radicleHttpPackage =
 radicleCIInstalled :: User -> RevertableProperty OS OS
 radicleCIInstalled user@(User userName) = setupRadicleCI <!> teardownRadicleCI
   where
-    home = "/home" </> userName
-
     group = Group userName
 
     setupRadicleCI =
