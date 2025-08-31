@@ -1,5 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
@@ -78,9 +80,12 @@ radicleHttpPackage =
         <> radicleHttpVersion
         <> "-x86_64-unknown-linux-musl.tar.xz.sha256"
 
+newtype NID = NID {unnid :: String}
+  deriving newtype (Eq, Show, Read)
+
 -- From https://app.radicle.xyz/nodes/radicle.liw.fi/rad%3AzwTxygwuz5LDGBq255RA2CbNGrz8/tree/doc/userguide.md
-radicleCIInstalled :: User -> RevertableProperty OS OS
-radicleCIInstalled user@(User userName) = setupRadicleCI <!> teardownRadicleCI
+radicleCIInstalled :: User -> String -> [NID] -> RevertableProperty OS OS
+radicleCIInstalled user@(User userName) host authorizedNodes = setupRadicleCI <!> teardownRadicleCI
   where
     group = Group userName
 
@@ -104,11 +109,10 @@ radicleCIInstalled user@(User userName) = setupRadicleCI <!> teardownRadicleCI
     ciConfigured =
       property' ("radicle CI configured for " <> userName) $ \w -> do
         dir <- liftIO $ User.homedir user
-        let host = "ci.punkachien.net"
         ensureProperty w $
-          ( File.hasContent (configFilePath dir) (configFile dir host)
+          ( File.hasContent (configFilePath dir) (configFile dir)
               <> File.ownerGroup (configFilePath dir) user group
-              <> File.hasContent (nativeConfigFilePath dir) (nativeConfigFile dir host)
+              <> File.hasContent (nativeConfigFilePath dir) (nativeConfigFile dir)
               <> File.ownerGroup (nativeConfigFilePath dir) user group
               <> File.hasContent "/etc/systemd/system/radicle-ci.service" (ciService dir)
           )
@@ -116,9 +120,9 @@ radicleCIInstalled user@(User userName) = setupRadicleCI <!> teardownRadicleCI
             `requires` File.dirExists (cacheDir dir)
             `requires` File.ownerGroup (cacheDir dir) user group
             `requires` File.dirExists (cacheDir dir)
-            `requires` File.ownerGroup (stateDir host) user group
-            `requires` File.mode (stateDir host) (combineModes [ownerModes, groupModes, otherReadMode, otherExecuteMode])
-            `requires` File.dirExists (stateDir host)
+            `requires` File.ownerGroup stateDir user group
+            `requires` File.mode stateDir (combineModes [ownerModes, groupModes, otherReadMode, otherExecuteMode])
+            `requires` File.dirExists stateDir
 
     cacheDir dir = dir </> ".cache" </> "radicle"
 
@@ -128,17 +132,17 @@ radicleCIInstalled user@(User userName) = setupRadicleCI <!> teardownRadicleCI
 
     nativeConfigFilePath dir = configDir dir </> "native-ci.yaml"
 
-    stateDir host = "/var/www" </> host </> "public_html/state"
+    stateDir = "/var/www" </> host </> "public_html/state"
 
-    nativeConfigFile dir host =
+    nativeConfigFile dir =
       [ "base_url: https://" <> host </> "state",
-        "state: " <> stateDir host,
+        "state: " <> stateDir,
         "log: " <> cacheDir dir </> "native-ci.log"
       ]
 
-    configFile dir host =
+    configFile dir =
       [ "db: " <> cacheDir dir </> "ci-broker.db",
-        "report_dir: " <> stateDir host,
+        "report_dir: " <> stateDir,
         "default_adapter: native",
         "queue_len_interval: 1min",
         "adapters:",
@@ -149,13 +153,15 @@ radicleCIInstalled user@(User userName) = setupRadicleCI <!> teardownRadicleCI
         "triggers:",
         "  - adapter: native",
         "    filters:",
-        "    - !And",
-        "      - !HasFile \".radicle/native.yaml\"",
-        "      - !Or",
-        "        - !DefaultBranch",
-        "        - !PatchCreated",
-        "        - !PatchUpdated"
+        "    - !And"
       ]
+        <> map (\nid -> "      - !Node " <> show nid) authorizedNodes
+        <> [ "      - !HasFile \".radicle/native.yaml\"",
+             "      - !Or",
+             "        - !DefaultBranch",
+             "        - !PatchCreated",
+             "        - !PatchUpdated"
+           ]
 
     ciService dir =
       [ "[Unit]",

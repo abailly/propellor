@@ -97,7 +97,7 @@ clermont =
       & httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
       & httpsWebSite gitPankzsoftNet cgit "contact@pankzsoft.net"
       & httpsWebSite "sensei.pankzsoft.net" senseiWebConfig "contact@pankzsoft.net"
-      & httpsWebSite "ci.punkachien.net" ciWebConfig "contact@pankzsoft.net"
+      & httpsWebSite ciPunkachienNet ciWebConfig "contact@pankzsoft.net"
       & httpsWebSite depositWalletNet depositWallet "me@punkachien.net"
         `requires` File.ownerGroup htpasswdPath wwwDataUser wwwDataGrp
         `requires` passwordProtected
@@ -113,7 +113,7 @@ clermont =
       & Docker.installed
       & Cron.runPropellor (Cron.Times "30 * * * *")
       & Radicle.radicleInstalledFor user
-      & Radicle.radicleCIInstalled user
+      & Radicle.radicleCIInstalled user ciPunkachienNet myNodes
       & Wireguard.clientInstalled
         (Wireguard.WgPublicKey "G+8Gq0jVZ6h9qJ188ycHY5X61FhJ7jMEC7ptdp7dwV0=")
         (Wireguard.Endpoint "95.217.84.233" 51820)
@@ -128,6 +128,12 @@ clermont =
     gitPankzsoftNet = "git.pankzsoft.net"
     pacificWarNet = "pacific-war.pankzsoft.net"
     depositWalletNet = "deposit.pankzsoft.net"
+    ciPunkachienNet = "ci.punkachien.net"
+    myNodes =
+      [ Radicle.NID "z6MkhgPg6WShnhJcmfwox4G5yL3EvJ2zW8L31SZLD95yUi11",
+        Radicle.NID "z6MkgrwQNecpatYWTPnzvZfWt6jpxZq1zK7zuz8QmndpMrGJ",
+        Radicle.NID "z6MknbWpMGohJJxXzJSYP178o573QHgPLsNwvCc5UqGrJFcM"
+      ]
 
     pacificWarConfig =
       [ "server {",
