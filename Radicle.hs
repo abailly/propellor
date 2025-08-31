@@ -76,20 +76,78 @@ radicleHttpPackage =
         <> radicleHttpVersion
         <> "-x86_64-unknown-linux-musl.tar.xz.sha256"
 
+-- From https://app.radicle.xyz/nodes/radicle.liw.fi/rad%3AzwTxygwuz5LDGBq255RA2CbNGrz8/tree/doc/userguide.md
 radicleCIInstalled :: User -> RevertableProperty OS OS
-radicleCIInstalled user = setupRadicleCI <!> teardownRadicleCI
+radicleCIInstalled user@(User userName) = setupRadicleCI <!> teardownRadicleCI
   where
+    home = "/home" </> userName
+
+    group = Group userName
+
     setupRadicleCI =
       propertyList "Radicle CI installed" $
         props
           & crateInstalled user ["radicle-ci-broker", "radicle-native-ci"]
             `requires` rustInstalled user
             `requires` radicleInstalledFor user
+          & ciConfigured
+
     teardownRadicleCI =
       tightenTargets $
         propertyList "Radicle CI removed" $
           props
             ! crateInstalled user ["radicle-ci-broker", "radicle-native-ci"]
+
+    ciConfigured :: Property OS
+    ciConfigured =
+      property' ("radicle CI configured for " <> userName) $ \w -> do
+        dir <- liftIO $ User.homedir user
+        let host = "ci.punkachien.net"
+        ensureProperty w $
+          ( File.hasContent (configFilePath dir) (configFile dir)
+              <> File.ownerGroup (configFilePath dir) user group
+              <> File.hasContent (nativeConfigFilePath dir) (nativeConfigFile dir host)
+              <> File.ownerGroup (nativeConfigFilePath dir) user group
+          )
+            `requires` File.ownerGroup (cacheDir dir) user group
+            `requires` File.dirExists (cacheDir dir)
+            `requires` File.ownerGroup (configDir dir) user group
+            `requires` File.dirExists (configDir dir)
+
+    cacheDir dir = dir </> ".cache" </> "radicle"
+
+    configDir dir = dir </> ".config" </> "radicle"
+
+    configFilePath dir = configDir dir </> "ci-broker.yaml"
+
+    nativeConfigFilePath dir = configDir dir </> "native-ci.yaml"
+
+    nativeConfigFile dir host =
+      [ "base_url: https://" <> host </> "state",
+        "state: /var/www" </> host </> "public_html/state",
+        "log: " <> cacheDir dir </> "/native-ci.log"
+      ]
+
+    configFile dir =
+      [ "db: " <> cacheDir dir </> "ci-broker.db",
+        "report_dir: reports",
+        "default_adapter: native",
+        "queue_len_interval: 1min",
+        "adapters:",
+        "  native:",
+        "    command: " <> dir </> ".local/bin/radicle-native-ci",
+        "    env:",
+        "      RADICLE_NATIVE_CI: " <> nativeConfigFilePath dir,
+        "triggers:",
+        "  - adapter: native",
+        "    filters:",
+        "    - !And",
+        "      - !HasFile \".radicle/native.yaml\"",
+        "      - !Or",
+        "        - !DefaultBranch",
+        "        - !PatchCreated",
+        "        - !PatchUpdated"
+      ]
 
 radicleSeedInstalled :: RevertableProperty OS OS
 radicleSeedInstalled =
