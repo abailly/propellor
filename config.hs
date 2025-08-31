@@ -32,7 +32,7 @@ import qualified Radicle
 import Rust (rustInstalled)
 import System.Posix (ownerExecuteMode, ownerReadMode, ownerWriteMode)
 import User (commonUserSetup)
-import Web (httpsWebSite, wwwDataGrp, wwwDataUser)
+import Web (htmlDir, httpsWebSite, wwwDataGrp, wwwDataUser)
 import qualified Wireguard
 
 main :: IO ()
@@ -98,10 +98,10 @@ clermont =
       & httpsWebSite gitPankzsoftNet cgit "contact@pankzsoft.net"
       & httpsWebSite "sensei.pankzsoft.net" senseiWebConfig "contact@pankzsoft.net"
       & httpsWebSite ciPunkachienNet ciWebConfig "contact@pankzsoft.net"
-        `requires` passwordProtected "ci.htpasswd"
+        `requires` passwordProtected ciPunkachienNet "ci.htpasswd"
       & httpsWebSite depositWalletNet depositWallet "me@punkachien.net"
         `requires` File.ownerGroup htpasswdPath wwwDataUser wwwDataGrp
-        `requires` passwordProtected "deposit.htpasswd"
+        `requires` passwordProtected depositWalletNet "deposit.htpasswd"
         `requires` File.ownerGroup depositDir wwwDataUser wwwDataGrp
         `requires` File.dirExists depositDir
         `requires` File.ownerGroup "/var/www/deposit.pankzsoft.net" wwwDataUser wwwDataGrp
@@ -353,15 +353,15 @@ clermont =
         "}"
       ]
 
-    passwordProtected :: String -> Property (MetaTypes '[ 'WithInfo])
-    passwordProtected passwdFile =
+    passwordProtected :: String -> String -> Property (MetaTypes '[ 'WithInfo])
+    passwordProtected site passwdFile =
       withPrivData (PrivFile passwdFile) anyContext $ \getHtpasswd ->
         property "Configure .htpasswd" $
           getHtpasswd $ \(PrivData htpasswdContent) -> do
-            liftPropellor $ File.writeFileContent ProtectedWrite htpasswdPath (lines htpasswdContent)
+            liftPropellor $ File.writeFileContent ProtectedWrite (htmlDir site) (lines htpasswdContent)
             pure MadeChange
 
-    depositDir = "/var/www/" <> depositStaging <> "/public_html"
+    depositDir = htmlDir depositStaging
 
     htpasswdPath = depositDir </> ".htpasswd"
 

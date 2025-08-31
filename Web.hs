@@ -45,6 +45,9 @@ httpsWebSite domainName nginxConfig email =
       File.ownerGroup domainDir wwwDataUser wwwDataGrp
         `requires` File.dirExists domainDir
 
+htmlDir :: String -> String
+htmlDir site = "/var/www/" <> site <> "/public_html"
+
 wwwDataUser :: User
 wwwDataUser = User "www-data"
 
