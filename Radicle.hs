@@ -89,6 +89,8 @@ radicleCIInstalled user@(User userName) = setupRadicleCI <!> teardownRadicleCI
             `requires` rustInstalled user
             `requires` radicleInstalledFor user
           & ciConfigured
+          & Systemd.enabled "radicle-ci"
+          & Systemd.restarted "radicle-ci"
 
     teardownRadicleCI =
       tightenTargets $
@@ -106,6 +108,7 @@ radicleCIInstalled user@(User userName) = setupRadicleCI <!> teardownRadicleCI
               <> File.ownerGroup (configFilePath dir) user group
               <> File.hasContent (nativeConfigFilePath dir) (nativeConfigFile dir host)
               <> File.ownerGroup (nativeConfigFilePath dir) user group
+              <> File.hasContent "/etc/systemd/system/radicle-ci.service" (ciService dir)
           )
             `requires` File.ownerGroup (cacheDir dir) user group
             `requires` File.dirExists (cacheDir dir)
@@ -145,6 +148,24 @@ radicleCIInstalled user@(User userName) = setupRadicleCI <!> teardownRadicleCI
         "        - !DefaultBranch",
         "        - !PatchCreated",
         "        - !PatchUpdated"
+      ]
+
+    ciService dir =
+      [ "[Unit]",
+        "Description=Radicle CI",
+        "After=network.target network-online.target",
+        "Requires=network-online.target",
+        "",
+        "[Service]",
+        "User=" <> userName,
+        "Group=" <> userName,
+        "ExecStart=" <> dir </> ".local" </> "bin" </> "cib --config " <> configFilePath dir <> " process-events",
+        "KillMode=process",
+        "Restart=always",
+        "RestartSec=3",
+        "",
+        "[Install]",
+        "WantedBy=multi-user.target"
       ]
 
 radicleSeedInstalled :: RevertableProperty OS OS
