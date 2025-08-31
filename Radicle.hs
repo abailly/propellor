@@ -133,7 +133,7 @@ radicleCIInstalled user@(User userName) = setupRadicleCI <!> teardownRadicleCI
     nativeConfigFile dir host =
       [ "base_url: https://" <> host </> "state",
         "state: " <> stateDir host,
-        "log: " <> cacheDir dir </> "/native-ci.log"
+        "log: " <> cacheDir dir </> "native-ci.log"
       ]
 
     configFile dir =
