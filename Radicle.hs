@@ -106,7 +106,7 @@ radicleCIInstalled user@(User userName) = setupRadicleCI <!> teardownRadicleCI
         dir <- liftIO $ User.homedir user
         let host = "ci.punkachien.net"
         ensureProperty w $
-          ( File.hasContent (configFilePath dir) (configFile dir)
+          ( File.hasContent (configFilePath dir) (configFile dir host)
               <> File.ownerGroup (configFilePath dir) user group
               <> File.hasContent (nativeConfigFilePath dir) (nativeConfigFile dir host)
               <> File.ownerGroup (nativeConfigFilePath dir) user group
@@ -136,9 +136,9 @@ radicleCIInstalled user@(User userName) = setupRadicleCI <!> teardownRadicleCI
         "log: " <> cacheDir dir </> "native-ci.log"
       ]
 
-    configFile dir =
+    configFile dir host =
       [ "db: " <> cacheDir dir </> "ci-broker.db",
-        "report_dir: reports",
+        "report_dir: " <> stateDir host,
         "default_adapter: native",
         "queue_len_interval: 1min",
         "adapters:",
