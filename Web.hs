@@ -39,7 +39,7 @@ httpsWebSite domainName nginxConfig email =
         , "}"
         ]
 
-    domainDir = "/var/www" </> domainName
+    domainDir = "/var/www" </> domainName </> "public_html"
 
     siteContentExists =
       File.ownerGroup domainDir wwwDataUser wwwDataGrp
