@@ -32,7 +32,7 @@ import qualified Radicle
 import Rust (rustInstalled)
 import System.Posix (ownerExecuteMode, ownerReadMode, ownerWriteMode)
 import User (commonUserSetup)
-import Web (htmlDir, httpsWebSite, wwwDataGrp, wwwDataUser)
+import Web (htmlDir, htpasswdPath, httpsWebSite, passwordProtected, wwwDataGrp, wwwDataUser)
 import qualified Wireguard
 
 main :: IO ()
@@ -98,9 +98,10 @@ clermont =
       & httpsWebSite gitPankzsoftNet cgit "contact@pankzsoft.net"
       & httpsWebSite "sensei.pankzsoft.net" senseiWebConfig "contact@pankzsoft.net"
       & httpsWebSite ciPunkachienNet ciWebConfig "contact@pankzsoft.net"
+        `requires` File.ownerGroup (htpasswdPath ciPunkachienNet) wwwDataUser wwwDataGrp
         `requires` passwordProtected ciPunkachienNet "ci.htpasswd"
       & httpsWebSite depositWalletNet depositWallet "me@punkachien.net"
-        `requires` File.ownerGroup htpasswdPath wwwDataUser wwwDataGrp
+        `requires` File.ownerGroup (htpasswdPath depositWalletNet) wwwDataUser wwwDataGrp
         `requires` passwordProtected depositWalletNet "deposit.htpasswd"
         `requires` File.ownerGroup depositDir wwwDataUser wwwDataGrp
         `requires` File.dirExists depositDir
@@ -336,6 +337,9 @@ clermont =
         "    ",
         "    listen 443 ssl; # managed by Certbot",
         "",
+        "    auth_basic           \"Restricted Access\";",
+        "    auth_basic_user_file " <> htpasswdPath ciPunkachienNet <> ";",
+        "",
         "    # RSA certificate",
         "    ssl_certificate /etc/letsencrypt/live/ci.punkachien.net/fullchain.pem; # managed by Certbot",
         "    ssl_certificate_key /etc/letsencrypt/live/ci.punkachien.net/privkey.pem; # managed by Certbot",
@@ -353,17 +357,7 @@ clermont =
         "}"
       ]
 
-    passwordProtected :: String -> String -> Property (MetaTypes '[ 'WithInfo])
-    passwordProtected site passwdFile =
-      withPrivData (PrivFile passwdFile) anyContext $ \getHtpasswd ->
-        property "Configure .htpasswd" $
-          getHtpasswd $ \(PrivData htpasswdContent) -> do
-            liftPropellor $ File.writeFileContent ProtectedWrite (htmlDir site) (lines htpasswdContent)
-            pure MadeChange
-
     depositDir = htmlDir depositStaging
-
-    htpasswdPath = depositDir </> ".htpasswd"
 
     depositStaging = "deposit.pankzsoft.net"
 
@@ -380,7 +374,7 @@ clermont =
         "    listen 443 ssl; # managed by Certbot",
         "",
         "    auth_basic           \"Restricted Access\";",
-        "    auth_basic_user_file " <> htpasswdPath <> ";",
+        "    auth_basic_user_file " <> htpasswdPath depositStaging <> ";",
         "",
         "    # RSA certificate",
         "    ssl_certificate /etc/letsencrypt/live/" <> depositStaging <> "/fullchain.pem; # managed by Certbot",
