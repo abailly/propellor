@@ -10,6 +10,7 @@ import qualified Data.List as List
 import Propellor
 import Propellor.Base
   ( asks,
+    combineModes,
     doesDirectoryExist,
     doesFileExist,
     liftIO,
@@ -25,6 +26,7 @@ import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.User as User
 import Rust (crateInstalled, rustInstalled)
+import System.Posix.Files (groupModes, otherExecuteMode, otherReadMode, ownerModes)
 
 radiclePackage :: Package
 radiclePackage =
@@ -112,8 +114,11 @@ radicleCIInstalled user@(User userName) = setupRadicleCI <!> teardownRadicleCI
           )
             `requires` File.ownerGroup (cacheDir dir) user group
             `requires` File.dirExists (cacheDir dir)
-            `requires` File.ownerGroup (configDir dir) user group
-            `requires` File.dirExists (configDir dir)
+            `requires` File.ownerGroup (cacheDir dir) user group
+            `requires` File.dirExists (cacheDir dir)
+            `requires` File.ownerGroup (stateDir host) user group
+            `requires` File.mode (stateDir host) (combineModes [ownerModes, groupModes, otherReadMode, otherExecuteMode])
+            `requires` File.dirExists (stateDir host)
 
     cacheDir dir = dir </> ".cache" </> "radicle"
 
@@ -123,9 +128,11 @@ radicleCIInstalled user@(User userName) = setupRadicleCI <!> teardownRadicleCI
 
     nativeConfigFilePath dir = configDir dir </> "native-ci.yaml"
 
+    stateDir host = "/var/www" </> host </> "public_html/state"
+
     nativeConfigFile dir host =
       [ "base_url: https://" <> host </> "state",
-        "state: /var/www" </> host </> "public_html/state",
+        "state: " <> stateDir host,
         "log: " <> cacheDir dir </> "/native-ci.log"
       ]
 
