@@ -80,7 +80,7 @@ amaruService envFile dir =
     "[Service]",
     "EnvironmentFile=" <> envFile,
     "Type=simple",
-    "ExecStart=" <> dir </> ".local" </> "bin" </> "amaru",
+    "ExecStart=" <> dir </> ".local" </> "bin" </> "amaru --with-open-telemetry",
     "KillSignal = SIGINT",
     "RestartKillSignal = SIGINT",
     "StandardOutput=journal",
