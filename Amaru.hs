@@ -1,8 +1,26 @@
 module Amaru where
 
-import Base (OS)
+import Base (OS, OSNoInfo)
 import Cardano (CardanoNetwork, networkName)
-import Propellor.Base (Property, User, ensureProperty, liftIO, property', propertyList, props, (&), (<.>), (</>))
+import Data.Bifunctor (second)
+import qualified Data.List as List
+import Propellor.Base
+  ( Property,
+    User,
+    check,
+    describe,
+    doesDirectoryExist,
+    ensureProperty,
+    liftIO,
+    property',
+    propertyList,
+    props,
+    tightenTargets,
+    userScriptProperty,
+    (&),
+    (<.>),
+    (</>),
+  )
 import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Systemd as Systemd
 import Propellor.Property.User (homedir)
@@ -18,9 +36,31 @@ amaruInstalled user network =
           props
             & File.hasContent envFile (amaruEnv dir network)
             & File.hasContent "/etc/systemd/system/amaru.service" (amaruService envFile dir)
+            & bootstrapped envFile user network
             & Systemd.enabled "amaru"
             & Systemd.restarted "amaru"
       )
+
+bootstrapped :: FilePath -> User -> CardanoNetwork -> Property OSNoInfo
+bootstrapped envFile user network =
+  tightenTargets $
+    check
+      doesNotHaveDBs
+      ( userScriptProperty
+          user
+          [ ". " <> envFile,
+            "${HOME}/.local/bin/amaru bootstrap " <> "--config-dir ${HOME}/amaru/data" -- FIXME: should not depend on source
+          ]
+      )
+      `describe` ("Amaru bootstrapped for " <> networkName network)
+  where
+    doesNotHaveDBs :: IO Bool
+    doesNotHaveDBs = do
+      -- NOTE: assumes envFile is defined and contains all we need
+      ledgerDirEnv <- lookup "AMARU_LEDGER_DIR" . fmap (second tail . List.span (/= '=')) . List.lines <$> readFile envFile
+      case ledgerDirEnv of
+        Just ledgerDir -> not <$> doesDirectoryExist ledgerDir
+        Nothing -> pure True
 
 amaruEnv :: FilePath -> CardanoNetwork -> [String]
 amaruEnv dir network =
