@@ -27,8 +27,8 @@ amaruEnv dir network =
   [ "AMARU_PEER_ADDRESS=localhost:3001",
     "AMARU_NETWORK=preview",
     "AMARU_LISTEN_ADDRESS=0.0.0.0:3000",
-    "AMARU_LEDGER_DB=" <> dir </> "ledger" <.> networkName network <.> "db",
-    "AMARU_CHAIN_DB=" <> dir </> "chain" <.> networkName network <.> "db"
+    "AMARU_LEDGER_DIR=" <> dir </> "amaru" </> "ledger" <.> networkName network <.> "db",
+    "AMARU_CHAIN_DIR=" <> dir </> "amaru" </> "chain" <.> networkName network <.> "db"
   ]
 
 amaruService :: String -> FilePath -> [String]
