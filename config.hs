@@ -1,20 +1,17 @@
 -- This is the main configuration file for Propellor, and is used to build
 -- the propellor program.    https://propellor.branchable.com/
 {-# LANGUAGE DataKinds #-}
-{-# OPTIONS_GHC -Wno-deferred-out-of-scope-variables #-}
-{-# OPTIONS_GHC -Wno-unused-imports #-}
 
+import qualified Amaru
 import Base (OS)
 import Cardano (CardanoNetwork (..))
 import qualified Cardano
 import qualified CardanoUp
-import qualified Hydra
 import Propellor
 import Propellor.Base (combineModes, liftIO, withPrivData, (</>))
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.Cron as Cron
 import qualified Propellor.Property.Docker as Docker
-import Propellor.Property.File (FileWriteMode (ProtectedWrite))
 import qualified Propellor.Property.File as File
 import Propellor.Property.Firewall (Chain (..), ConnectionState (..), Proto (..), Rules (..), Table (..), Target (..), rule)
 import qualified Propellor.Property.Firewall as Firewall
@@ -119,6 +116,7 @@ clermont =
       & Wireguard.clientInstalled
         (Wireguard.WgPublicKey "G+8Gq0jVZ6h9qJ188ycHY5X61FhJ7jMEC7ptdp7dwV0=")
         (Wireguard.Endpoint "95.217.84.233" 51820)
+      & Amaru.amaruInstalled user Preview
       & firewall
   where
     root = User "root"
@@ -492,6 +490,7 @@ clermont =
           & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 443))
           & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 5551))
           & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 3001))
+          & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 3000))
           & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 9003))
           & dropEverything
 
