@@ -76,7 +76,8 @@ clermont =
       & Apt.stdSourcesList
       & Apt.unattendedUpgrades
       & Apt.update
-      & Apt.installed (basePackages <> ["podman", "catatonit", "yaml2json", "nodejs", "npm", "debootstrap", "librocksdb-dev", "libclang-dev", "just", "yq"])
+      & Apt.installed (basePackages <> ["podman",
+                                        "catatonit", "yaml2json", "nodejs", "npm", "debootstrap", "librocksdb-dev", "libclang-dev", "just", "yq"])
       & Apt.autoRemove
       & installNix
       & File.hasContent "/etc/nix/nix.conf" nixConf
@@ -167,7 +168,7 @@ clermont =
       ]
 
     dockerComposeInstalled =
-      Apt.installed ["docker-compose-plugin"]
+      Apt.installed ["docker-compose-plugin", "docker-buildx-plugin"]
         `requires` Docker.installed
         `requires` Apt.setSourcesListD ["deb [arch=amd64] https://download.docker.com/linux/debian bookworm stable"] "docker"
         `requires` Apt.trustsKey dockerKey

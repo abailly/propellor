@@ -34,7 +34,7 @@ radiclePackage :: Package
 radiclePackage =
   Package "radicle" radicleKey radicleUrl radicleSigUrl radicleSHA256Url radicleVersion
   where
-    radicleVersion = "1.3.0"
+    radicleVersion = "1.4.0"
     radicleKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL460KIEccS4881p7PPpiiQBsxF+H5tgC6De6crw9rbU"
     radicleUrl =
       "https://files.radicle.xyz/releases/"
