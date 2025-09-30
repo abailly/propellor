@@ -159,6 +159,7 @@ radicleCIInstalled user@(User userName) host authorizedNodes = setupRadicleCI <!
         <> map (\nid -> "        - !Node " <> show nid) authorizedNodes
         <> [ "      - !HasFile \".radicle/native.yaml\"",
              "      - !Or",
+             "        - !BranchUpdated",
              "        - !DefaultBranch",
              "        - !PatchCreated",
              "        - !PatchUpdated"
