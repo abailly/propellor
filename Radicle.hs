@@ -126,6 +126,8 @@ radicleCIInstalled user@(User userName) host authorizedNodes = setupRadicleCI <!
 
     cacheDir dir = dir </> ".cache" </> "radicle"
 
+    binDir dir = dir </> ".cargo" </> "bin"
+
     configDir dir = dir </> ".config" </> "radicle"
 
     configFilePath dir = configDir dir </> "ci-broker.yaml"
@@ -147,7 +149,7 @@ radicleCIInstalled user@(User userName) host authorizedNodes = setupRadicleCI <!
         "queue_len_interval: 1min",
         "adapters:",
         "  native:",
-        "    command: /opt/rust/bin/radicle-native-ci",
+        "    command: " <> binDir dir </> "radicle-native-ci",
         "    env:",
         "      RADICLE_NATIVE_CI: " <> nativeConfigFilePath dir,
         "triggers:",
