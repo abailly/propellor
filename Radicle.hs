@@ -107,22 +107,24 @@ radicleCIInstalled user@(User userName) host authorizedNodes = setupRadicleCI <!
 
     ciConfigured :: Property OS
     ciConfigured =
-      property' ("radicle CI configured for " <> userName) $ \w -> do
-        dir <- liftIO $ User.homedir user
-        ensureProperty w $
-          ( File.hasContent (configFilePath dir) (configFile dir)
-              <> File.ownerGroup (configFilePath dir) user group
-              <> File.hasContent (nativeConfigFilePath dir) (nativeConfigFile dir)
-              <> File.ownerGroup (nativeConfigFilePath dir) user group
-              <> File.hasContent "/etc/systemd/system/radicle-ci.service" (ciService dir)
-          )
-            `requires` File.ownerGroup (cacheDir dir) user group
-            `requires` File.dirExists (cacheDir dir)
-            `requires` File.ownerGroup (cacheDir dir) user group
-            `requires` File.dirExists (cacheDir dir)
-            `requires` File.ownerGroup stateDir user group
-            `requires` File.mode stateDir (combineModes [ownerModes, groupModes, otherReadMode, otherExecuteMode])
-            `requires` File.dirExists stateDir
+      withPrivData (PrivFile "radicle-pwd") hostContext $ \getPrivDataPwd ->
+        property' ("radicle CI configured for " <> userName) $ \w -> do
+          getPrivDataPwd $ \(PrivData radiclePwd) -> do
+            dir <- liftIO $ User.homedir user
+            ensureProperty w $
+              ( File.hasContent (configFilePath dir) (configFile dir)
+                  <> File.ownerGroup (configFilePath dir) user group
+                  <> File.hasContent (nativeConfigFilePath dir) (nativeConfigFile dir)
+                  <> File.ownerGroup (nativeConfigFilePath dir) user group
+                  <> File.hasContent "/etc/systemd/system/radicle-ci.service" (ciService dir radiclePwd)
+              )
+                `requires` File.ownerGroup (cacheDir dir) user group
+                `requires` File.dirExists (cacheDir dir)
+                `requires` File.ownerGroup (cacheDir dir) user group
+                `requires` File.dirExists (cacheDir dir)
+                `requires` File.ownerGroup stateDir user group
+                `requires` File.mode stateDir (combineModes [ownerModes, groupModes, otherReadMode, otherExecuteMode])
+                `requires` File.dirExists stateDir
 
     cacheDir dir = dir </> ".cache" </> "radicle"
 
@@ -167,7 +169,7 @@ radicleCIInstalled user@(User userName) host authorizedNodes = setupRadicleCI <!
              "        - !PatchUpdated"
            ]
 
-    ciService dir =
+    ciService dir radiclePwd =
       [ "[Unit]",
         "Description=Radicle CI",
         "After=network.target network-online.target",
@@ -176,6 +178,7 @@ radicleCIInstalled user@(User userName) host authorizedNodes = setupRadicleCI <!
         "[Service]",
         "User=" <> userName,
         "Group=" <> userName,
+        "Environment=RAD_HOME=RAD_PASSPHRASE=" <> radiclePwd,
         "ExecStart= /opt/rust/bin/cib --config " <> configFilePath dir <> " process-events",
         "KillMode=process",
         "Restart=always",
