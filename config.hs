@@ -108,6 +108,9 @@ clermont =
       & httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
       & httpsWebSite gitPankzsoftNet cgit "contact@pankzsoft.net"
       & httpsWebSite "sensei.pankzsoft.net" senseiWebConfig "contact@pankzsoft.net"
+      & httpsWebSite "antithesis.pankzsoft.net" antithesisWebConfig "contact@pankzsoft.net"
+        `requires` File.ownerGroup "/var/www/antithesis.pankzsoft.net/public_html" wwwDataUser wwwDataGrp
+        `requires` File.dirExists "/var/www/antithesis.pankzsoft.net/public_html"
       & httpsWebSite ciPunkachienNet ciWebConfig "contact@pankzsoft.net"
         `requires` File.ownerGroup (htpasswdPath ciPunkachienNet) wwwDataUser wwwDataGrp
         `requires` passwordProtected ciPunkachienNet "ci.htpasswd"
@@ -133,6 +136,7 @@ clermont =
       & Amaru.amaruInstalled user Preview
       & firewall
   where
+
     root = User "root"
     user = User "curry"
     userGrp = Group "curry"
@@ -143,6 +147,7 @@ clermont =
     pacificWarNet = "pacific-war.pankzsoft.net"
     depositWalletNet = "deposit.pankzsoft.net"
     ciPunkachienNet = "ci.punkachien.net"
+    antithesisNet = "antithesis.pankzsoft.net"
     myNodes =
       [ Radicle.NID "z6MkhgPg6WShnhJcmfwox4G5yL3EvJ2zW8L31SZLD95yUi11",
         Radicle.NID "z6MkgrwQNecpatYWTPnzvZfWt6jpxZq1zK7zuz8QmndpMrGJ",
@@ -391,6 +396,35 @@ clermont =
         "    # RSA certificate",
         "    ssl_certificate /etc/letsencrypt/live/" <> depositStaging <> "/fullchain.pem; # managed by Certbot",
         "    ssl_certificate_key /etc/letsencrypt/live/" <> depositStaging <> "/privkey.pem; # managed by Certbot",
+        "",
+        "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot",
+        "",
+        "    # Redirect non-https traffic to https",
+        "    if ($scheme != \"https\") {",
+        "        return 301 https://$host$request_uri;",
+        "    } # managed by Certbot",
+        "",
+        "    location / {",
+        "            try_files $uri $uri/ =404;",
+        "    }",
+        "}"
+      ]
+
+    antithesisWebConfig =
+      [ "server {",
+        "    listen 80;",
+        "    listen [::]:80;",
+        "    ",
+        "    root /var/www/antithesis.pankzsoft.net/public_html;",
+        "    index index.html index.htm index.nginx-debian.html;",
+        "    ",
+        "    server_name antithesis.pankzsoft.net;",
+        "    ",
+        "    listen 443 ssl; # managed by Certbot",
+        "",
+        "    # RSA certificate",
+        "    ssl_certificate /etc/letsencrypt/live/antithesis.pankzsoft.net/fullchain.pem; # managed by Certbot",
+        "    ssl_certificate_key /etc/letsencrypt/live/antithesis.pankzsoft.net/privkey.pem; # managed by Certbot",
         "",
         "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot",
         "",
