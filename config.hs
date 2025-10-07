@@ -27,7 +27,7 @@ import Propellor.Types.MetaTypes (MetaType (..), MetaTypes)
 import Propellor.Utilities (doesDirectoryExist, doesFileExist, readProcess)
 import qualified Radicle
 import Rust (rustInstalled)
-import System.Posix (ownerExecuteMode, ownerReadMode, ownerWriteMode)
+import System.Posix (groupModes, otherExecuteMode, otherReadMode, ownerExecuteMode, ownerModes, ownerReadMode, ownerWriteMode, setGroupIDMode)
 import User (commonUserSetup)
 import Web (htmlDir, htpasswdPath, httpsWebSite, passwordProtected, wwwDataGrp, wwwDataUser)
 import qualified Wireguard
@@ -109,6 +109,9 @@ clermont =
       & httpsWebSite gitPankzsoftNet cgit "contact@pankzsoft.net"
       & httpsWebSite "sensei.pankzsoft.net" senseiWebConfig "contact@pankzsoft.net"
       & httpsWebSite "antithesis.pankzsoft.net" antithesisWebConfig "contact@pankzsoft.net"
+        `requires` ( "/var/www/antithesis.pankzsoft.net/public_html"
+                       `File.mode` combineModes [ownerModes, groupModes, setGroupIDMode, otherReadMode, otherExecuteMode]
+                   )
         `requires` File.ownerGroup "/var/www/antithesis.pankzsoft.net/public_html" wwwDataUser wwwDataGrp
         `requires` File.dirExists "/var/www/antithesis.pankzsoft.net/public_html"
       & httpsWebSite ciPunkachienNet ciWebConfig "contact@pankzsoft.net"
@@ -136,7 +139,6 @@ clermont =
       & Amaru.amaruInstalled user Preview
       & firewall
   where
-
     root = User "root"
     user = User "curry"
     userGrp = Group "curry"
