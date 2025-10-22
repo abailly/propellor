@@ -115,7 +115,7 @@ clermont =
         `requires` File.ownerGroup "/var/www/antithesis.pankzsoft.net/public_html" wwwDataUser wwwDataGrp
         `requires` File.dirExists "/var/www/antithesis.pankzsoft.net/public_html"
       & httpsWebSite ciPunkachienNet ciWebConfig "contact@pankzsoft.net"
-        `requires` File.ownerGroup (htpasswdPath ciPunkachienNet) user wwwDataGrp
+        `requires` File.ownerGroup (htpasswdPath ciPunkachienNet) wwwDataUser wwwDataGrp
         `requires` passwordProtected ciPunkachienNet "ci.htpasswd"
       & httpsWebSite depositWalletNet depositWallet "me@punkachien.net"
         `requires` File.ownerGroup (htpasswdPath depositWalletNet) wwwDataUser wwwDataGrp
