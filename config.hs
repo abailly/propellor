@@ -467,6 +467,8 @@ clermont =
         "        proxy_pass http://127.0.0.1:7890;",
         "        proxy_set_header X-Real-IP $remote_addr;",
         "        proxy_set_header X-Forwarded-Proto $scheme;",
+        "        proxy_set_header Upgrade $http_upgrade;",
+        "        proxy_set_header Connection \"upgrade\";",
         "    }",
         "}"
       ]
