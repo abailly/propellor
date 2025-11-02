@@ -108,6 +108,8 @@ clermont =
       & httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
       & httpsWebSite gitPankzsoftNet cgit "contact@pankzsoft.net"
       & httpsWebSite "sensei.pankzsoft.net" senseiWebConfig "contact@pankzsoft.net"
+      & httpsWebSite "lambda.pankzsoft.net" lambdaWebConfig "contact@pankzsoft.net"
+      & lambdaServerInstalled
       & httpsWebSite "antithesis.pankzsoft.net" antithesisWebConfig "contact@pankzsoft.net"
         `requires` ( "/var/www/antithesis.pankzsoft.net/public_html"
                        `File.mode` combineModes [ownerModes, groupModes, setGroupIDMode, otherReadMode, otherExecuteMode]
@@ -149,7 +151,6 @@ clermont =
     pacificWarNet = "pacific-war.pankzsoft.net"
     depositWalletNet = "deposit.pankzsoft.net"
     ciPunkachienNet = "ci.punkachien.net"
-    antithesisNet = "antithesis.pankzsoft.net"
     myNodes =
       [ Radicle.NID "z6MkhgPg6WShnhJcmfwox4G5yL3EvJ2zW8L31SZLD95yUi11",
         Radicle.NID "z6MkgrwQNecpatYWTPnzvZfWt6jpxZq1zK7zuz8QmndpMrGJ",
@@ -473,6 +474,37 @@ clermont =
         "}"
       ]
 
+    lambdaWebConfig =
+      [ "server {",
+        "    listen 80;",
+        "    listen [::]:80;",
+        "    ",
+        "    root /var/www/lambda.pankzsoft.net/public_html;",
+        "    index index.html index.htm index.nginx-debian.html;",
+        "    ",
+        "    server_name lambda.pankzsoft.net;",
+        "    ",
+        "    listen 443 ssl; # managed by Certbot",
+        "",
+        "    # RSA certificate",
+        "    ssl_certificate /etc/letsencrypt/live/lambda.pankzsoft.net/fullchain.pem; # managed by Certbot",
+        "    ssl_certificate_key /etc/letsencrypt/live/lambda.pankzsoft.net/privkey.pem; # managed by Certbot",
+        "",
+        "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot",
+        "",
+        "    # Redirect non-https traffic to https",
+        "    if ($scheme != \"https\") {",
+        "        return 301 https://$host$request_uri;",
+        "    } # managed by Certbot",
+        "",
+        "    location / {",
+        "        proxy_pass http://127.0.0.1:7890;",
+        "        proxy_set_header X-Real-IP $remote_addr;",
+        "        proxy_set_header X-Forwarded-Proto $scheme;",
+        "    }",
+        "}"
+      ]
+
     cgit =
       [ "server {",
         "    server_name  git.pankzsoft.net;",
@@ -544,6 +576,48 @@ clermont =
           & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 3000))
           & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 9003))
           & dropEverything
+
+    lambdaServerInstalled :: Property OS
+    lambdaServerInstalled =
+      property' "λ service running" $ \w ->
+        do
+          dir <- liftIO $ homedir user
+          ensureProperty
+            w
+            ( propertyList "λ service configured" $
+                props
+                  & File.hasContent "/etc/systemd/system/lambda.service" (lambdaService dir)
+                  & Systemd.enabled "lambda"
+                  & Systemd.restarted "lambda"
+            )
+
+    lambdaService dir =
+      [ "[Unit]",
+        "Description=Lambda Server",
+        "After=multi-user.target",
+        "",
+        "[Service]",
+        "Type=simple",
+        "ExecStart=" <> dir </> ".local" </> "bin" </> "lambda --server",
+        "KillSignal = SIGINT",
+        "RestartKillSignal = SIGINT",
+        "StandardOutput=journal",
+        "StandardError=journal",
+        "SyslogIdentifier=lambda",
+        "",
+        "LimitNOFILE=32768",
+        "",
+        "Restart=on-failure",
+        "RestartSec=15s",
+        "StartLimitIntervalSec=0",
+        "WorkingDirectory=~",
+        "User=curry",
+        "Group=curry",
+        "",
+        "[Install]",
+        "WantedBy=multi-user.target"
+      ]
+
 
     senseiServerInstalled :: Property OS
     senseiServerInstalled =
