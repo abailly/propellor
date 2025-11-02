@@ -110,12 +110,7 @@ clermont =
       & httpsWebSite "sensei.pankzsoft.net" senseiWebConfig "contact@pankzsoft.net"
       & httpsWebSite "lambda.pankzsoft.net" lambdaWebConfig "contact@pankzsoft.net"
       & lambdaServerInstalled
-      & httpsWebSite "antithesis.pankzsoft.net" antithesisWebConfig "contact@pankzsoft.net"
-        `requires` ( "/var/www/antithesis.pankzsoft.net/public_html"
-                       `File.mode` combineModes [ownerModes, groupModes, setGroupIDMode, otherReadMode, otherExecuteMode]
-                   )
-        `requires` File.ownerGroup "/var/www/antithesis.pankzsoft.net/public_html" wwwDataUser wwwDataGrp
-        `requires` File.dirExists "/var/www/antithesis.pankzsoft.net/public_html"
+      ! httpsWebSite "antithesis.pankzsoft.net" [] "contact@pankzsoft.net"
       & httpsWebSite ciPunkachienNet ciWebConfig "contact@pankzsoft.net"
         `requires` File.ownerGroup (htpasswdPath ciPunkachienNet) wwwDataUser wwwDataGrp
         `requires` passwordProtected ciPunkachienNet "ci.htpasswd"
@@ -414,35 +409,6 @@ clermont =
         "}"
       ]
 
-    antithesisWebConfig =
-      [ "server {",
-        "    listen 80;",
-        "    listen [::]:80;",
-        "    ",
-        "    root /var/www/antithesis.pankzsoft.net/public_html;",
-        "    index index.html index.htm index.nginx-debian.html;",
-        "    ",
-        "    server_name antithesis.pankzsoft.net;",
-        "    ",
-        "    listen 443 ssl; # managed by Certbot",
-        "",
-        "    # RSA certificate",
-        "    ssl_certificate /etc/letsencrypt/live/antithesis.pankzsoft.net/fullchain.pem; # managed by Certbot",
-        "    ssl_certificate_key /etc/letsencrypt/live/antithesis.pankzsoft.net/privkey.pem; # managed by Certbot",
-        "",
-        "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot",
-        "",
-        "    # Redirect non-https traffic to https",
-        "    if ($scheme != \"https\") {",
-        "        return 301 https://$host$request_uri;",
-        "    } # managed by Certbot",
-        "",
-        "    location / {",
-        "            try_files $uri $uri/ =404;",
-        "    }",
-        "}"
-      ]
-
     senseiWebConfig =
       [ "server {",
         "    listen 80;",
@@ -610,7 +576,7 @@ clermont =
         "Restart=on-failure",
         "RestartSec=15s",
         "StartLimitIntervalSec=0",
-        "WorkingDirectory=~",
+        "WorkingDirectory=" <> dir </> ".config" </> "lambda",
         "User=curry",
         "Group=curry",
         "",
