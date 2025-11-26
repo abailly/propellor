@@ -99,7 +99,7 @@ clermont =
       & Ssh.installed
       & Systemd.persistentJournal
       & setupUser user
-      & Cardano.setup user "10.5.1" Preview
+      & Cardano.setup user "10.5.3" Preview
       & CardanoUp.install
       & File.dirExists "/var/www"
       & File.ownerGroup "/var/www" user userGrp
