@@ -135,13 +135,7 @@ clermont =
       & httpsWebSite ciPunkachienNet ciWebConfig "contact@pankzsoft.net"
         `requires` File.ownerGroup (htpasswdPath ciPunkachienNet) wwwDataUser wwwDataGrp
         `requires` passwordProtected ciPunkachienNet "ci.htpasswd"
-      & httpsWebSite depositWalletNet depositWallet "me@punkachien.net"
-        `requires` File.ownerGroup (htpasswdPath depositWalletNet) wwwDataUser wwwDataGrp
-        `requires` passwordProtected depositWalletNet "deposit.htpasswd"
-        `requires` File.ownerGroup depositDir wwwDataUser wwwDataGrp
-        `requires` File.dirExists depositDir
-        `requires` File.ownerGroup "/var/www/deposit.pankzsoft.net" wwwDataUser wwwDataGrp
-        `requires` File.dirExists "/var/www/deposit.pankzsoft.net"
+      ! Nginx.siteEnabled "deposit.punkachien.net" []
       & senseiServerInstalled
       ! Nginx.siteEnabled "git.punkachien.net" []
       & rustInstalled user
