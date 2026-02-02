@@ -1,3 +1,4 @@
+packages: .
 ignore-project: False
 source-repository-package
   type: git
