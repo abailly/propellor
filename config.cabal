@@ -10,4 +10,4 @@ Executable propellor-config
   Other-Modules: Cardano, CardanoUp, Hydra, User, Base, Web, Radicle, Wireguard, Rust, Amaru
   GHC-Options: -threaded -Wall -fno-warn-tabs -O0
   Extensions: TypeOperators
-  Build-Depends: propellor >= 3.0, base >= 4.9, unix < 2.8, unix-compat, filepath
+  Build-Depends: propellor >= 3.0, base >= 4.9, unix, unix-compat, filepath
