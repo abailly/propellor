@@ -293,6 +293,8 @@ serviceConfigured user@(User userName) =
     -- TODO: should not be hardcoded but deduced from Tor service output?
     onionAddress = "tk7hobv7lpe6axiq6wlkarevp3dsnzvo7s6wuefloe7shbsvnkpm75yd.onion:8776"
 
+    -- TODO: add pinned repositories
+    -- TODO: make a model for the node config that can be rendered to JSON
     configFile host =
       [ "{",
         "  \"node\": {",
