@@ -25,10 +25,10 @@ data CaddyConfiguration
 
 toConfigBlock :: Maybe String -> HostName -> CaddyConfiguration -> [String]
 toConfigBlock htPasswdContent domain configuration =
-  (domain <> " {") : map ("  " <>) directives ++ ["}"]
+  (domain <> " {") : map ("  " <>) (directives configuration) ++ ["}"]
  where
-  directives =
-    case configuration of
+  directives config =
+    case config of
       (ReverseProxy target port) ->
         [ "  reverse_proxy " <> target <> ":" <> show port
         ]
@@ -36,8 +36,8 @@ toConfigBlock htPasswdContent domain configuration =
         [ "  root * " <> directory
         , "  file_server"
         ]
-      (WithBasicAuth config) ->
-        maybe [] authDirective htPasswdContent <> toConfigBlock htPasswdContent domain config
+      (WithBasicAuth config') ->
+        maybe [] authDirective htPasswdContent <> directives config'
        where
         authDirective passwdContent =
           "basicauth  {"
