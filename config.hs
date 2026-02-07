@@ -75,8 +75,7 @@ mac_mini_1 =
     props
       & osDarwin ARM64
       & User.spinUser (User "arnaudbailly")
-      & Brew.installed "git"
-      & Brew.installed "htop"
+      & macProps
 
 mac_mini_2 :: Host
 mac_mini_2 =
@@ -84,9 +83,14 @@ mac_mini_2 =
     props
       & osDarwin ARM64
       & User.spinUser (User "arnaud")
-      & Brew.installed "git"
-      & Brew.installed "sqlite"
-      & Brew.installed "htop"
+      & macProps
+
+macProps :: Property Darwin
+macProps =
+  Brew.installed "git"
+    <> Brew.installed "sqlite"
+    <> Brew.installed "htop"
+    <> Brew.installed "llama.cpp"
 
 clermont :: Host
 clermont =
