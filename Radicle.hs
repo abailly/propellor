@@ -8,7 +8,7 @@
 module Radicle where
 
 import Base (OS, OSNoInfo)
-import Caddy (caddyServiceConfiguredFor)
+import Caddy (CaddyConfiguration (..), caddyServiceConfiguredFor)
 import qualified Data.List as List
 import Propellor
 import Propellor.Base (
@@ -339,7 +339,7 @@ httpServiceConfigured user@(User userName) =
         & File.hasContent "/etc/systemd/system/radicle-http.service" httpService
         & Systemd.enabled "radicle-http"
         & Systemd.restarted "radicle-http"
-        & caddyServiceConfiguredFor user [("seed.hydra.bzh", "127.0.0.1", 8080)]
+        & caddyServiceConfiguredFor user [ReverseProxy "seed.hydra.bzh" "127.0.0.1" 8080]
  where
   httpService =
     [ "[Unit]"

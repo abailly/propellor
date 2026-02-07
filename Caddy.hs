@@ -1,4 +1,8 @@
-module Caddy where
+module Caddy (
+  CaddyConfiguration (..),
+  PortNumber,
+  caddyServiceConfiguredFor,
+) where
 
 import Base (OS)
 import Data.Word (Word16)
@@ -9,10 +13,14 @@ import qualified Propellor.Property.Systemd as Systemd
 
 type PortNumber = Word16
 
-caddyServiceConfiguredFor :: User -> [(HostName, HostName, PortNumber)] -> Property OS
-caddyServiceConfiguredFor (User userName) proxies =
+data CaddyConfiguration
+  = ReverseProxy HostName HostName PortNumber
+  | StaticFiles HostName FilePath
+
+caddyServiceConfiguredFor :: User -> [CaddyConfiguration] -> Property OS
+caddyServiceConfiguredFor (User userName) configs =
   tightenTargets $
-    propertyList "Caddy reverse proxy configured" $
+    propertyList "Caddy configured" $
       props
         & Apt.installed ["caddy"]
         & File.hasContent "/etc/caddy/Caddyfile" caddyFile
@@ -20,11 +28,17 @@ caddyServiceConfiguredFor (User userName) proxies =
         & Systemd.enabled "caddy"
         & Systemd.restarted "caddy"
  where
-  caddyFile = concatMap proxyBlock proxies
+  caddyFile = concatMap configBlock configs
 
-  proxyBlock (domain, target, port) =
+  configBlock (ReverseProxy domain target port) =
     [ domain <> " {"
     , "  reverse_proxy " <> target <> ":" <> show port
+    , "}"
+    ]
+  configBlock (StaticFiles domain directory) =
+    [ domain <> " {"
+    , "  root * " <> directory
+    , "  file_server"
     , "}"
     ]
 

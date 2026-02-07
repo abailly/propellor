@@ -4,7 +4,7 @@
 
 import qualified Amaru
 import Base (OS)
-import Caddy (caddyServiceConfiguredFor)
+import Caddy (CaddyConfiguration (..), caddyServiceConfiguredFor)
 import Cardano (CardanoNetwork (..))
 import qualified Cardano
 import qualified CardanoUp
@@ -126,20 +126,20 @@ clermont =
       & File.dirExists "/var/www"
       & File.ownerGroup "/var/www" user userGrp
       & cgitInstalled
-      & httpsWebSite punkachienNet punkachien "me@punkachien.net"
-      & httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
-      & httpsWebSite gitPankzsoftNet cgit "contact@pankzsoft.net"
+      -- TODO: configure pacific-war service
       & caddyServiceConfiguredFor user caddyServices
       ! dirExists "/var/www/lambda.pankzsoft.net/"
       ! dirExists "/var/www/sensei.pankzsoft.net/"
       & senseiServerInstalled
       & lambdaServerInstalled
       ! httpsWebSite "antithesis.pankzsoft.net" [] "contact@pankzsoft.net"
-      & httpsWebSite ciPunkachienNet ciWebConfig "contact@pankzsoft.net"
-        `requires` File.ownerGroup (htpasswdPath ciPunkachienNet) wwwDataUser wwwDataGrp
-        `requires` passwordProtected ciPunkachienNet "ci.htpasswd"
+      ! httpsWebSite ciPunkachienNet ciWebConfig "contact@pankzsoft.net"
+      ! httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
+      -- `requires` File.ownerGroup (htpasswdPath ciPunkachienNet) wwwDataUser wwwDataGrp
+      -- `requires` passwordProtected ciPunkachienNet "ci.htpasswd"
       ! Nginx.siteEnabled "deposit.punkachien.net" []
       ! Nginx.siteEnabled "git.punkachien.net" []
+      & Apt.removed ["nginx"]
       & rustInstalled user
       & haskellInstalled
       & dockerComposeInstalled
@@ -170,8 +170,9 @@ clermont =
     ]
 
   caddyServices =
-    [ ("sensei.pankzsoft.net", "127.0.0.1", 23456)
-    , ("lambda.pankzsoft.net", "127.0.0.1", 7890)
+    [ ReverseProxy "sensei.pankzsoft.net" "127.0.0.1" 23456
+    , ReverseProxy "lambda.pankzsoft.net" "127.0.0.1" 7890
+    , StaticFiles "punkachien.net" "/var/www/punkachien.net/public_html"
     ]
 
   pacificWarConfig =
