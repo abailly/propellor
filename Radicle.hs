@@ -8,21 +8,22 @@
 module Radicle where
 
 import Base (OS, OSNoInfo)
+import Caddy (caddyServiceConfiguredFor)
 import qualified Data.List as List
 import Propellor
-import Propellor.Base
-  ( asks,
-    combineModes,
-    doesDirectoryExist,
-    doesFileExist,
-    liftIO,
-    readProcess,
-    removeDirectoryRecursive,
-    takeDirectory,
-    withPrivData,
-    (<.>),
-    (</>),
-  )
+import Propellor.Base (
+  asks,
+  combineModes,
+  doesDirectoryExist,
+  doesFileExist,
+  liftIO,
+  readProcess,
+  removeDirectoryRecursive,
+  takeDirectory,
+  withPrivData,
+  (<.>),
+  (</>),
+ )
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Systemd as Systemd
@@ -33,52 +34,52 @@ import System.Posix.Files (groupModes, otherExecuteMode, otherReadMode, ownerMod
 radiclePackage :: Package
 radiclePackage =
   Package "radicle" radicleKey radicleUrl radicleSigUrl radicleSHA256Url radicleVersion
-  where
-    radicleVersion = "1.5.0"
-    radicleKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL460KIEccS4881p7PPpiiQBsxF+H5tgC6De6crw9rbU"
-    radicleUrl =
-      "https://files.radicle.xyz/releases/"
-        <> radicleVersion
-        <> "/radicle-"
-        <> radicleVersion
-        <> "-x86_64-unknown-linux-musl.tar.xz"
-    radicleSigUrl =
-      "https://files.radicle.xyz/releases/"
-        <> radicleVersion
-        <> "/radicle-"
-        <> radicleVersion
-        <> "-x86_64-unknown-linux-musl.tar.xz.sig"
-    radicleSHA256Url =
-      "https://files.radicle.xyz/releases/"
-        <> radicleVersion
-        <> "/radicle-"
-        <> radicleVersion
-        <> "-x86_64-unknown-linux-musl.tar.xz.sha256"
+ where
+  radicleVersion = "1.5.0"
+  radicleKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL460KIEccS4881p7PPpiiQBsxF+H5tgC6De6crw9rbU"
+  radicleUrl =
+    "https://files.radicle.xyz/releases/"
+      <> radicleVersion
+      <> "/radicle-"
+      <> radicleVersion
+      <> "-x86_64-unknown-linux-musl.tar.xz"
+  radicleSigUrl =
+    "https://files.radicle.xyz/releases/"
+      <> radicleVersion
+      <> "/radicle-"
+      <> radicleVersion
+      <> "-x86_64-unknown-linux-musl.tar.xz.sig"
+  radicleSHA256Url =
+    "https://files.radicle.xyz/releases/"
+      <> radicleVersion
+      <> "/radicle-"
+      <> radicleVersion
+      <> "-x86_64-unknown-linux-musl.tar.xz.sha256"
 
 radicleHttpPackage :: Package
 radicleHttpPackage =
   Package "radicle-http" radicleHttpKey radicleHttpUrl radicleHttpSigUrl radicleHttpSHA256Url radicleHttpVersion
-  where
-    radicleHttpVersion = "0.20.0"
-    radicleHttpKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKU7IHRsae2q1/qd8NaWxfGhPEFGHwK1dcxvSjNdttjb"
-    radicleHttpUrl =
-      "https://files.radicle.xyz/releases/radicle-httpd/"
-        <> radicleHttpVersion
-        <> "/radicle-httpd-"
-        <> radicleHttpVersion
-        <> "-x86_64-unknown-linux-musl.tar.xz"
-    radicleHttpSigUrl =
-      "https://files.radicle.xyz/releases/radicle-httpd/"
-        <> radicleHttpVersion
-        <> "/radicle-httpd-"
-        <> radicleHttpVersion
-        <> "-x86_64-unknown-linux-musl.tar.xz.sig"
-    radicleHttpSHA256Url =
-      "https://files.radicle.xyz/releases/radicle-httpd/"
-        <> radicleHttpVersion
-        <> "/radicle-httpd-"
-        <> radicleHttpVersion
-        <> "-x86_64-unknown-linux-musl.tar.xz.sha256"
+ where
+  radicleHttpVersion = "0.20.0"
+  radicleHttpKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKU7IHRsae2q1/qd8NaWxfGhPEFGHwK1dcxvSjNdttjb"
+  radicleHttpUrl =
+    "https://files.radicle.xyz/releases/radicle-httpd/"
+      <> radicleHttpVersion
+      <> "/radicle-httpd-"
+      <> radicleHttpVersion
+      <> "-x86_64-unknown-linux-musl.tar.xz"
+  radicleHttpSigUrl =
+    "https://files.radicle.xyz/releases/radicle-httpd/"
+      <> radicleHttpVersion
+      <> "/radicle-httpd-"
+      <> radicleHttpVersion
+      <> "-x86_64-unknown-linux-musl.tar.xz.sig"
+  radicleHttpSHA256Url =
+    "https://files.radicle.xyz/releases/radicle-httpd/"
+      <> radicleHttpVersion
+      <> "/radicle-httpd-"
+      <> radicleHttpVersion
+      <> "-x86_64-unknown-linux-musl.tar.xz.sha256"
 
 newtype NID = NID {unnid :: String}
   deriving newtype (Eq, Show, Read)
@@ -86,172 +87,172 @@ newtype NID = NID {unnid :: String}
 -- From https://app.radicle.xyz/nodes/radicle.liw.fi/rad%3AzwTxygwuz5LDGBq255RA2CbNGrz8/tree/doc/userguide.md
 radicleCIInstalled :: User -> String -> [NID] -> RevertableProperty OS OS
 radicleCIInstalled user@(User userName) host authorizedNodes = setupRadicleCI <!> teardownRadicleCI
-  where
-    group = Group userName
+ where
+  group = Group userName
 
-    setupRadicleCI =
-      propertyList "Radicle CI installed" $
+  setupRadicleCI =
+    propertyList "Radicle CI installed" $
+      props
+        & crateInstalled user ["radicle-ci-broker", "radicle-native-ci"]
+          `requires` rustInstalled user
+          `requires` radicleInstalledFor user
+        & ciConfigured
+        & Systemd.enabled "radicle-ci"
+        & Systemd.restarted "radicle-ci"
+
+  teardownRadicleCI =
+    tightenTargets $
+      propertyList "Radicle CI removed" $
         props
-          & crateInstalled user ["radicle-ci-broker", "radicle-native-ci"]
-            `requires` rustInstalled user
-            `requires` radicleInstalledFor user
-          & ciConfigured
-          & Systemd.enabled "radicle-ci"
-          & Systemd.restarted "radicle-ci"
+          ! crateInstalled user ["radicle-ci-broker", "radicle-native-ci"]
 
-    teardownRadicleCI =
-      tightenTargets $
-        propertyList "Radicle CI removed" $
-          props
-            ! crateInstalled user ["radicle-ci-broker", "radicle-native-ci"]
+  ciConfigured :: Property OS
+  ciConfigured =
+    withPrivData (PrivFile "radicle-pwd") hostContext $ \getPrivDataPwd ->
+      property' ("radicle CI configured for " <> userName) $ \w -> do
+        getPrivDataPwd $ \(PrivData radiclePwd) -> do
+          dir <- liftIO $ User.homedir user
+          ensureProperty w $
+            ( File.hasContent (configFilePath dir) (configFile dir)
+                <> File.ownerGroup (configFilePath dir) user group
+                <> File.hasContent (nativeConfigFilePath dir) (nativeConfigFile dir)
+                <> File.ownerGroup (nativeConfigFilePath dir) user group
+                <> File.hasContent "/etc/systemd/system/radicle-ci.service" (ciService dir radiclePwd)
+            )
+              `requires` File.ownerGroup (cacheDir dir) user group
+              `requires` File.dirExists (cacheDir dir)
+              `requires` File.ownerGroup (cacheDir dir) user group
+              `requires` File.dirExists (cacheDir dir)
+              `requires` File.ownerGroup stateDir user group
+              `requires` File.mode stateDir (combineModes [ownerModes, groupModes, otherReadMode, otherExecuteMode])
+              `requires` File.dirExists stateDir
 
-    ciConfigured :: Property OS
-    ciConfigured =
-      withPrivData (PrivFile "radicle-pwd") hostContext $ \getPrivDataPwd ->
-        property' ("radicle CI configured for " <> userName) $ \w -> do
-          getPrivDataPwd $ \(PrivData radiclePwd) -> do
-            dir <- liftIO $ User.homedir user
-            ensureProperty w $
-              ( File.hasContent (configFilePath dir) (configFile dir)
-                  <> File.ownerGroup (configFilePath dir) user group
-                  <> File.hasContent (nativeConfigFilePath dir) (nativeConfigFile dir)
-                  <> File.ownerGroup (nativeConfigFilePath dir) user group
-                  <> File.hasContent "/etc/systemd/system/radicle-ci.service" (ciService dir radiclePwd)
-              )
-                `requires` File.ownerGroup (cacheDir dir) user group
-                `requires` File.dirExists (cacheDir dir)
-                `requires` File.ownerGroup (cacheDir dir) user group
-                `requires` File.dirExists (cacheDir dir)
-                `requires` File.ownerGroup stateDir user group
-                `requires` File.mode stateDir (combineModes [ownerModes, groupModes, otherReadMode, otherExecuteMode])
-                `requires` File.dirExists stateDir
+  cacheDir dir = dir </> ".cache" </> "radicle"
 
-    cacheDir dir = dir </> ".cache" </> "radicle"
+  binDir dir = dir </> ".cargo" </> "bin"
 
-    binDir dir = dir </> ".cargo" </> "bin"
+  configDir dir = dir </> ".config" </> "radicle"
 
-    configDir dir = dir </> ".config" </> "radicle"
+  configFilePath dir = configDir dir </> "ci-broker.yaml"
 
-    configFilePath dir = configDir dir </> "ci-broker.yaml"
+  nativeConfigFilePath dir = configDir dir </> "native-ci.yaml"
 
-    nativeConfigFilePath dir = configDir dir </> "native-ci.yaml"
+  stateDir = "/var/www" </> host </> "public_html/state"
 
-    stateDir = "/var/www" </> host </> "public_html/state"
+  nativeConfigFile dir =
+    [ "base_url: https://" <> host </> "state"
+    , "state: " <> stateDir
+    , "log: " <> cacheDir dir </> "native-ci.log"
+    ]
 
-    nativeConfigFile dir =
-      [ "base_url: https://" <> host </> "state",
-        "state: " <> stateDir,
-        "log: " <> cacheDir dir </> "native-ci.log"
-      ]
+  configFile dir =
+    [ "db: " <> cacheDir dir </> "ci-broker.db"
+    , "report_dir: " <> stateDir
+    , "default_adapter: native"
+    , "queue_len_interval: 1min"
+    , "adapters:"
+    , "  native:"
+    , "    command: " <> binDir dir </> "radicle-native-ci"
+    , "    env:"
+    , "      RADICLE_NATIVE_CI: " <> nativeConfigFilePath dir
+    , "triggers:"
+    , "  - adapter: native"
+    , "    filters:"
+    , "    - !And"
+    , "      - !Or"
+    ]
+      <> map (\nid -> "        - !Node " <> show nid) authorizedNodes
+      <> [ "      - !HasFile \".radicle/native.yaml\""
+         , "      - !Or"
+         , "        - !BranchUpdated"
+         , "        - !DefaultBranch"
+         , "        - !PatchCreated"
+         , "        - !PatchUpdated"
+         ]
 
-    configFile dir =
-      [ "db: " <> cacheDir dir </> "ci-broker.db",
-        "report_dir: " <> stateDir,
-        "default_adapter: native",
-        "queue_len_interval: 1min",
-        "adapters:",
-        "  native:",
-        "    command: " <> binDir dir </> "radicle-native-ci",
-        "    env:",
-        "      RADICLE_NATIVE_CI: " <> nativeConfigFilePath dir,
-        "triggers:",
-        "  - adapter: native",
-        "    filters:",
-        "    - !And",
-        "      - !Or"
-      ]
-        <> map (\nid -> "        - !Node " <> show nid) authorizedNodes
-        <> [ "      - !HasFile \".radicle/native.yaml\"",
-             "      - !Or",
-             "        - !BranchUpdated",
-             "        - !DefaultBranch",
-             "        - !PatchCreated",
-             "        - !PatchUpdated"
-           ]
-
-    ciService dir radiclePwd =
-      [ "[Unit]",
-        "Description=Radicle CI",
-        "After=network.target network-online.target",
-        "Requires=network-online.target",
-        "",
-        "[Service]",
-        "User=" <> userName,
-        "Group=" <> userName,
-        "Environment=RAD_PASSPHRASE=" <> radiclePwd,
-        "ExecStart= /opt/rust/bin/cib --config " <> configFilePath dir <> " process-events",
-        "KillMode=process",
-        "Restart=always",
-        "RestartSec=3",
-        "",
-        "[Install]",
-        "WantedBy=multi-user.target"
-      ]
+  ciService dir radiclePwd =
+    [ "[Unit]"
+    , "Description=Radicle CI"
+    , "After=network.target network-online.target"
+    , "Requires=network-online.target"
+    , ""
+    , "[Service]"
+    , "User=" <> userName
+    , "Group=" <> userName
+    , "Environment=RAD_PASSPHRASE=" <> radiclePwd
+    , "ExecStart= /opt/rust/bin/cib --config " <> configFilePath dir <> " process-events"
+    , "KillMode=process"
+    , "Restart=always"
+    , "RestartSec=3"
+    , ""
+    , "[Install]"
+    , "WantedBy=multi-user.target"
+    ]
 
 radicleSeedInstalled :: RevertableProperty OS OS
 radicleSeedInstalled =
   setupRadicleSeed <!> teardownRadicleSeed
-  where
-    userName = "seed"
+ where
+  userName = "seed"
 
-    home = "/home" </> userName
-    group = Group userName
-    user = User userName
+  home = "/home" </> userName
+  group = Group userName
+  user = User userName
 
-    usrLocal = "/usr/local"
-    radicleDir = home </> ".radicle"
-    archivePath name = "/tmp" </> name <.> "tar.xz"
+  usrLocal = "/usr/local"
+  radicleDir = home </> ".radicle"
+  archivePath name = "/tmp" </> name <.> "tar.xz"
 
-    setupRadicleSeed =
-      tightenTargets $
-        propertyList "Radicle seed installed" $
-          props
-            & User.accountFor user
-            & User.systemGroup group
-            & User.hasGroup user group
-            & File.dirExists radicleDir
-            & File.ownerGroup radicleDir user group
-            & downloadAndInstall
-              user
-              group
-              usrLocal
-              (archivePath "radicle")
-              radiclePackage
-            & downloadAndInstall
-              user
-              group
-              usrLocal
-              (archivePath "radicle-http")
-              radicleHttpPackage
-            & authenticateRadicle user "/usr/local"
-            & serviceConfigured user
-            & Systemd.enabled "radicle-node"
-            & Systemd.restarted "radicle-node"
-            & seeding user "/usr/local" seeds
-            & httpServiceConfigured user
+  setupRadicleSeed =
+    tightenTargets $
+      propertyList "Radicle seed installed" $
+        props
+          & User.accountFor user
+          & User.systemGroup group
+          & User.hasGroup user group
+          & File.dirExists radicleDir
+          & File.ownerGroup radicleDir user group
+          & downloadAndInstall
+            user
+            group
+            usrLocal
+            (archivePath "radicle")
+            radiclePackage
+          & downloadAndInstall
+            user
+            group
+            usrLocal
+            (archivePath "radicle-http")
+            radicleHttpPackage
+          & authenticateRadicle user "/usr/local"
+          & serviceConfigured user
+          & Systemd.enabled "radicle-node"
+          & Systemd.restarted "radicle-node"
+          & seeding user "/usr/local" seeds
+          & httpServiceConfigured user
 
-    teardownRadicleSeed =
-      tightenTargets $
-        propertyList "Radicle seed removed" $
-          props
-            & check
-              (doesFileExist "/etc/systemd/system/radicle-node.service")
-              (Systemd.disabled "radicle-node" `requires` Systemd.stopped "radicle-node")
-            & File.notPresent "/etc/systemd/system/radicle-node.service"
-            & User.nuked user User.YesReallyDeleteHome
+  teardownRadicleSeed =
+    tightenTargets $
+      propertyList "Radicle seed removed" $
+        props
+          & check
+            (doesFileExist "/etc/systemd/system/radicle-node.service")
+            (Systemd.disabled "radicle-node" `requires` Systemd.stopped "radicle-node")
+          & File.notPresent "/etc/systemd/system/radicle-node.service"
+          & User.nuked user User.YesReallyDeleteHome
 
-    seeds =
-      [ SeedFollowed "rad:z3DHQu16u3Do8Da4WMytx36qdanz5" "z6MkgrwQNecpatYWTPnzvZfWt6jpxZq1zK7zuz8QmndpMrGJ"
-      ]
+  seeds =
+    [ SeedFollowed "rad:z3DHQu16u3Do8Da4WMytx36qdanz5" "z6MkgrwQNecpatYWTPnzvZfWt6jpxZq1zK7zuz8QmndpMrGJ"
+    ]
 
 data Seed
   = SeedAll
-      { repo :: String,
-        nid :: String
+      { repo :: String
+      , nid :: String
       }
   | SeedFollowed
-      { repo :: String,
-        nid :: String
+      { repo :: String
+      , nid :: String
       }
 
 seeding :: User -> FilePath -> [Seed] -> Property OS
@@ -261,18 +262,18 @@ seeding user radicleDir seeds =
       getPrivDataPwd $ \(PrivData privDataPwd) ->
         ensureProperty w $
           mconcat (map (seeded privDataPwd) seeds)
-  where
-    seeded pwd seed =
-      userScriptPropertyPty
-        user
-        [ "export RAD_PASSPHRASE=" <> pwd,
-          radicleDir </> "bin" </> "rad seed " <> repo seed <> " --from " <> nid seed <> " --scope " <> scope seed
-        ]
-        `assume` NoChange
+ where
+  seeded pwd seed =
+    userScriptPropertyPty
+      user
+      [ "export RAD_PASSPHRASE=" <> pwd
+      , radicleDir </> "bin" </> "rad seed " <> repo seed <> " --from " <> nid seed <> " --scope " <> scope seed
+      ]
+      `assume` NoChange
 
-    scope = \case
-      SeedAll {} -> "all"
-      SeedFollowed {} -> "followed"
+  scope = \case
+    SeedAll{} -> "all"
+    SeedFollowed{} -> "followed"
 
 serviceConfigured :: User -> Property OS
 serviceConfigured user@(User userName) =
@@ -281,116 +282,83 @@ serviceConfigured user@(User userName) =
       props
         & configFileForNode user configFile
         & serviceFileForNode
-  where
-    serviceFileForNode :: Property OS
-    serviceFileForNode =
-      withPrivData (PrivFile "radicle-pwd") hostContext $ \getPrivDataPwd ->
-        property' "radicle node service file" $ \w ->
-          getPrivDataPwd $ \(PrivData privDataPwd) ->
-            ensureProperty w $
-              File.hasContent "/etc/systemd/system/radicle-node.service" (nodeService privDataPwd)
+ where
+  serviceFileForNode :: Property OS
+  serviceFileForNode =
+    withPrivData (PrivFile "radicle-pwd") hostContext $ \getPrivDataPwd ->
+      property' "radicle node service file" $ \w ->
+        getPrivDataPwd $ \(PrivData privDataPwd) ->
+          ensureProperty w $
+            File.hasContent "/etc/systemd/system/radicle-node.service" (nodeService privDataPwd)
 
-    -- TODO: should not be hardcoded but deduced from Tor service output?
-    onionAddress = "tk7hobv7lpe6axiq6wlkarevp3dsnzvo7s6wuefloe7shbsvnkpm75yd.onion:8776"
+  -- TODO: should not be hardcoded but deduced from Tor service output?
+  onionAddress = "tk7hobv7lpe6axiq6wlkarevp3dsnzvo7s6wuefloe7shbsvnkpm75yd.onion:8776"
 
-    -- TODO: add pinned repositories
-    -- TODO: make a model for the node config that can be rendered to JSON
-    configFile host =
-      [ "{",
-        "  \"node\": {",
-        "    \"alias\": \"" <> userName <.> host <> "\",",
-        "    \"externalAddresses\": [\"" <> host <> ":8776\", \"" <> onionAddress <> "\"],",
-        "    \"onion\": {",
-        "        \"mode\": \"proxy\",",
-        "        \"address\": \"127.0.0.1:9050\"",
-        "    },",
-        "    \"seedingPolicy\": {",
-        "      \"default\": \"block\"",
-        "    }",
-        "  }",
-        "}"
-      ]
+  -- TODO: add pinned repositories
+  -- TODO: make a model for the node config that can be rendered to JSON
+  configFile host =
+    [ "{"
+    , "  \"node\": {"
+    , "    \"alias\": \"" <> userName <.> host <> "\","
+    , "    \"externalAddresses\": [\"" <> host <> ":8776\", \"" <> onionAddress <> "\"],"
+    , "    \"onion\": {"
+    , "        \"mode\": \"proxy\","
+    , "        \"address\": \"127.0.0.1:9050\""
+    , "    },"
+    , "    \"seedingPolicy\": {"
+    , "      \"default\": \"block\""
+    , "    }"
+    , "  }"
+    , "}"
+    ]
 
-    nodeService radiclePwd =
-      [ "[Unit]",
-        "Description=Radicle Node",
-        "After=network.target network-online.target",
-        "Requires=network-online.target",
-        "",
-        "[Service]",
-        "User=" <> userName,
-        "Group=" <> userName,
-        "ExecStart=/usr/local/bin/radicle-node --listen 0.0.0.0:8776 --force",
-        "Environment=RAD_HOME=/home/" <> userName </> ".radicle RUST_BACKTRACE=1 RUST_LOG=info RAD_PASSPHRASE=" <> radiclePwd,
-        "KillMode=process",
-        "Restart=always",
-        "RestartSec=3",
-        "",
-        "[Install]",
-        "WantedBy=multi-user.target"
-      ]
+  nodeService radiclePwd =
+    [ "[Unit]"
+    , "Description=Radicle Node"
+    , "After=network.target network-online.target"
+    , "Requires=network-online.target"
+    , ""
+    , "[Service]"
+    , "User=" <> userName
+    , "Group=" <> userName
+    , "ExecStart=/usr/local/bin/radicle-node --listen 0.0.0.0:8776 --force"
+    , "Environment=RAD_HOME=/home/" <> userName </> ".radicle RUST_BACKTRACE=1 RUST_LOG=info RAD_PASSPHRASE=" <> radiclePwd
+    , "KillMode=process"
+    , "Restart=always"
+    , "RestartSec=3"
+    , ""
+    , "[Install]"
+    , "WantedBy=multi-user.target"
+    ]
 
 httpServiceConfigured :: User -> Property OS
-httpServiceConfigured (User userName) =
+httpServiceConfigured user@(User userName) =
   tightenTargets $
     propertyList "HTTP radicle service configured" $
       props
         & File.hasContent "/etc/systemd/system/radicle-http.service" httpService
         & Systemd.enabled "radicle-http"
         & Systemd.restarted "radicle-http"
-        & File.hasContent "/etc/systemd/system/caddy.service" caddyService
-        & Apt.installed ["caddy"]
-        & File.hasContent "/etc/caddy/Caddyfile" caddyFile
-        & Systemd.enabled "caddy"
-        & Systemd.restarted "caddy"
-  where
-    caddyFile =
-      [ "seed.hydra.bzh {",
-        "  reverse_proxy 127.0.0.1:8080",
-        "}"
-      ]
-
-    caddyService =
-      [ "[Unit]",
-        "Description=Caddy",
-        "Documentation=https://caddyserver.com/docs/",
-        "After=network.target network-online.target",
-        "Requires=network-online.target",
-        "",
-        "[Service]",
-        "Type=notify",
-        "User=" <> userName,
-        "Group=" <> userName,
-        "ExecStart=/usr/bin/caddy run --environ --config /etc/caddy/Caddyfile",
-        "ExecReload=/usr/bin/caddy reload --config /etc/caddy/Caddyfile --force",
-        "TimeoutStopSec=5s",
-        "LimitNOFILE=1048576",
-        "PrivateTmp=true",
-        "ProtectSystem=full",
-        "AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE",
-        "",
-        "[Install]",
-        "WantedBy=multi-user.target"
-      ]
-
-    httpService =
-      [ "[Unit]",
-        "Description=Radicle HTTP Daemon",
-        "After=network.target network-online.target",
-        "Requires=network-online.target",
-        "",
-        "[Service]",
-        "User=" <> userName,
-        "Group=" <> userName,
-        "ExecStart=/usr/local/bin/radicle-httpd --listen 127.0.0.1:8080",
-        "Environment=RAD_HOME=/home/" <> userName <> "/.radicle RUST_BACKTRACE=1 RUST_LOG=info",
-        "KillMode=process",
-        "Restart=always",
-        "RestartSec=1",
-        "",
-        "[Install]",
-        "WantedBy=multi-user.target"
-      ]
+        & caddyServiceConfiguredFor user [("seed.hydra.bzh", "127.0.0.1", 8080)]
+ where
+  httpService =
+    [ "[Unit]"
+    , "Description=Radicle HTTP Daemon"
+    , "After=network.target network-online.target"
+    , "Requires=network-online.target"
+    , ""
+    , "[Service]"
+    , "User=" <> userName
+    , "Group=" <> userName
+    , "ExecStart=/usr/local/bin/radicle-httpd --listen 127.0.0.1:8080"
+    , "Environment=RAD_HOME=/home/" <> userName <> "/.radicle RUST_BACKTRACE=1 RUST_LOG=info"
+    , "KillMode=process"
+    , "Restart=always"
+    , "RestartSec=1"
+    , ""
+    , "[Install]"
+    , "WantedBy=multi-user.target"
+    ]
 
 configFileForNode :: User -> (String -> [String]) -> Property OS
 configFileForNode user@(User userName) configuration =
@@ -401,118 +369,118 @@ configFileForNode user@(User userName) configuration =
       ( File.hasContent (configFilePath dir) (configuration host)
           <> File.ownerGroup (configFilePath dir) user group
       )
-  where
-    group = Group userName
+ where
+  group = Group userName
 
-    configFilePath dir = dir </> ".radicle" </> "config.json"
+  configFilePath dir = dir </> ".radicle" </> "config.json"
 
 radicleInstalledFor :: User -> RevertableProperty OS OS
 radicleInstalledFor user@(User userName) =
   setupRadicle <!> teardownRadicle
-  where
-    setupRadicle =
-      propertyList "Radicle installed" $
+ where
+  setupRadicle =
+    propertyList "Radicle installed" $
+      props
+        & File.dirExists radicleDir
+        & File.ownerGroup radicleDir user group
+        & downloadAndInstall
+          user
+          group
+          radicleDir
+          (archivePath "radicle")
+          radiclePackage
+        & authenticateRadicle user radicleDir
+        & configFileForNode user configFile
+        & nodeRunning user (radicleDir </> "bin" </> "rad")
+
+  teardownRadicle =
+    tightenTargets $
+      propertyList "Radicle removed" $
         props
-          & File.dirExists radicleDir
-          & File.ownerGroup radicleDir user group
-          & downloadAndInstall
-            user
-            group
-            radicleDir
-            (archivePath "radicle")
-            radiclePackage
-          & authenticateRadicle user radicleDir
-          & configFileForNode user configFile
-          & nodeRunning user (radicleDir </> "bin" </> "rad")
+          & nodeStopped
+          & dirNotPresent radicleDir
 
-    teardownRadicle =
-      tightenTargets $
-        propertyList "Radicle removed" $
-          props
-            & nodeStopped
-            & dirNotPresent radicleDir
+  nodeStopped :: Property OS
+  nodeStopped =
+    withPrivData (PrivFile "radicle-pwd") hostContext $ \getPrivDataPwd ->
+      property' "radicle node stopped" $ \w -> do
+        getPrivDataPwd $ \(PrivData privDataPwd) ->
+          ensureProperty
+            w
+            ( userScriptPropertyPty
+                user
+                [ "export RAD_PASSPHRASE=" <> privDataPwd
+                , radicleDir </> "bin" </> "rad node stop"
+                ]
+                `assume` NoChange
+            )
 
-    nodeStopped :: Property OS
-    nodeStopped =
-      withPrivData (PrivFile "radicle-pwd") hostContext $ \getPrivDataPwd ->
-        property' "radicle node stopped" $ \w -> do
-          getPrivDataPwd $ \(PrivData privDataPwd) ->
-            ensureProperty
-              w
-              ( userScriptPropertyPty
-                  user
-                  [ "export RAD_PASSPHRASE=" <> privDataPwd,
-                    radicleDir </> "bin" </> "rad node stop"
-                  ]
-                  `assume` NoChange
-              )
+  -- FIXME: should not be hardcoded
+  home = "/home" </> userName
+  group = Group userName
 
-    -- FIXME: should not be hardcoded
-    home = "/home" </> userName
-    group = Group userName
+  radicleDir = home </> ".radicle"
+  archivePath name = home </> name <.> "tar.xz"
 
-    radicleDir = home </> ".radicle"
-    archivePath name = home </> name <.> "tar.xz"
-
-    configFile host =
-      [ "{",
-        "  \"publicExplorer\": \"https://app.radicle.xyz/nodes/$host/$rid$path\",",
-        "  \"preferredSeeds\": [",
-        "    \"z6MkrLMMsiPWUcNPHcRajuMi9mDfYckSoJyPwwnknocNYPm7@iris.radicle.xyz:8776\",",
-        "    \"z6Mkmqogy2qEM2ummccUthFEaaHvyYmYBYh3dbe9W4ebScxo@rosa.radicle.xyz:8776\",",
-        "    \"z6MkfiRENtzUJiU1kxLhxWMWFCiGGxGi6jEbj33Pq9zBVQkK@cardano.hydra.bzh:8776\"",
-        "  ],",
-        "  \"web\": {",
-        "    \"pinned\": {",
-        "      \"repositories\": []",
-        "    }",
-        "  },",
-        "  \"cli\": {",
-        "    \"hints\": true",
-        "  },",
-        "  \"node\": {",
-        "    \"alias\": \"" <> userName <.> host <> "\",",
-        "    \"listen\": [\"0.0.0.0:8776\"],",
-        "    \"onion\": {",
-        "        \"mode\": \"proxy\",",
-        "        \"address\": \"127.0.0.1:9050\"",
-        "    },",
-        "    \"peers\": {",
-        "      \"type\": \"dynamic\"",
-        "    },",
-        "    \"connect\": [],",
-        "    \"externalAddresses\": [],",
-        "    \"network\": \"main\",",
-        "    \"log\": \"INFO\",",
-        "    \"relay\": \"auto\",",
-        "    \"limits\": {",
-        "      \"routingMaxSize\": 1000,",
-        "      \"routingMaxAge\": 604800,",
-        "      \"gossipMaxAge\": 1209600,",
-        "      \"fetchConcurrency\": 1,",
-        "      \"maxOpenFiles\": 4096,",
-        "      \"rate\": {",
-        "        \"inbound\": {",
-        "          \"fillRate\": 5.0,",
-        "          \"capacity\": 1024",
-        "        },",
-        "        \"outbound\": {",
-        "          \"fillRate\": 10.0,",
-        "          \"capacity\": 2048",
-        "        }",
-        "      },",
-        "      \"connection\": {",
-        "        \"inbound\": 128,",
-        "        \"outbound\": 16",
-        "      }",
-        "    },",
-        "    \"workers\": 8,",
-        "    \"seedingPolicy\": {",
-        "      \"default\": \"block\"",
-        "    }",
-        "  }",
-        "}"
-      ]
+  configFile host =
+    [ "{"
+    , "  \"publicExplorer\": \"https://app.radicle.xyz/nodes/$host/$rid$path\","
+    , "  \"preferredSeeds\": ["
+    , "    \"z6MkrLMMsiPWUcNPHcRajuMi9mDfYckSoJyPwwnknocNYPm7@iris.radicle.xyz:8776\","
+    , "    \"z6Mkmqogy2qEM2ummccUthFEaaHvyYmYBYh3dbe9W4ebScxo@rosa.radicle.xyz:8776\","
+    , "    \"z6MkfiRENtzUJiU1kxLhxWMWFCiGGxGi6jEbj33Pq9zBVQkK@cardano.hydra.bzh:8776\""
+    , "  ],"
+    , "  \"web\": {"
+    , "    \"pinned\": {"
+    , "      \"repositories\": []"
+    , "    }"
+    , "  },"
+    , "  \"cli\": {"
+    , "    \"hints\": true"
+    , "  },"
+    , "  \"node\": {"
+    , "    \"alias\": \"" <> userName <.> host <> "\","
+    , "    \"listen\": [\"0.0.0.0:8776\"],"
+    , "    \"onion\": {"
+    , "        \"mode\": \"proxy\","
+    , "        \"address\": \"127.0.0.1:9050\""
+    , "    },"
+    , "    \"peers\": {"
+    , "      \"type\": \"dynamic\""
+    , "    },"
+    , "    \"connect\": [],"
+    , "    \"externalAddresses\": [],"
+    , "    \"network\": \"main\","
+    , "    \"log\": \"INFO\","
+    , "    \"relay\": \"auto\","
+    , "    \"limits\": {"
+    , "      \"routingMaxSize\": 1000,"
+    , "      \"routingMaxAge\": 604800,"
+    , "      \"gossipMaxAge\": 1209600,"
+    , "      \"fetchConcurrency\": 1,"
+    , "      \"maxOpenFiles\": 4096,"
+    , "      \"rate\": {"
+    , "        \"inbound\": {"
+    , "          \"fillRate\": 5.0,"
+    , "          \"capacity\": 1024"
+    , "        },"
+    , "        \"outbound\": {"
+    , "          \"fillRate\": 10.0,"
+    , "          \"capacity\": 2048"
+    , "        }"
+    , "      },"
+    , "      \"connection\": {"
+    , "        \"inbound\": 128,"
+    , "        \"outbound\": 16"
+    , "      }"
+    , "    },"
+    , "    \"workers\": 8,"
+    , "    \"seedingPolicy\": {"
+    , "      \"default\": \"block\""
+    , "    }"
+    , "  }"
+    , "}"
+    ]
 
 downloadAndInstall ::
   User ->
@@ -521,7 +489,7 @@ downloadAndInstall ::
   FilePath ->
   Package ->
   Property OS
-downloadAndInstall user group installDir archive Package {name, url, sha256Url, version} =
+downloadAndInstall user group installDir archive Package{name, url, sha256Url, version} =
   tightenTargets $
     check (shouldUnpack (installDir </> name) version) $
       propertyList ("Download and install " <> name) $
@@ -575,13 +543,13 @@ nodeRunning user radExe =
           w
           ( userScriptPropertyPty
               user
-              [ "export RAD_PASSPHRASE=" <> privDataPwd,
-                radExe <> " node start --path " <> radicleNodePath
+              [ "export RAD_PASSPHRASE=" <> privDataPwd
+              , radExe <> " node start --path " <> radicleNodePath
               ]
               `assume` NoChange
           )
-  where
-    radicleNodePath = takeDirectory radExe </> "radicle-node"
+ where
+  radicleNodePath = takeDirectory radExe </> "radicle-node"
 
 authenticateRadicle :: User -> FilePath -> Property OS
 authenticateRadicle user@(User userName) exePath =
@@ -593,30 +561,29 @@ authenticateRadicle user@(User userName) exePath =
           getPrivDataPwd $ \(PrivData privDataPwd) -> do
             ensureProperty
               w
-              ( radAuth exePath user (userName <.> host) privDataSeed privDataPwd
-              )
+              (radAuth exePath user (userName <.> host) privDataSeed privDataPwd)
 
 radAuth :: FilePath -> User -> String -> String -> String -> Property UnixLike
 radAuth exePath user nodeName privDataSeed privDataPwd =
   check (not <$> keysExist) $
     userScriptPropertyPty
       user
-      [ "export RAD_KEYGEN_SEED=" <> privDataSeed,
-        "export RAD_PASSPHRASE=" <> privDataPwd,
-        exePath </> "bin" </> "rad auth --alias " <> nodeName
+      [ "export RAD_KEYGEN_SEED=" <> privDataSeed
+      , "export RAD_PASSPHRASE=" <> privDataPwd
+      , exePath </> "bin" </> "rad auth --alias " <> nodeName
       ]
-  where
-    keysExist = do
-      radicleDir <- User.homedir user
-      doesFileExist (radicleDir </> "keys/radicle")
+ where
+  keysExist = do
+    radicleDir <- User.homedir user
+    doesFileExist (radicleDir </> "keys/radicle")
 
 data Package = Package
-  { name :: String,
-    key :: String,
-    url :: String,
-    sigUrl :: String,
-    sha256Url :: String,
-    version :: String
+  { name :: String
+  , key :: String
+  , url :: String
+  , sigUrl :: String
+  , sha256Url :: String
+  , version :: String
   }
 
 -- | Removes a directory, and all its contents.
@@ -638,5 +605,5 @@ userScriptPropertyPty (User user) script =
   cmdProperty
     "su"
     ["-P", "--login", "--shell", "/bin/sh", "-c", shellcmd, user]
-  where
-    shellcmd = List.intercalate " ; " ("set -e" : "cd" : script)
+ where
+  shellcmd = List.intercalate " ; " ("set -e" : "cd" : script)

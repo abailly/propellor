@@ -4,11 +4,12 @@
 
 import qualified Amaru
 import Base (OS)
+import Caddy (caddyServiceConfiguredFor)
 import Cardano (CardanoNetwork (..))
 import qualified Cardano
 import qualified CardanoUp
 import Propellor
-import Propellor.Base (combineModes, liftIO, withPrivData, (</>))
+import Propellor.Base (combineModes, liftIO, removeDirectoryRecursive, withPrivData, (</>))
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.Brew as Brew
 import qualified Propellor.Property.Cron as Cron
@@ -128,15 +129,16 @@ clermont =
       & httpsWebSite punkachienNet punkachien "me@punkachien.net"
       & httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
       & httpsWebSite gitPankzsoftNet cgit "contact@pankzsoft.net"
-      & httpsWebSite "sensei.pankzsoft.net" senseiWebConfig "contact@pankzsoft.net"
-      & httpsWebSite "lambda.pankzsoft.net" lambdaWebConfig "contact@pankzsoft.net"
+      & caddyServiceConfiguredFor user caddyServices
+      ! dirExists "/var/www/lambda.pankzsoft.net/"
+      ! dirExists "/var/www/sensei.pankzsoft.net/"
+      & senseiServerInstalled
       & lambdaServerInstalled
       ! httpsWebSite "antithesis.pankzsoft.net" [] "contact@pankzsoft.net"
       & httpsWebSite ciPunkachienNet ciWebConfig "contact@pankzsoft.net"
         `requires` File.ownerGroup (htpasswdPath ciPunkachienNet) wwwDataUser wwwDataGrp
         `requires` passwordProtected ciPunkachienNet "ci.htpasswd"
       ! Nginx.siteEnabled "deposit.punkachien.net" []
-      & senseiServerInstalled
       ! Nginx.siteEnabled "git.punkachien.net" []
       & rustInstalled user
       & haskellInstalled
@@ -165,6 +167,11 @@ clermont =
     [ Radicle.NID "z6MkhgPg6WShnhJcmfwox4G5yL3EvJ2zW8L31SZLD95yUi11"
     , Radicle.NID "z6MkgrwQNecpatYWTPnzvZfWt6jpxZq1zK7zuz8QmndpMrGJ"
     , Radicle.NID "z6MknbWpMGohJJxXzJSYP178o573QHgPLsNwvCc5UqGrJFcM"
+    ]
+
+  caddyServices =
+    [ ("sensei.pankzsoft.net", "127.0.0.1", 23456)
+    , ("lambda.pankzsoft.net", "127.0.0.1", 7890)
     ]
 
   pacificWarConfig =
@@ -424,70 +431,6 @@ clermont =
     , "}"
     ]
 
-  senseiWebConfig =
-    [ "server {"
-    , "    listen 80;"
-    , "    listen [::]:80;"
-    , "    "
-    , "    root /var/www/sensei.pankzsoft.net/public_html;"
-    , "    index index.html index.htm index.nginx-debian.html;"
-    , "    "
-    , "    server_name sensei.pankzsoft.net;"
-    , "    "
-    , "    listen 443 ssl; # managed by Certbot"
-    , ""
-    , "    # RSA certificate"
-    , "    ssl_certificate /etc/letsencrypt/live/sensei.pankzsoft.net/fullchain.pem; # managed by Certbot"
-    , "    ssl_certificate_key /etc/letsencrypt/live/sensei.pankzsoft.net/privkey.pem; # managed by Certbot"
-    , ""
-    , "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot"
-    , ""
-    , "    # Redirect non-https traffic to https"
-    , "    if ($scheme != \"https\") {"
-    , "        return 301 https://$host$request_uri;"
-    , "    } # managed by Certbot"
-    , ""
-    , "    location / {"
-    , "        proxy_pass http://127.0.0.1:23456;"
-    , "        proxy_set_header X-Real-IP $remote_addr;"
-    , "        proxy_set_header X-Forwarded-Proto $scheme;"
-    , "    }"
-    , "}"
-    ]
-
-  lambdaWebConfig =
-    [ "server {"
-    , "    listen 80;"
-    , "    listen [::]:80;"
-    , "    "
-    , "    root /var/www/lambda.pankzsoft.net/public_html;"
-    , "    index index.html index.htm index.nginx-debian.html;"
-    , "    "
-    , "    server_name lambda.pankzsoft.net;"
-    , "    "
-    , "    listen 443 ssl; # managed by Certbot"
-    , ""
-    , "    # RSA certificate"
-    , "    ssl_certificate /etc/letsencrypt/live/lambda.pankzsoft.net/fullchain.pem; # managed by Certbot"
-    , "    ssl_certificate_key /etc/letsencrypt/live/lambda.pankzsoft.net/privkey.pem; # managed by Certbot"
-    , ""
-    , "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot"
-    , ""
-    , "    # Redirect non-https traffic to https"
-    , "    if ($scheme != \"https\") {"
-    , "        return 301 https://$host$request_uri;"
-    , "    } # managed by Certbot"
-    , ""
-    , "    location / {"
-    , "        proxy_pass http://127.0.0.1:7890;"
-    , "        proxy_set_header X-Real-IP $remote_addr;"
-    , "        proxy_set_header X-Forwarded-Proto $scheme;"
-    , "        proxy_set_header Upgrade $http_upgrade;"
-    , "        proxy_set_header Connection \"upgrade\";"
-    , "    }"
-    , "}"
-    ]
-
   cgit =
     [ "server {"
     , "    server_name  git.pankzsoft.net;"
@@ -655,6 +598,18 @@ clermont =
     , "[Install]"
     , "WantedBy=multi-user.target"
     ]
+
+dirExists :: FilePath -> RevertableProperty UnixLike UnixLike
+dirExists directory = ensureDirExists <!> ensureDirDoesNotExist
+ where
+  ensureDirExists = File.dirExists directory
+
+  ensureDirDoesNotExist =
+    check (not <$> doesDirectoryExist directory) $
+      property (directory ++ " does not exist") $
+        makeChange $
+          liftIO $
+            removeDirectoryRecursive directory
 
 cgitInstalled :: Property OS
 cgitInstalled =
