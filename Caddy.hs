@@ -63,7 +63,7 @@ caddySiteConfigured domain config = \case
     siteConfiguredProperty w Nothing
   Just passwdFile ->
     withPrivData (PrivFile passwdFile) (Context domain) $ \getHtpasswd ->
-      property' ("Caddy site " <> domain <> " configured") $ \w ->
+      property' ("Caddy site " <> domain <> " configured with .htpasswd " <> passwdFile) $ \w ->
         getHtpasswd $ \(PrivData htpasswdContent) ->
           siteConfiguredProperty w (Just htpasswdContent)
  where
