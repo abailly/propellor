@@ -2,6 +2,8 @@
 -- the propellor program.    https://propellor.branchable.com/
 {-# LANGUAGE DataKinds #-}
 
+module Main (main) where
+
 import qualified Amaru
 import Base (OS)
 import Caddy (CaddyConfiguration (..), caddyServiceConfiguredFor)
@@ -128,17 +130,15 @@ clermont =
       & cgitInstalled
       -- TODO: configure pacific-war service
       & caddyServiceConfiguredFor user caddyServices
-      ! dirExists "/var/www/lambda.pankzsoft.net/"
-      ! dirExists "/var/www/sensei.pankzsoft.net/"
       & senseiServerInstalled
       & lambdaServerInstalled
-      ! httpsWebSite "antithesis.pankzsoft.net" [] "contact@pankzsoft.net"
-      ! httpsWebSite ciPunkachienNet ciWebConfig "contact@pankzsoft.net"
-      ! httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
-      -- `requires` File.ownerGroup (htpasswdPath ciPunkachienNet) wwwDataUser wwwDataGrp
-      -- `requires` passwordProtected ciPunkachienNet "ci.htpasswd"
-      ! Nginx.siteEnabled "deposit.punkachien.net" []
-      ! Nginx.siteEnabled "git.punkachien.net" []
+      -- ! httpsWebSite "antithesis.pankzsoft.net" [] "contact@pankzsoft.net"
+      -- ! httpsWebSite ciPunkachienNet ciWebConfig "contact@pankzsoft.net"
+      -- ! httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
+      -- -- `requires` File.ownerGroup (htpasswdPath ciPunkachienNet) wwwDataUser wwwDataGrp
+      -- -- `requires` passwordProtected ciPunkachienNet "ci.htpasswd"
+      -- ! Nginx.siteEnabled "deposit.punkachien.net" []
+      -- ! Nginx.siteEnabled "git.punkachien.net" []
       & Apt.removed ["nginx"]
       & rustInstalled user
       & haskellInstalled
