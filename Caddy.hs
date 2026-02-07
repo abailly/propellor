@@ -42,14 +42,14 @@ toConfigBlock htPasswdContent domain configuration =
         authDirective passwdContent =
           "basicauth  {"
             : fmap
-              (\(userName, passwordHash) -> "  " <> show userName <> " " <> passwordHash)
+              (\(userName, passwordHash) -> "  " <> userName <> " " <> passwordHash)
               (foldMap parseLine (lines passwdContent))
               <> ["}"]
 
-        parseLine :: String -> [(User, String)]
+        parseLine :: String -> [(UserName, String)]
         parseLine line =
           case break (== ':') line of
-            (name, ':' : hash) -> [(User name, hash)]
+            (name, ':' : hash) -> [(name, hash)]
             _ -> []
 
 -- | Configures a Caddy site for the given domain, with the given configuration.
