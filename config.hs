@@ -6,7 +6,7 @@ module Main (main) where
 
 import qualified Amaru
 import Base (OS)
-import Caddy (CaddyConfiguration (..), caddyServiceConfiguredFor)
+import Caddy (CaddyConfiguration (..), caddyServiceConfiguredFor, caddySiteConfigured)
 import Cardano (CardanoNetwork (..))
 import qualified Cardano
 import qualified CardanoUp
@@ -129,11 +129,14 @@ clermont =
       & File.ownerGroup "/var/www" user userGrp
       & cgitInstalled
       -- TODO: configure pacific-war service
-      & caddyServiceConfiguredFor user caddyServices
+      -- TODO: configure cgit with caddy : https://www.nite07.com/en/posts/cgit/
       & senseiServerInstalled
       & lambdaServerInstalled
-      -- ! httpsWebSite "antithesis.pankzsoft.net" [] "contact@pankzsoft.net"
-      -- ! httpsWebSite ciPunkachienNet ciWebConfig "contact@pankzsoft.net"
+      & caddyServiceConfiguredFor user
+      & caddySiteConfigured senseiPankzsoftNet senseiCaddyConfiguration Nothing
+      & caddySiteConfigured lambdaPankzsoftNet lambdaCaddyConfiguration Nothing
+      & caddySiteConfigured punkachienNet punkachienCaddyConfiguration Nothing
+      & caddySiteConfigured ciPunkachienNet ciCaddyConfiguration (Just "ci.htpasswd")
       -- ! httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
       -- -- `requires` File.ownerGroup (htpasswdPath ciPunkachienNet) wwwDataUser wwwDataGrp
       -- -- `requires` passwordProtected ciPunkachienNet "ci.htpasswd"
@@ -158,10 +161,10 @@ clermont =
   userGrp = Group "curry"
   nixGrp = Group "nixbld"
   dockerGrp = Group "docker"
-  punkachienNet = "www.punkachien.net"
-  gitPankzsoftNet = "git.pankzsoft.net"
+  punkachienNet = "punkachien.net"
+  senseiPankzsoftNet = "sensei.pankzsoft.net"
   pacificWarNet = "pacific-war.pankzsoft.net"
-  depositWalletNet = "deposit.pankzsoft.net"
+  lambdaPankzsoftNet = "lambda.pankzsoft.net"
   ciPunkachienNet = "ci.punkachien.net"
   myNodes =
     [ Radicle.NID "z6MkhgPg6WShnhJcmfwox4G5yL3EvJ2zW8L31SZLD95yUi11"
@@ -169,11 +172,10 @@ clermont =
     , Radicle.NID "z6MknbWpMGohJJxXzJSYP178o573QHgPLsNwvCc5UqGrJFcM"
     ]
 
-  caddyServices =
-    [ ReverseProxy "sensei.pankzsoft.net" "127.0.0.1" 23456
-    , ReverseProxy "lambda.pankzsoft.net" "127.0.0.1" 7890
-    , StaticFiles "punkachien.net" "/var/www/punkachien.net/public_html"
-    ]
+  senseiCaddyConfiguration = ReverseProxy "127.0.0.1" 23456
+  lambdaCaddyConfiguration = ReverseProxy "127.0.0.1" 7890
+  punkachienCaddyConfiguration = StaticFiles "/var/www/punkachien.net/public_html"
+  ciCaddyConfiguration = WithBasicAuth $ StaticFiles (htmlDir ciPunkachienNet)
 
   pacificWarConfig =
     [ "server {"
