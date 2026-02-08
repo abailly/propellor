@@ -3,6 +3,6 @@ ignore-project: False
 source-repository-package
   type: git
   location: https://seed.hydra.bzh/z3RocmVufT6ZBUxLSCG6CPzvzP3qX.git
-  tag: master
+  tag: 95ebebe2de62ae866e0a099e3f52a5438782f071
 
 
