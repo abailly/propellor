@@ -53,7 +53,7 @@ llamaServerArgs cfg =
       else []
   llamaModelArgs = \case
     LocalModel path -> ["-m", path]
-    HuggingFaceModel name -> ["--hf", name]
+    HuggingFaceModel name -> ["-hf", name]
 
 -- | Create a launchd Service for llama-server.
 llamaService :: LlamaConfig -> Service
