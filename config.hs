@@ -10,6 +10,7 @@ import Caddy (CaddyConfiguration (..), caddyServiceConfiguredFor, caddySiteConfi
 import Cardano (CardanoNetwork (..))
 import qualified Cardano
 import qualified CardanoUp
+import Llama (LlamaConfig (..), LlamaModel (..), llamaService)
 import Propellor
 import Propellor.Base (combineModes, liftIO, removeDirectoryRecursive, withPrivData, (</>))
 import qualified Propellor.Property.Apt as Apt
@@ -91,6 +92,14 @@ macProps =
     <> Brew.installed "sqlite"
     <> Brew.installed "htop"
     <> Brew.installed "llama.cpp"
+
+llamaServer =
+  llamaService
+    LlamaConfig
+      { llamaModel = HuggingFaceModel "Andycurrent/gemma-3-4b-it-uncensored-v2-GGUF"
+      , llamaEmbeddings = False
+      , llamaPort = 9900
+      }
 
 clermont :: Host
 clermont =
