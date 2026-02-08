@@ -16,6 +16,7 @@ import Propellor.Base (combineModes, liftIO, removeDirectoryRecursive, withPrivD
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.Brew as Brew
 import qualified Propellor.Property.Cron as Cron
+import qualified Propellor.Property.Darwin as Darwin
 import qualified Propellor.Property.Docker as Docker
 import qualified Propellor.Property.File as File
 import Propellor.Property.Firewall (Chain (..), ConnectionState (..), Proto (..), Rules (..), Table (..), Target (..), rule)
@@ -77,6 +78,7 @@ mac_mini_1 =
       & osDarwin ARM64
       & User.spinUser (User "arnaudbailly")
       & macProps
+      & Darwin.running llamaServer
 
 mac_mini_2 :: Host
 mac_mini_2 =
