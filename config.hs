@@ -78,7 +78,6 @@ mac_mini_1 =
       & osDarwin ARM64
       & User.spinUser (User "arnaudbailly")
       & macProps
-      & Darwin.running llamaServer
 
 mac_mini_2 :: Host
 mac_mini_2 =
@@ -87,6 +86,7 @@ mac_mini_2 =
       & osDarwin ARM64
       & User.spinUser (User "arnaud")
       & macProps
+      & Darwin.running llamaServer
 
 macProps :: Property Darwin
 macProps =
