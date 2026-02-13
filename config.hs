@@ -98,7 +98,7 @@ macProps =
 llamaServer =
   llamaService
     LlamaConfig
-      { llamaModel = HuggingFaceModel "Andycurrent/gemma-3-4b-it-uncensored-v2-GGUF"
+      { llamaModel = HuggingFaceModel "Andycurrent/gemma-3-4b-it-uncensored-v2-GGUF" "gemma-3-4b-it-uncensored-v2_Q8_0.gguf"
       , llamaEmbeddings = False
       , llamaPort = 9900
       }

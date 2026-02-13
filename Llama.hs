@@ -16,7 +16,9 @@ import qualified Propellor.Property.Brew as Brew
 import Propellor.Property.Darwin (Service (..), running)
 import Propellor.Types.OS (Distribution (Darwin))
 
-data LlamaModel = LocalModel FilePath | HuggingFaceModel String
+data LlamaModel
+  = LocalModel FilePath
+  | HuggingFaceModel String String  -- repo, file
   deriving (Show, Eq)
 
 -- | Configuration for llama-server.
@@ -53,7 +55,7 @@ llamaServerArgs cfg =
       else []
   llamaModelArgs = \case
     LocalModel path -> ["-m", path]
-    HuggingFaceModel name -> ["-hf", name]
+    HuggingFaceModel repo file -> ["-hf", repo, "--hf-file", file]
 
 -- | Create a launchd Service for llama-server.
 llamaService :: LlamaConfig -> Service
