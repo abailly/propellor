@@ -106,6 +106,7 @@ caddyServiceConfiguredFor (User userName) =
     , "PrivateTmp=true"
     , "ProtectSystem=full"
     , "AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE"
+    , "StartLimitBurst=20"
     , ""
     , "[Install]"
     , "WantedBy=multi-user.target"
