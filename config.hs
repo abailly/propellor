@@ -152,6 +152,7 @@ clermont =
       & caddySiteConfigured lambdaPankzsoftNet lambdaCaddyConfiguration Nothing
       & caddySiteConfigured punkachienNet punkachienCaddyConfiguration Nothing
       & caddySiteConfigured ciPunkachienNet ciCaddyConfiguration (Just "ci.htpasswd")
+      & caddySiteConfigured pacificWarPankzsoftNet pacificWarCaddyConfiguration Nothing
       -- ! httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
       -- -- `requires` File.ownerGroup (htpasswdPath ciPunkachienNet) wwwDataUser wwwDataGrp
       -- -- `requires` passwordProtected ciPunkachienNet "ci.htpasswd"
@@ -178,7 +179,7 @@ clermont =
   dockerGrp = Group "docker"
   punkachienNet = "www.punkachien.net"
   senseiPankzsoftNet = "sensei.pankzsoft.net"
-  pacificWarNet = "pacific-war.pankzsoft.net"
+  pacificWarPankzsoftNet = "pacific-war.pankzsoft.net"
   lambdaPankzsoftNet = "lambda.pankzsoft.net"
   ciPunkachienNet = "ci.punkachien.net"
   myNodes =
@@ -191,37 +192,7 @@ clermont =
   lambdaCaddyConfiguration = ReverseProxy "127.0.0.1" 7890
   punkachienCaddyConfiguration = StaticFiles "/var/www/punkachien.net/public_html"
   ciCaddyConfiguration = WithBasicAuth $ StaticFiles (htmlDir ciPunkachienNet)
-
-  pacificWarConfig =
-    [ "server {"
-    , "    listen 80;"
-    , "    listen [::]:80;"
-    , "    "
-    , "    root /var/www/pacific-war.pankzsoft.net/public_html;"
-    , "    index index.html index.htm index.nginx-debian.html;"
-    , "    "
-    , "    server_name pacific-war.pankzsoft.net;"
-    , "    "
-    , "    listen 443 ssl; # managed by Certbot"
-    , ""
-    , "    # RSA certificate"
-    , "    ssl_certificate /etc/letsencrypt/live/pacific-war.pankzsoft.net/fullchain.pem; # managed by Certbot"
-    , "    ssl_certificate_key /etc/letsencrypt/live/pacific-war.pankzsoft.net/privkey.pem; # managed by Certbot"
-    , ""
-    , "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot"
-    , ""
-    , "    # Redirect non-https traffic to https"
-    , "    if ($scheme != \"https\") {"
-    , "        return 301 https://$host$request_uri;"
-    , "    } # managed by Certbot"
-    , ""
-    , "       location / {"
-    , "           proxy_pass http://127.0.0.1:8000;"
-    , "           proxy_set_header X-Real-IP $remote_addr;"
-    , "           proxy_set_header X-Forwarded-Proto $scheme;"
-    , "       }"
-    , "}"
-    ]
+  pacificWarCaddyConfiguration = ReverseProxy "127.0.0.1" 8000
 
   dockerComposeInstalled =
     Apt.installed ["docker-compose-plugin", "docker-buildx-plugin"]
