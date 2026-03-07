@@ -59,7 +59,6 @@ basePackages =
   , "python3-pip"
   , "dstat"
   , "btop"
-  , "tcpdump"
   , "dmidecode"
   , "hwinfo"
   , "sqlite3"
@@ -69,6 +68,9 @@ basePackages =
   , "automake"
   , "libtool"
   ]
+
+removedPackages :: [String]
+removedPackages = ["tcpdump"]
 
 -- An example host.
 mac_mini_1 :: Host
@@ -130,6 +132,7 @@ clermont =
                , "ncdu"
                ]
         )
+      & Apt.removed removedPackages
       & Apt.autoRemove
       & installNix
       & File.hasContent "/etc/nix/nix.conf" nixConf
