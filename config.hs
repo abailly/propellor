@@ -7,7 +7,7 @@ module Main (main) where
 
 import qualified Amaru
 import Base (OS)
-import Caddy (CGIConfiguration (..), CaddyConfiguration (..), Matcher (..), caddyServiceConfiguredFor, caddySiteConfigured)
+import Caddy (CGIConfiguration (..), CaddyConfiguration (..), Matcher (..), ReverseProxyOption (..), Transport (..), caddyServiceConfiguredFor, caddySiteConfigured)
 import Cardano (CardanoNetwork (..))
 import qualified Cardano
 import qualified CardanoUp
@@ -194,11 +194,11 @@ clermont =
     , Radicle.NID "z6MknbWpMGohJJxXzJSYP178o573QHgPLsNwvCc5UqGrJFcM"
     ]
 
-  senseiCaddyConfiguration = ReverseProxy "127.0.0.1" 23456
-  lambdaCaddyConfiguration = ReverseProxy "127.0.0.1" 7890
+  senseiCaddyConfiguration = ReverseProxy "127.0.0.1" 23456 []
+  lambdaCaddyConfiguration = ReverseProxy "127.0.0.1" 7890 []
   punkachienCaddyConfiguration = StaticFiles "/var/www/punkachien.net/public_html"
   ciCaddyConfiguration = WithBasicAuth $ StaticFiles (htmlDir ciPunkachienNet)
-  pacificWarCaddyConfiguration = ReverseProxy "127.0.0.1" 8000
+  pacificWarCaddyConfiguration = ReverseProxy "127.0.0.1" 8000 []
 
   dockerComposeInstalled =
     Apt.installed ["docker-compose-plugin", "docker-buildx-plugin"]
@@ -562,22 +562,19 @@ cgitCaddyConfiguration :: CaddyConfiguration
 cgitCaddyConfiguration =
   WithBasicAuth $
     Directives
-      [ NamedMatcher "git" [HeaderMatcher "User-Agent" "git/"]
-      , NamedMatcher "statics" [PathRegexMatcher "images" ".*\\.(css|gif|jpg|png|ico)$"]
-      , Route
-          [ Handle "/cgit.*" [StaticFiles "/usr/share/cgit"]
-          , Handle (Name "statics") [StaticFiles "/usr/share/cgit"]
-          , Handle
-              (Name "git")
-              [ CGI
-                  ( CGIConfiguration
-                      "/usr/lib/cgit/cgit.cgi"
-                      [ ("GIT_PROJECT_ROOT", "")
-                      , ("GIT_HTTP_EXPORT_ALL", "1")
+      [ HandlePath "/cgit-css/*" [StaticFiles "/usr/share/cgit"]
+      , Handle
+          "*"
+          [ ReverseProxy
+              "localhost"
+              8999
+              [ Transport
+                  ( FastCGI
+                      [ ("DOCUMENT_ROOT", "/usr/lib/cgit")
+                      , ("SCRIPT_FILENAME", "/usr/lib/cgit/cgit.cgi")
                       ]
                   )
               ]
-          , Handle "*" [CGI (CGIConfiguration "/usr/lib/cgit/cgit.cgi" [("CGIT_CONFIG", "/cgitrc")])]
           ]
       ]
 
@@ -617,8 +614,21 @@ cgitInstalled =
                             , "virtual-root=/"
                             ]
           `describe` "cgit configured"
-        & Systemd.started "fcgiwrap"
+        & Systemd.started "cgit"
+          `requires` File.hasContent "/etc/systemd/system/cgit.service" cgitService
  where
+  cgitService =
+    [ "[Unit]"
+    , "Description=CGI web interface to the Git SCM"
+    , "After=network.target"
+    , ""
+    , "[Service]"
+    , "Type=exec"
+    , "ExecStart=fcgiwrap -f -p \"/usr/lib/cgit/cgit.cgi\" -s tcp:127.0.0.1:8999"
+    , ""
+    , "[Install]"
+    , "WantedBy=multi-user.target"
+    ]
   gitRepositories =
     flip describe "Git repositories present"
       . mconcat

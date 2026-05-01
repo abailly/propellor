@@ -5,6 +5,8 @@ module Caddy (
   CaddyConfiguration (..),
   CGIConfiguration (..),
   Matcher (..),
+  Transport (..),
+  ReverseProxyOption (..),
   PortNumber,
   caddySiteConfigured,
   caddyServiceConfiguredFor,
@@ -39,14 +41,22 @@ instance IsString Matcher where
   fromString = PathMatcher
 
 data CaddyConfiguration
-  = ReverseProxy HostName PortNumber
+  = ReverseProxy HostName PortNumber [ReverseProxyOption]
   | StaticFiles FilePath
   | WithBasicAuth CaddyConfiguration
   | Route [CaddyConfiguration]
   | Handle Matcher [CaddyConfiguration]
+  | HandlePath String [CaddyConfiguration]
   | NamedMatcher String [Matcher]
   | CGI CGIConfiguration
   | Directives [CaddyConfiguration]
+  deriving (Show, Eq)
+
+data ReverseProxyOption
+  = Transport Transport
+  deriving (Show, Eq)
+
+data Transport = FastCGI {envs :: [(String, String)]}
   deriving (Show, Eq)
 
 data CGIConfiguration = CGIConfiguration
@@ -70,11 +80,14 @@ toConfigBlock htPasswdContent domain configuration =
          in "  cgi " <> cgiExecutable cgiConfig <> " {" : env : ["}"]
       (Handle matcher configs) ->
         "handle " <> show matcher <> " { " : concatMap directives configs <> ["}"]
+      (HandlePath matcher configs) ->
+        "handle_path " <> show matcher <> " { " : concatMap directives configs <> ["}"]
       (Route configs) ->
         "route { " : concatMap directives configs <> ["}"]
-      (ReverseProxy target port) ->
-        [ "  reverse_proxy " <> target <> ":" <> show port
-        ]
+      (ReverseProxy target port proxyOptions) ->
+        ("  reverse_proxy " <> target <> ":" <> show port)
+          : " { "
+          : concatMap reverseProxyOptionDirectives proxyOptions <> ["}"]
       (StaticFiles directory) ->
         [ "  root * " <> directory
         , "  file_server"
@@ -94,6 +107,12 @@ toConfigBlock htPasswdContent domain configuration =
           case break (== ':') line of
             (name, ':' : hash) -> [(name, hash)]
             _ -> []
+
+reverseProxyOptionDirectives :: ReverseProxyOption -> [String]
+reverseProxyOptionDirectives = \case
+  (Transport (FastCGI envs)) ->
+    let envLines = map (\(key, value) -> "env " <> key <> " " <> value) envs
+     in ["transport fastcgi {"] ++ envLines ++ ["}"]
 
 -- | Configures a Caddy site for the given domain, with the given configuration.
 --

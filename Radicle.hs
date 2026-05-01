@@ -340,7 +340,7 @@ httpServiceConfigured user@(User userName) =
         & Systemd.enabled "radicle-http"
         & Systemd.restarted "radicle-http"
         & caddyServiceConfiguredFor user
-        & caddySiteConfigured "seed.hydra.bzh" (ReverseProxy "127.0.0.1" 8080) Nothing
+        & caddySiteConfigured "seed.hydra.bzh" (ReverseProxy "127.0.0.1" 8080 []) Nothing
  where
   httpService =
     [ "[Unit]"
