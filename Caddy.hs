@@ -40,6 +40,12 @@ instance Show Matcher where
 instance IsString Matcher where
   fromString = PathMatcher
 
+configureMatcher :: Matcher -> String
+configureMatcher (PathMatcher path) = "path " <> path
+configureMatcher (HeaderMatcher header value) = "header " <> header <> " " <> value
+configureMatcher (PathRegexMatcher regex path) = "path_regexp " <> regex <> " " <> path
+configureMatcher (Name name) = "@" <> name
+
 data CaddyConfiguration
   = ReverseProxy HostName PortNumber [ReverseProxyOption]
   | StaticFiles FilePath
@@ -73,7 +79,7 @@ toConfigBlock htPasswdContent domain configuration =
     case config of
       (Directives configs) -> concatMap directives configs
       (NamedMatcher name matchers) ->
-        let matcherLines = map show matchers
+        let matcherLines = map configureMatcher matchers
          in "@" <> name <> " {" : matcherLines ++ ["}"]
       (CGI cgiConfig) ->
         let env = "env " <> foldMap (\(key, value) -> key <> " " <> value <> " ") (environment cgiConfig)
