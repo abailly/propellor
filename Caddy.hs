@@ -22,12 +22,17 @@ import qualified Propellor.Property.Systemd as Systemd
 
 type PortNumber = Word16
 
-data Matcher = PathMatcher String | HeaderMatcher String String | Name String
+data Matcher
+  = PathMatcher String
+  | HeaderMatcher String String
+  | Name String
+  | PathRegexMatcher String String
   deriving (Eq)
 
 instance Show Matcher where
   show (PathMatcher path) = path
   show (HeaderMatcher header value) = "header " <> header <> " " <> value
+  show (PathRegexMatcher regex path) = "path_regexp " <> regex <> " " <> path
   show (Name name) = "@" <> name
 
 instance IsString Matcher where
@@ -58,12 +63,8 @@ toConfigBlock htPasswdContent domain configuration =
     case config of
       (Directives configs) -> concatMap directives configs
       (NamedMatcher name matchers) ->
-        let matcherLines = map matcherToLine matchers
+        let matcherLines = map show matchers
          in "@" <> name <> " {" : matcherLines ++ ["}"]
-       where
-        matcherToLine (PathMatcher path) = "path " <> path
-        matcherToLine (HeaderMatcher header value) = "header " <> header <> " " <> value
-        matcherToLine (Name name) = "@" <> name -- ??
       (CGI cgiConfig) ->
         let env = "env " <> foldMap (\(key, value) -> key <> " " <> value <> " ") (environment cgiConfig)
          in "  cgi " <> cgiExecutable cgiConfig <> " {" : env : ["}"]
@@ -82,7 +83,7 @@ toConfigBlock htPasswdContent domain configuration =
         maybe [] authDirective htPasswdContent <> directives config'
        where
         authDirective passwdContent =
-          "basicauth  {"
+          "basic_auth  {"
             : fmap
               (\(userName, passwordHash) -> "  " <> userName <> " " <> passwordHash)
               (foldMap parseLine (lines passwdContent))

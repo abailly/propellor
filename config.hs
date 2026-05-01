@@ -563,9 +563,10 @@ cgitCaddyConfiguration =
   WithBasicAuth $
     Directives
       [ NamedMatcher "git" [HeaderMatcher "User-Agent" "git/"]
+      , NamedMatcher "statics" [PathRegexMatcher "images" ".*\\.(css|gif|jpg|png|ico)$"]
       , Route
           [ Handle "/cgit.*" [StaticFiles "/usr/share/cgit"]
-          , Handle "\\.(css|gif|jpg|png|ico)$" [StaticFiles "/usr/share/cgit"]
+          , Handle (Name "statics") [StaticFiles "/usr/share/cgit"]
           , Handle
               (Name "git")
               [ CGI
