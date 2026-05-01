@@ -3,12 +3,16 @@
 
 module Caddy (
   CaddyConfiguration (..),
+  CGIConfiguration (..),
+  Matcher (..),
   PortNumber,
   caddySiteConfigured,
   caddyServiceConfiguredFor,
+  toConfigBlock,
 ) where
 
 import Base (OS)
+import Data.String (IsString)
 import Data.Word (Word16)
 import Propellor
 import Propellor.Base (withPrivData)
@@ -18,10 +22,33 @@ import qualified Propellor.Property.Systemd as Systemd
 
 type PortNumber = Word16
 
+data Matcher = PathMatcher String | HeaderMatcher String String | Name String
+  deriving (Eq)
+
+instance Show Matcher where
+  show (PathMatcher path) = path
+  show (HeaderMatcher header value) = "header " <> header <> " " <> value
+  show (Name name) = "@" <> name
+
+instance IsString Matcher where
+  fromString = PathMatcher
+
 data CaddyConfiguration
   = ReverseProxy HostName PortNumber
   | StaticFiles FilePath
   | WithBasicAuth CaddyConfiguration
+  | Route [CaddyConfiguration]
+  | Handle Matcher [CaddyConfiguration]
+  | NamedMatcher String [Matcher]
+  | CGI CGIConfiguration
+  | Directives [CaddyConfiguration]
+  deriving (Show, Eq)
+
+data CGIConfiguration = CGIConfiguration
+  { cgiExecutable :: FilePath
+  , environment :: [(String, String)]
+  }
+  deriving (Show, Eq)
 
 toConfigBlock :: Maybe String -> HostName -> CaddyConfiguration -> [String]
 toConfigBlock htPasswdContent domain configuration =
@@ -29,6 +56,21 @@ toConfigBlock htPasswdContent domain configuration =
  where
   directives config =
     case config of
+      (Directives configs) -> concatMap directives configs
+      (NamedMatcher name matchers) ->
+        let matcherLines = map matcherToLine matchers
+         in "@" <> name <> " {" : matcherLines ++ ["}"]
+       where
+        matcherToLine (PathMatcher path) = "path " <> path
+        matcherToLine (HeaderMatcher header value) = "header " <> header <> " " <> value
+        matcherToLine (Name name) = "@" <> name -- ??
+      (CGI cgiConfig) ->
+        let env = "env " <> foldMap (\(key, value) -> key <> " " <> value <> " ") (environment cgiConfig)
+         in "  cgi " <> cgiExecutable cgiConfig <> " {" : env : ["}"]
+      (Handle matcher configs) ->
+        "handle " <> show matcher <> " { " : concatMap directives configs <> ["}"]
+      (Route configs) ->
+        "route { " : concatMap directives configs <> ["}"]
       (ReverseProxy target port) ->
         [ "  reverse_proxy " <> target <> ":" <> show port
         ]

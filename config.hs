@@ -1,12 +1,13 @@
 -- This is the main configuration file for Propellor, and is used to build
 -- the propellor program.    https://propellor.branchable.com/
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Main (main) where
 
 import qualified Amaru
 import Base (OS)
-import Caddy (CaddyConfiguration (..), caddyServiceConfiguredFor, caddySiteConfigured)
+import Caddy (CGIConfiguration (..), CaddyConfiguration (..), Matcher (..), caddyServiceConfiguredFor, caddySiteConfigured)
 import Cardano (CardanoNetwork (..))
 import qualified Cardano
 import qualified CardanoUp
@@ -156,6 +157,7 @@ clermont =
       & caddySiteConfigured punkachienNet punkachienCaddyConfiguration Nothing
       & caddySiteConfigured ciPunkachienNet ciCaddyConfiguration (Just "ci.htpasswd")
       & caddySiteConfigured pacificWarPankzsoftNet pacificWarCaddyConfiguration Nothing
+      & caddySiteConfigured cgitPunkachienNet cgitCaddyConfiguration Nothing
       -- ! httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
       -- -- `requires` File.ownerGroup (htpasswdPath ciPunkachienNet) wwwDataUser wwwDataGrp
       -- -- `requires` passwordProtected ciPunkachienNet "ci.htpasswd"
@@ -185,6 +187,7 @@ clermont =
   pacificWarPankzsoftNet = "pacific-war.pankzsoft.net"
   lambdaPankzsoftNet = "lambda.pankzsoft.net"
   ciPunkachienNet = "ci.punkachien.net"
+  cgitPunkachienNet = "git.punkachien.net"
   myNodes =
     [ Radicle.NID "z6MkhgPg6WShnhJcmfwox4G5yL3EvJ2zW8L31SZLD95yUi11"
     , Radicle.NID "z6MkgrwQNecpatYWTPnzvZfWt6jpxZq1zK7zuz8QmndpMrGJ"
@@ -387,42 +390,6 @@ clermont =
     , "}"
     ]
 
-  depositDir = htmlDir depositStaging
-
-  depositStaging = "deposit.pankzsoft.net"
-
-  depositWallet =
-    [ "server {"
-    , "    listen 80;"
-    , "    listen [::]:80;"
-    , "    "
-    , "    root " <> depositDir <> ";"
-    , "    index index.html index.htm index.nginx-debian.html;"
-    , "    "
-    , "    server_name " <> depositStaging <> ";"
-    , "    "
-    , "    listen 443 ssl; # managed by Certbot"
-    , ""
-    , "    auth_basic           \"Restricted Access\";"
-    , "    auth_basic_user_file " <> htpasswdPath depositStaging <> ";"
-    , ""
-    , "    # RSA certificate"
-    , "    ssl_certificate /etc/letsencrypt/live/" <> depositStaging <> "/fullchain.pem; # managed by Certbot"
-    , "    ssl_certificate_key /etc/letsencrypt/live/" <> depositStaging <> "/privkey.pem; # managed by Certbot"
-    , ""
-    , "    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot"
-    , ""
-    , "    # Redirect non-https traffic to https"
-    , "    if ($scheme != \"https\") {"
-    , "        return 301 https://$host$request_uri;"
-    , "    } # managed by Certbot"
-    , ""
-    , "    location / {"
-    , "            try_files $uri $uri/ =404;"
-    , "    }"
-    , "}"
-    ]
-
   cgit =
     [ "server {"
     , "    server_name  git.pankzsoft.net;"
@@ -590,6 +557,28 @@ clermont =
     , "[Install]"
     , "WantedBy=multi-user.target"
     ]
+
+cgitCaddyConfiguration :: CaddyConfiguration
+cgitCaddyConfiguration =
+  WithBasicAuth $
+    Directives
+      [ NamedMatcher "git" [HeaderMatcher "User-Agent" "git/"]
+      , Route
+          [ Handle "/cgit.*" [StaticFiles "/usr/share/cgit"]
+          , Handle "\\.(css|gif|jpg|png|ico)$" [StaticFiles "/usr/share/cgit"]
+          , Handle
+              (Name "git")
+              [ CGI
+                  ( CGIConfiguration
+                      "/usr/lib/cgit/cgit.cgi"
+                      [ ("GIT_PROJECT_ROOT", "")
+                      , ("GIT_HTTP_EXPORT_ALL", "1")
+                      ]
+                  )
+              ]
+          , Handle "*" [CGI (CGIConfiguration "/usr/lib/cgit/cgit.cgi" [("CGIT_CONFIG", "/cgitrc")])]
+          ]
+      ]
 
 dirExists :: FilePath -> RevertableProperty UnixLike UnixLike
 dirExists directory = ensureDirExists <!> ensureDirDoesNotExist
