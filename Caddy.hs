@@ -85,8 +85,7 @@ toConfigBlock htPasswdContent domain configuration =
       (Route configs) ->
         "route { " : concatMap directives configs <> ["}"]
       (ReverseProxy target port proxyOptions) ->
-        ("  reverse_proxy " <> target <> ":" <> show port)
-          : " { "
+        ("  reverse_proxy " <> target <> ":" <> show port <> " {")
           : concatMap reverseProxyOptionDirectives proxyOptions <> ["}"]
       (StaticFiles directory) ->
         [ "  root * " <> directory
