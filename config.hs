@@ -562,7 +562,8 @@ cgitCaddyConfiguration :: CaddyConfiguration
 cgitCaddyConfiguration =
   WithBasicAuth $
     Directives
-      [ HandlePath "/cgit-css/*" [StaticFiles "/usr/share/cgit"]
+      [ NamedMatcher "statics" ["/cgit.css", "/cgit.js", "/cgit.png", "/favicon.ico"]
+      , Handle (Name "statics") [StaticFiles "/usr/share/cgit"]
       , Handle
           "*"
           [ ReverseProxy
