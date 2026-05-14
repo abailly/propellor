@@ -142,8 +142,8 @@ clermont =
       & Ssh.installed
       & Systemd.persistentJournal
       & setupUser user
-      & Cardano.setup user "11.0.1" Preview
-      & CardanoUp.install
+      ! Cardano.setup user "11.0.1" Preview
+      ! CardanoUp.install
       & File.dirExists "/var/www"
       & File.ownerGroup "/var/www" user userGrp
       & cgitInstalled
@@ -174,7 +174,6 @@ clermont =
       & Wireguard.clientInstalled
         (Wireguard.WgPublicKey "G+8Gq0jVZ6h9qJ188ycHY5X61FhJ7jMEC7ptdp7dwV0=")
         (Wireguard.Endpoint "95.217.84.233" 51820)
-      & Amaru.amaruInstalled user Preview
       & firewall
  where
   root = User "root"
