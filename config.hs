@@ -142,7 +142,7 @@ clermont =
       & Ssh.installed
       & Systemd.persistentJournal
       & setupUser user
-      & Cardano.setup user "10.5.3" Preview
+      & Cardano.setup user "11.0.1" Preview
       & CardanoUp.install
       & File.dirExists "/var/www"
       & File.ownerGroup "/var/www" user userGrp
@@ -665,7 +665,7 @@ cardano =
       & Cron.runPropellor (Cron.Times "30 * * * *")
       & Systemd.persistentJournal
       & firewall
-      & Cardano.setup user "10.5.1" Mainnet
+      & Cardano.setup user "11.0.1" Mainnet
         `requires` commonUserSetup user
       & Systemd.stopped "hydra-node"
       & Sudo.enabledFor user

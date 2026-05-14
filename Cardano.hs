@@ -129,7 +129,7 @@ installed cardanoNodeVersion baseDir =
  where
   archivePath = "/tmp/cardano-node-" <> cardanoNodeVersion <> ".tgz"
 
-  sha256 = "03ae05a4bf43d99eed4d003242a1af91c103cfa33e37941dde8ee27fd54a78e9"
+  sha256 = "40e88a543564251338c4888ef79fde51d2306c18b48ac308c9eab3220e3a13f0"
 
   exePath = baseDir </> "bin" </> "cardano-node"
 
