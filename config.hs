@@ -652,8 +652,10 @@ cardano =
       & osDebian Unstable X86_64
       & Apt.stdSourcesList
       & Apt.unattendedUpgrades
+      & Apt.update
       & Apt.installed ["etckeeper"]
       & Apt.installed ["ssh", "jq", "tmux", "dstat"]
+      & Apt.autoRemove
       & Ssh.installed
       & Tor.installed
       & Tor.hiddenServiceAvailable "ssh" (Port 22)
