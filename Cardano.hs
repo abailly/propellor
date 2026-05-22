@@ -114,7 +114,7 @@ installed cardanoNodeVersion baseDir =
           (shouldDownload sha256 archivePath)
           ( cmdProperty
               "curl"
-              ["-o", archivePath, "-L", "https://github.com/IntersectMBO/cardano-node/releases/download/" <> cardanoNodeVersion <> "/cardano-node-" <> cardanoNodeVersion <> "-linux.tar.gz"]
+              ["-o", archivePath, "-L", "https://github.com/IntersectMBO/cardano-node/releases/download/" <> cardanoNodeVersion <> "/cardano-node-" <> cardanoNodeVersion <> "-linux-amd64.tar.gz"]
               `changesFileContent` archivePath
           )
           `describe` ("Cardano node " <> cardanoNodeVersion <> " archive downloaded")
