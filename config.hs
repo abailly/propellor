@@ -674,6 +674,7 @@ cardano =
       & Radicle.radicleSeedInstalled
       & Wireguard.serverInstalled
       & caddyServiceConfiguredFor user
+      & caddySiteConfigured lambdaNantesFr lambdaNantesConfiguration Nothing
       & caddySiteConfigured lambdaNantes lambdaNantesConfiguration Nothing
         `requires` File.ownerGroup "/var/www/lambdanant.es/public_html" user userGrp
         `requires` File.ownerGroup "/var/www/lambdanant.es" user userGrp
@@ -684,6 +685,7 @@ cardano =
   userGrp = Group "curry"
 
   lambdaNantes = "lambdanant.es"
+  lambdaNantesFr = "lambdanantes.fr"
   lambdaNantesConfiguration = StaticFiles "/var/www/lambdanant.es/public_html"
 
 firewall :: Property OS
