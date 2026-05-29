@@ -673,9 +673,14 @@ cardano =
       & Apt.removed ["nginx"]
       & Radicle.radicleSeedInstalled
       & Wireguard.serverInstalled
+      & caddyServiceConfiguredFor user
+      & caddySiteConfigured lambdaNantes lambdaNantesConfiguration Nothing
  where
   user = User "curry"
   userGrp = Group "curry"
+
+  lambdaNantes = "lambdanant.es"
+  lambdaNantesConfiguration = StaticFiles "/var/www/lambdanant.es/public_html"
 
 firewall :: Property OS
 firewall =
