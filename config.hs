@@ -675,6 +675,8 @@ cardano =
       & Wireguard.serverInstalled
       & caddyServiceConfiguredFor user
       & caddySiteConfigured lambdaNantes lambdaNantesConfiguration Nothing
+        `requires` dirExists "/var/www/lambdanant.es/public_html"
+        `requires` File.ownerGroup "/var/www/lambdanant.es/public_html" user userGrp
  where
   user = User "curry"
   userGrp = Group "curry"

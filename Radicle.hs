@@ -35,22 +35,22 @@ radiclePackage :: Package
 radiclePackage =
   Package "radicle" radicleKey radicleUrl radicleSigUrl radicleSHA256Url radicleVersion
  where
-  radicleVersion = "1.8.0"
+  radicleVersion = "1.9.1"
   radicleKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL460KIEccS4881p7PPpiiQBsxF+H5tgC6De6crw9rbU"
   radicleUrl =
-    "https://files.radicle.xyz/releases/"
+    "https://files.radicle.dev/releases/"
       <> radicleVersion
       <> "/radicle-"
       <> radicleVersion
       <> "-x86_64-unknown-linux-musl.tar.xz"
   radicleSigUrl =
-    "https://files.radicle.xyz/releases/"
+    "https://files.radicle.dev/releases/"
       <> radicleVersion
       <> "/radicle-"
       <> radicleVersion
       <> "-x86_64-unknown-linux-musl.tar.xz.sig"
   radicleSHA256Url =
-    "https://files.radicle.xyz/releases/"
+    "https://files.radicle.dev/releases/"
       <> radicleVersion
       <> "/radicle-"
       <> radicleVersion
@@ -63,19 +63,19 @@ radicleHttpPackage =
   radicleHttpVersion = "0.20.0"
   radicleHttpKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKU7IHRsae2q1/qd8NaWxfGhPEFGHwK1dcxvSjNdttjb"
   radicleHttpUrl =
-    "https://files.radicle.xyz/releases/radicle-httpd/"
+    "https://files.radicle.dev/releases/radicle-httpd/"
       <> radicleHttpVersion
       <> "/radicle-httpd-"
       <> radicleHttpVersion
       <> "-x86_64-unknown-linux-musl.tar.xz"
   radicleHttpSigUrl =
-    "https://files.radicle.xyz/releases/radicle-httpd/"
+    "https://files.radicle.dev/releases/radicle-httpd/"
       <> radicleHttpVersion
       <> "/radicle-httpd-"
       <> radicleHttpVersion
       <> "-x86_64-unknown-linux-musl.tar.xz.sig"
   radicleHttpSHA256Url =
-    "https://files.radicle.xyz/releases/radicle-httpd/"
+    "https://files.radicle.dev/releases/radicle-httpd/"
       <> radicleHttpVersion
       <> "/radicle-httpd-"
       <> radicleHttpVersion
@@ -84,7 +84,7 @@ radicleHttpPackage =
 newtype NID = NID {unnid :: String}
   deriving newtype (Eq, Show, Read)
 
--- From https://app.radicle.xyz/nodes/radicle.liw.fi/rad%3AzwTxygwuz5LDGBq255RA2CbNGrz8/tree/doc/userguide.md
+-- From https://app.radicle.dev/nodes/radicle.liw.fi/rad%3AzwTxygwuz5LDGBq255RA2CbNGrz8/tree/doc/userguide.md
 radicleCIInstalled :: User -> String -> [NID] -> RevertableProperty OS OS
 radicleCIInstalled user@(User userName) host authorizedNodes = setupRadicleCI <!> teardownRadicleCI
  where
@@ -425,10 +425,10 @@ radicleInstalledFor user@(User userName) =
 
   configFile host =
     [ "{"
-    , "  \"publicExplorer\": \"https://app.radicle.xyz/nodes/$host/$rid$path\","
+    , "  \"publicExplorer\": \"https://app.radicle.dev/nodes/$host/$rid$path\","
     , "  \"preferredSeeds\": ["
-    , "    \"z6MkrLMMsiPWUcNPHcRajuMi9mDfYckSoJyPwwnknocNYPm7@iris.radicle.xyz:8776\","
-    , "    \"z6Mkmqogy2qEM2ummccUthFEaaHvyYmYBYh3dbe9W4ebScxo@rosa.radicle.xyz:8776\","
+    , "    \"z6MkrLMMsiPWUcNPHcRajuMi9mDfYckSoJyPwwnknocNYPm7@iris.radicle.dev:8776\","
+    , "    \"z6Mkmqogy2qEM2ummccUthFEaaHvyYmYBYh3dbe9W4ebScxo@rosa.radicle.dev:8776\","
     , "    \"z6MkfiRENtzUJiU1kxLhxWMWFCiGGxGi6jEbj33Pq9zBVQkK@cardano.hydra.bzh:8776\""
     , "  ],"
     , "  \"web\": {"
