@@ -608,3 +608,10 @@ userScriptPropertyPty (User user) script =
     ["-P", "--login", "--shell", "/bin/sh", "-c", shellcmd, user]
  where
   shellcmd = List.intercalate " ; " ("set -e" : "cd" : script)
+
+trustedNodes :: [NID]
+trustedNodes =
+  [ NID "z6MkhgPg6WShnhJcmfwox4G5yL3EvJ2zW8L31SZLD95yUi11"
+  , NID "z6MkgrwQNecpatYWTPnzvZfWt6jpxZq1zK7zuz8QmndpMrGJ"
+  , NID "z6MknbWpMGohJJxXzJSYP178o573QHgPLsNwvCc5UqGrJFcM"
+  ]

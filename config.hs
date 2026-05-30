@@ -158,11 +158,6 @@ clermont =
       & caddySiteConfigured ciPunkachienNet ciCaddyConfiguration (Just "ci.htpasswd")
       & caddySiteConfigured pacificWarPankzsoftNet pacificWarCaddyConfiguration Nothing
       & caddySiteConfigured cgitPunkachienNet cgitCaddyConfiguration Nothing
-      -- ! httpsWebSite pacificWarNet pacificWarConfig "contact@pankzsoft.net"
-      -- -- `requires` File.ownerGroup (htpasswdPath ciPunkachienNet) wwwDataUser wwwDataGrp
-      -- -- `requires` passwordProtected ciPunkachienNet "ci.htpasswd"
-      -- ! Nginx.siteEnabled "deposit.punkachien.net" []
-      -- ! Nginx.siteEnabled "git.punkachien.net" []
       & Apt.removed ["nginx"]
       & rustInstalled user
       & haskellInstalled
@@ -170,7 +165,7 @@ clermont =
       & Docker.installed
       & Cron.runPropellor (Cron.Times "30 * * * *")
       & Radicle.radicleInstalledFor user
-      & Radicle.radicleCIInstalled user ciPunkachienNet myNodes
+      & Radicle.radicleCIInstalled user ciPunkachienNet Radicle.trustedNodes
       & Wireguard.clientInstalled
         (Wireguard.WgPublicKey "G+8Gq0jVZ6h9qJ188ycHY5X61FhJ7jMEC7ptdp7dwV0=")
         (Wireguard.Endpoint "95.217.84.233" 51820)
@@ -187,11 +182,6 @@ clermont =
   lambdaPankzsoftNet = "lambda.pankzsoft.net"
   ciPunkachienNet = "ci.punkachien.net"
   cgitPunkachienNet = "git.punkachien.net"
-  myNodes =
-    [ Radicle.NID "z6MkhgPg6WShnhJcmfwox4G5yL3EvJ2zW8L31SZLD95yUi11"
-    , Radicle.NID "z6MkgrwQNecpatYWTPnzvZfWt6jpxZq1zK7zuz8QmndpMrGJ"
-    , Radicle.NID "z6MknbWpMGohJJxXzJSYP178o573QHgPLsNwvCc5UqGrJFcM"
-    ]
 
   senseiCaddyConfiguration = ReverseProxy "127.0.0.1" 23456 []
   lambdaCaddyConfiguration = ReverseProxy "127.0.0.1" 7890 []
@@ -668,10 +658,14 @@ cardano =
       & firewall
       & Cardano.setup user "11.0.1" Mainnet
         `requires` commonUserSetup user
-      & Systemd.stopped "hydra-node"
       & Sudo.enabledFor user
-      & Apt.removed ["nginx"]
       & Radicle.radicleSeedInstalled
+      & Radicle.radicleCIInstalled user ciHydraBzh Radicle.trustedNodes
+        `requires` caddySiteConfigured ciHydraBzh ciCaddyConfiguration (Just "ci.htpasswd")
+        `requires` File.ownerGroup "/var/www/ci.hydra.bzh/public_html" user userGrp
+        `requires` File.ownerGroup "/var/www/ci.hydra.bzh" user userGrp
+        `requires` dirExists "/var/www/ci.hydra.bzh/public_html"
+        `requires` dirExists "/var/www/ci.hydra.bzh"
       & Wireguard.serverInstalled
       & caddyServiceConfiguredFor user
       & caddySiteConfigured lambdaNantesFr lambdaNantesConfiguration Nothing
@@ -686,7 +680,9 @@ cardano =
 
   lambdaNantes = "lambdanant.es"
   lambdaNantesFr = "lambdanantes.fr"
-  lambdaNantesConfiguration = StaticFiles "/var/www/lambdanant.es/public_html"
+  ciHydraBzh = "ci.hydra.bzh"
+  lambdaNantesConfiguration = StaticFiles (htmlDir lambdaNantes)
+  ciCaddyConfiguration = WithBasicAuth $ StaticFiles (htmlDir ciHydraBzh)
 
 firewall :: Property OS
 firewall =
