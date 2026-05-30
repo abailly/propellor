@@ -189,12 +189,10 @@ radicleCIInstalled user@(User userName) host authorizedNodes = setupRadicleCI <!
     , "WantedBy=multi-user.target"
     ]
 
-radicleSeedInstalled :: RevertableProperty OS OS
-radicleSeedInstalled =
+radicleSeedInstalled :: String -> RevertableProperty OS OS
+radicleSeedInstalled userName =
   setupRadicleSeed <!> teardownRadicleSeed
  where
-  userName = "seed"
-
   home = "/home" </> userName
   group = Group userName
   user = User userName
