@@ -240,17 +240,35 @@ radicleSeedInstalled userName =
           & User.nuked user User.YesReallyDeleteHome
 
   seeds =
-    [ SeedFollowed "rad:z3DHQu16u3Do8Da4WMytx36qdanz5" "z6MkgrwQNecpatYWTPnzvZfWt6jpxZq1zK7zuz8QmndpMrGJ"
+    [ SeedFollowed "rad:z3DHQu16u3Do8Da4WMytx36qdanz5" ["z6MkgrwQNecpatYWTPnzvZfWt6jpxZq1zK7zuz8QmndpMrGJ"]
+    , SeedAll "rad:z3gqcJUoA1n9HaHKufZs5FCSGazv5" []
+    , SeedAll "rad:z28SSH7hyCTu387guFhtPXYxcwtUs" []
+    , SeedAll "rad:z2o8qEBu3CSM4bkNeZYnHe1E95Rkk" []
+    , SeedAll "rad:z3dJN5wKp9HLZzKgCvygHwWaJUjtF" []
+    , SeedAll "rad:z3PQYrvBT8B2zP3XdGoXdUd2Enftc" []
+    , SeedAll "rad:z3DHQu16u3Do8Da4WMytx36qdanz5" []
+    , SeedAll "rad:zkw8cuTp2YRsk1U68HJ9sigHYsTu" []
+    , SeedAll "rad:z3wx8j3x5bcvAYDJB62zKGM5Y69mM" []
+    , SeedAll "rad:zpZ4szHxvnyVyDiy2acfcVEzxza9" []
+    , SeedAll "rad:z2a7Te5b28CX5YyPQ7ihrdG2EEUsC" []
+    , SeedAll "rad:zb49c8nFwypXku4HnjE2qboXJS9J" []
+    , SeedAll "rad:z3y2dFTGkMKCgNqYnQt1V9FYrd7eX" []
+    , SeedAll "rad:z4QBQYzMP9DtUJmejVyDHkCyTVj8G" []
+    , SeedAll "rad:z3RocmVufT6ZBUxLSCG6CPzvzP3qX" []
+    , SeedAll "rad:z2FyzwG7nnZnZm6cnRuDdkUTGBvd5" []
+    , SeedAll "rad:z4G3FVTQJChcbGMAUQkSeR5yyuzor" []
+    , SeedAll "rad:z2o7yJKSodNLjtqDfna8LPDhx4Shg" []
+    , SeedAll "rad:z2TVj3gRjRcaVGu3Rxf6viRDwzvQn" []
     ]
 
 data Seed
   = SeedAll
       { repo :: String
-      , nid :: String
+      , from :: [String]
       }
   | SeedFollowed
       { repo :: String
-      , nid :: String
+      , from :: [String]
       }
 
 seeding :: User -> FilePath -> [Seed] -> Property OS
@@ -265,7 +283,7 @@ seeding user radicleDir seeds =
     userScriptPropertyPty
       user
       [ "export RAD_PASSPHRASE=" <> pwd
-      , radicleDir </> "bin" </> "rad seed " <> repo seed <> " --from " <> nid seed <> " --scope " <> scope seed
+      , radicleDir </> "bin" </> "rad seed " <> repo seed <> " --scope " <> scope seed <> concatMap (" --from " <>) (from seed)
       ]
       `assume` NoChange
 
