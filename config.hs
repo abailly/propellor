@@ -660,10 +660,10 @@ cardano =
         `requires` commonUserSetup user
       & Sudo.enabledFor user
       & Radicle.radicleSeedInstalled
-      & Radicle.radicleCIInstalled user ciHydraBzh Radicle.trustedNodes
+      & Radicle.radicleCIInstalled seedUser ciHydraBzh Radicle.trustedNodes
         `requires` caddySiteConfigured ciHydraBzh ciCaddyConfiguration (Just "ci.htpasswd")
-        `requires` File.ownerGroup "/var/www/ci.hydra.bzh/public_html" user userGrp
-        `requires` File.ownerGroup "/var/www/ci.hydra.bzh" user userGrp
+        `requires` File.ownerGroup "/var/www/ci.hydra.bzh/public_html" seedUser seedGrp
+        `requires` File.ownerGroup "/var/www/ci.hydra.bzh" seedUser seedGrp
         `requires` dirExists "/var/www/ci.hydra.bzh/public_html"
         `requires` dirExists "/var/www/ci.hydra.bzh"
       & Wireguard.serverInstalled
@@ -677,6 +677,9 @@ cardano =
  where
   user = User "curry"
   userGrp = Group "curry"
+
+  seedUser = User "seed"
+  seedGrp = Group "seed"
 
   lambdaNantes = "lambdanant.es"
   lambdaNantesFr = "lambdanantes.fr"
