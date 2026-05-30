@@ -642,7 +642,7 @@ cardano =
       & osDebian Unstable X86_64
       & Apt.stdSourcesList
       & Apt.unattendedUpgrades
-      & Apt.update
+      & Apt.update `onChange` Apt.safeUpgrade
       & Apt.installed ["etckeeper"]
       & Apt.installed ["ssh", "jq", "tmux", "dstat"]
       & Apt.autoRemove
