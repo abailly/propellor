@@ -17,7 +17,7 @@ rustInstalled user =
         , "echo 'export PATH=$PATH:/opt/rust/bin' | sudo tee -a /etc/profile.d/rust.sh"
         ]
     )
-    `requires` Apt.installed ["gcc", "build-essential", "m4", "pkgconf", "libssl-dev"]
+    `requires` Apt.installed ["gcc", "binutils", "build-essential", "m4", "pkgconf", "libssl-dev", "zlib1g-dev"]
     `describe` "Rustup toolchain installed"
 
 crateInstalled :: User -> [String] -> RevertableProperty OSNoInfo OSNoInfo
@@ -33,7 +33,7 @@ crateInstalled user@(User userName) crates =
       (crateNotInstalled crateName)
       ( userScriptProperty
           user
-          [ "cargo install " <> crateName
+          [ "cargo install --locked " <> crateName
           ]
       )
       `requires` rustInstalled user
