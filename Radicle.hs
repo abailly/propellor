@@ -121,8 +121,8 @@ radicleCIInstalled user@(User userName) host authorizedNodes = setupRadicleCI <!
             )
               `requires` File.ownerGroup (cacheDir dir) user group
               `requires` File.dirExists (cacheDir dir)
-              `requires` File.ownerGroup (cacheDir dir) user group
-              `requires` File.dirExists (cacheDir dir)
+              `requires` File.ownerGroup (configDir dir) user group
+              `requires` File.dirExists (configDir dir)
               `requires` File.ownerGroup stateDir user group
               `requires` File.mode stateDir (combineModes [ownerModes, groupModes, otherReadMode, otherExecuteMode])
               `requires` File.dirExists stateDir
