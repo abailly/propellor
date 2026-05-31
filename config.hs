@@ -659,6 +659,7 @@ cardano =
       & Cardano.setup user "11.0.1" Mainnet
         `requires` commonUserSetup user
       & Sudo.enabledFor user
+      & rustInstalled user
       & Radicle.radicleSeedInstalled "curry"
       & Radicle.radicleCIInstalled user ciHydraBzh Radicle.trustedNodes
         `requires` caddySiteConfigured ciHydraBzh ciCaddyConfiguration (Just "ci.htpasswd")
