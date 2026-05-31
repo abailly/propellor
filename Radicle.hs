@@ -179,7 +179,7 @@ radicleCIInstalled user@(User userName) hostname authorizedNodes = setupRadicleC
     , "User=" <> userName
     , "Group=" <> userName
     , "Environment=RAD_PASSPHRASE=" <> radiclePwd
-    , "ExecStart= /opt/rust/bin/cib --config " <> configFilePath dir <> " process-events"
+    , "ExecStart= " <> binDir dir </> "cib" <> " --config " <> configFilePath dir <> " process-events"
     , "KillMode=process"
     , "Restart=always"
     , "RestartSec=3"
