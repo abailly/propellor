@@ -7,7 +7,7 @@
 
 module Radicle where
 
-import Base (OS, OSNoInfo)
+import Base (OS)
 import Caddy (CaddyConfiguration (..), caddyServiceConfiguredFor, caddySiteConfigured)
 import qualified Data.List as List
 import Propellor
@@ -24,7 +24,6 @@ import Propellor.Base (
   (<.>),
   (</>),
  )
-import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Systemd as Systemd
 import qualified Propellor.Property.User as User
@@ -86,7 +85,7 @@ newtype NID = NID {unnid :: String}
 
 -- From https://app.radicle.dev/nodes/radicle.liw.fi/rad%3AzwTxygwuz5LDGBq255RA2CbNGrz8/tree/doc/userguide.md
 radicleCIInstalled :: User -> String -> [NID] -> RevertableProperty OS OS
-radicleCIInstalled user@(User userName) host authorizedNodes = setupRadicleCI <!> teardownRadicleCI
+radicleCIInstalled user@(User userName) hostname authorizedNodes = setupRadicleCI <!> teardownRadicleCI
  where
   group = Group userName
 
@@ -137,10 +136,10 @@ radicleCIInstalled user@(User userName) host authorizedNodes = setupRadicleCI <!
 
   nativeConfigFilePath dir = configDir dir </> "native-ci.yaml"
 
-  stateDir = "/var/www" </> host </> "public_html/state"
+  stateDir = "/var/www" </> hostname </> "public_html/state"
 
   nativeConfigFile dir =
-    [ "base_url: https://" <> host </> "state"
+    [ "base_url: https://" <> hostname </> "state"
     , "state: " <> stateDir
     , "log: " <> cacheDir dir </> "native-ci.log"
     ]
