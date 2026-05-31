@@ -165,7 +165,7 @@ clermont =
       & Docker.installed
       & Cron.runPropellor (Cron.Times "30 * * * *")
       & Radicle.radicleInstalledFor user
-      & Radicle.radicleCIInstalled user ciPunkachienNet Radicle.trustedNodes
+      & Radicle.radicleCIInstalled user ciPunkachienNet Radicle.trustedNodes []
       & Wireguard.clientInstalled
         (Wireguard.WgPublicKey "G+8Gq0jVZ6h9qJ188ycHY5X61FhJ7jMEC7ptdp7dwV0=")
         (Wireguard.Endpoint "95.217.84.233" 51820)
@@ -660,7 +660,7 @@ cardano =
         `requires` commonUserSetup user
       & Sudo.enabledFor user
       & Radicle.radicleSeedInstalled "curry"
-      & Radicle.radicleCIInstalled user ciHydraBzh Radicle.trustedNodes
+      & Radicle.radicleCIInstalled user ciHydraBzh Radicle.trustedNodes reposCI
         `requires` caddySiteConfigured ciHydraBzh ciCaddyConfiguration (Just "ci.htpasswd")
         `requires` File.ownerGroup "/var/www/ci.hydra.bzh/public_html" seedUser seedGrp
         `requires` File.ownerGroup "/var/www/ci.hydra.bzh" seedUser seedGrp
@@ -686,6 +686,8 @@ cardano =
   ciHydraBzh = "ci.hydra.bzh"
   lambdaNantesConfiguration = StaticFiles (htmlDir lambdaNantes)
   ciCaddyConfiguration = WithBasicAuth $ StaticFiles (htmlDir ciHydraBzh)
+
+  reposCI = [Radicle.RID "rad:z43MuaHvu2aQBXNT2rRZZWwW4nooq"]
 
 firewall :: Property OS
 firewall =

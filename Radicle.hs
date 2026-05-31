@@ -83,9 +83,12 @@ radicleHttpPackage =
 newtype NID = NID {unnid :: String}
   deriving newtype (Eq, Show, Read)
 
+newtype RID = RID {unrid :: String}
+  deriving newtype (Eq, Show, Read)
+
 -- From https://app.radicle.dev/nodes/radicle.liw.fi/rad%3AzwTxygwuz5LDGBq255RA2CbNGrz8/tree/doc/userguide.md
-radicleCIInstalled :: User -> String -> [NID] -> RevertableProperty OS OS
-radicleCIInstalled user@(User userName) hostname authorizedNodes = setupRadicleCI <!> teardownRadicleCI
+radicleCIInstalled :: User -> String -> [NID] -> [RID] -> RevertableProperty OS OS
+radicleCIInstalled user@(User userName) hostname authorizedNodes authorizedRepos = setupRadicleCI <!> teardownRadicleCI
  where
   group = Group userName
 
@@ -161,6 +164,8 @@ radicleCIInstalled user@(User userName) hostname authorizedNodes = setupRadicleC
     , "      - !Or"
     ]
       <> map (\nid -> "        - !Node " <> show nid) authorizedNodes
+      <> ["      - !Or"]
+      <> map (\rid -> "        - !Repository " <> show rid) authorizedRepos
       <> [ "      - !HasFile \".radicle/native.yaml\""
          , "      - !Or"
          , "        - !BranchUpdated"
@@ -258,6 +263,7 @@ radicleSeedInstalled userName =
     , SeedAll "rad:z4G3FVTQJChcbGMAUQkSeR5yyuzor" []
     , SeedAll "rad:z2o7yJKSodNLjtqDfna8LPDhx4Shg" []
     , SeedAll "rad:z2TVj3gRjRcaVGu3Rxf6viRDwzvQn" []
+    , SeedAll "rad:z43MuaHvu2aQBXNT2rRZZWwW4nooq" []
     ]
 
 data Seed
