@@ -49,7 +49,7 @@ anubisInstalled =
 
   archivePath = "/tmp/anubis-" <> anubisVersion <> ".tar.gz"
   binaryPath = "/usr/local/bin/anubis"
-  tarBinaryPath = "anubis-" <> anubisVersion <> "-linux-amd64/anubis"
+  tarBinaryPath = "anubis-" <> anubisVersion <> "-linux-amd64/bin/anubis"
 
   shouldInstall = do
     hasFile <- doesFileExist binaryPath
@@ -68,7 +68,7 @@ anubisConfigured siteName staticDir =
         & File.hasContent backendCaddyPath (backendCaddyFile staticDir)
         & Systemd.enabled serviceName
         & Systemd.restarted serviceName
-        `requires` anubisInstalled
+          `requires` anubisInstalled
  where
   serviceName = "anubis-" <> siteName
 
