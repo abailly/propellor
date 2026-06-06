@@ -35,7 +35,7 @@ anubisInstalled =
             `describe` ("Anubis " <> anubisVersion <> " downloaded")
           & ( cmdProperty
                 "tar"
-                ["-C", "/usr/local/bin", "--strip-components", "1", "-xzf", archivePath, tarBinaryPath]
+                ["-C", "/usr/local/bin", "--strip-components", "2", "-xzf", archivePath, tarBinaryPath]
                 `changesFileContent` binaryPath
             )
             `describe` ("Anubis " <> anubisVersion <> " installed")
