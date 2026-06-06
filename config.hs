@@ -645,7 +645,7 @@ cardano =
       & Apt.unattendedUpgrades
       & Apt.update `onChange` Apt.safeUpgrade
       & Apt.installed ["etckeeper"]
-      & Apt.installed ["ssh", "jq", "tmux", "dstat", "podman"]
+      & Apt.installed ["ssh", "jq", "tmux", "dstat", "podman", "uidmap", "slirp4netns"]
       & Apt.autoRemove
       & Ssh.installed
       & Tor.installed
