@@ -19,7 +19,7 @@ anubisPort :: Word16
 anubisPort = 8923
 
 anubisMetricsPort :: Word16
-anubisMetricsPort = 9091
+anubisMetricsPort = 9999
 
 backendPort :: Word16
 backendPort = 8924
