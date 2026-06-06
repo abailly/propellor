@@ -645,7 +645,7 @@ cardano =
       & Apt.unattendedUpgrades
       & Apt.update `onChange` Apt.safeUpgrade
       & Apt.installed ["etckeeper"]
-      & Apt.installed ["ssh", "jq", "tmux", "dstat"]
+      & Apt.installed ["ssh", "jq", "tmux", "dstat", "podman"]
       & Apt.autoRemove
       & Ssh.installed
       & Tor.installed
@@ -676,7 +676,6 @@ cardano =
         `requires` File.ownerGroup "/var/www/lambdanant.es" user userGrp
         `requires` dirExists "/var/www/lambdanant.es/public_html"
         `requires` dirExists "/var/www/lambdanant.es"
-      & Docker.installed
  where
   user = User "curry"
   userGrp = Group "curry"
