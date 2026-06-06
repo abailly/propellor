@@ -86,7 +86,7 @@ anubisConfigured siteName staticDir =
     , "Type=simple"
     , "ExecStart=/usr/local/bin/anubis"
     , "Environment=BIND=:" <> show anubisPort
-    , "Environment=METRICS_BIND:" <> show anubisMetricsPort
+    , "Environment=METRICS_BIND=:" <> show anubisMetricsPort
     , "Environment=TARGET=http://127.0.0.1:" <> show backendPort
     , "Environment=DIFFICULTY=4"
     , "Restart=always"
