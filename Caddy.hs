@@ -60,6 +60,7 @@ data CaddyConfiguration
 
 data ReverseProxyOption
   = Transport Transport
+  | HeaderUp String String
   deriving (Show, Eq)
 
 data Transport = FastCGI {envs :: [(String, String)]}
@@ -118,6 +119,8 @@ reverseProxyOptionDirectives = \case
   (Transport (FastCGI envs)) ->
     let envLines = map (\(key, value) -> "env " <> key <> " " <> value) envs
      in ["transport fastcgi {"] ++ envLines ++ ["}"]
+  (HeaderUp name value) ->
+    ["header_up " <> name <> " " <> value]
 
 -- | Configures a Caddy site for the given domain, with the given configuration.
 --

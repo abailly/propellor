@@ -6,6 +6,7 @@
 module Main (main) where
 
 import qualified Amaru
+import Anubis (anubisConfigured, anubisPort)
 import Base (OS)
 import Caddy (CGIConfiguration (..), CaddyConfiguration (..), Matcher (..), ReverseProxyOption (..), Transport (..), caddyServiceConfiguredFor, caddySiteConfigured)
 import Cardano (CardanoNetwork (..))
@@ -670,10 +671,12 @@ cardano =
       & caddyServiceConfiguredFor user
       & caddySiteConfigured lambdaNantesFr lambdaNantesConfiguration Nothing
       & caddySiteConfigured lambdaNantes lambdaNantesConfiguration Nothing
+        `requires` anubisConfigured lambdaNantes (htmlDir lambdaNantes)
         `requires` File.ownerGroup "/var/www/lambdanant.es/public_html" user userGrp
         `requires` File.ownerGroup "/var/www/lambdanant.es" user userGrp
         `requires` dirExists "/var/www/lambdanant.es/public_html"
         `requires` dirExists "/var/www/lambdanant.es"
+      & Docker.installed
  where
   user = User "curry"
   userGrp = Group "curry"
@@ -684,7 +687,7 @@ cardano =
   lambdaNantes = "lambdanant.es"
   lambdaNantesFr = "lambdanantes.fr"
   ciHydraBzh = "ci.hydra.bzh"
-  lambdaNantesConfiguration = StaticFiles (htmlDir lambdaNantes)
+  lambdaNantesConfiguration = ReverseProxy "127.0.0.1" anubisPort [HeaderUp "X-Real-Ip" "{remote_host}"]
   ciCaddyConfiguration = WithBasicAuth $ StaticFiles (htmlDir ciHydraBzh)
 
   reposCI = [Radicle.RID "rad:z43MuaHvu2aQBXNT2rRZZWwW4nooq"]
