@@ -342,7 +342,7 @@ serviceConfigured user@(User userName) =
     , "[Service]"
     , "User=" <> userName
     , "Group=" <> userName
-    , "ExecStart=/usr/local/bin/radicle-node --listen 0.0.0.0:8776 --force"
+    , "ExecStart=/usr/local/bin/radicle-node --listen 0.0.0.0:8776 --force --log-logger systemd --log-level debug"
     , "Environment=RAD_HOME=/home/" <> userName </> ".radicle RUST_BACKTRACE=1 RUST_LOG=info RAD_PASSPHRASE=" <> radiclePwd
     , "KillMode=process"
     , "Restart=always"
