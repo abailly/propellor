@@ -288,7 +288,7 @@ seeding user radicleDir seeds =
     userScriptPropertyPty
       user
       [ "export RAD_PASSPHRASE=" <> pwd
-      , radicleDir </> "bin" </> "rad seed " <> repo seed <> " --scope " <> scope seed <> concatMap (" --from " <>) (from seed)
+      , radicleDir </> "bin" </> "rad seed " <> repo seed <> " --no-fetch --scope " <> scope seed <> concatMap (" --from " <>) (from seed)
       ]
       `assume` NoChange
 
