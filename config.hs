@@ -193,7 +193,7 @@ clermont =
   lambdaCaddyConfiguration = ReverseProxy "127.0.0.1" 7890 []
   punkachienCaddyConfiguration = StaticFiles "/var/www/punkachien.net/public_html"
   ciCaddyConfiguration = WithBasicAuth $ StaticFiles (htmlDir ciPunkachienNet)
-  pacificWarCaddyConfiguration = ReverseProxy "127.0.0.1" 8000 []
+  pacificWarCaddyConfiguration = ReverseProxy "127.0.0.1" 8888 []
 
   dockerComposeInstalled =
     Apt.installed ["docker-compose-plugin", "docker-buildx-plugin"]

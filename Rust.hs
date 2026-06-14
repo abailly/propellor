@@ -9,6 +9,7 @@ import qualified Propellor.Property.Apt as Apt
 rustInstalled :: User -> Property OSNoInfo
 rustInstalled user =
   check
+    -- TODO: check rust update?
     doesNotHaveRust
     ( userScriptProperty
         user
