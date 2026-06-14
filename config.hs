@@ -166,7 +166,7 @@ clermont =
       & Docker.installed
       & Cron.runPropellor (Cron.Times "30 * * * *")
       & Radicle.radicleInstalledFor user
-      & Radicle.radicleCIInstalled user ciPunkachienNet Radicle.trustedNodes []
+      & Radicle.radicleCIInstalled user ciPunkachienNet Radicle.trustedNodes ciRepos
       & Wireguard.clientInstalled
         (Wireguard.WgPublicKey "G+8Gq0jVZ6h9qJ188ycHY5X61FhJ7jMEC7ptdp7dwV0=")
         (Wireguard.Endpoint "95.217.84.233" 51820)
@@ -183,6 +183,11 @@ clermont =
   lambdaPankzsoftNet = "lambda.pankzsoft.net"
   ciPunkachienNet = "ci.punkachien.net"
   cgitPunkachienNet = "git.punkachien.net"
+  ciRepos =
+    [ "rad:zbGJqNBuvVCFJcX8H862sUn1SuCe"
+    , "rad:z3PQYrvBT8B2zP3XdGoXdUd2Enftc"
+    , "rad:z28SSH7hyCTu387guFhtPXYxcwtUs"
+    ]
 
   senseiCaddyConfiguration = ReverseProxy "127.0.0.1" 23456 []
   lambdaCaddyConfiguration = ReverseProxy "127.0.0.1" 7890 []

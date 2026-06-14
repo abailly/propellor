@@ -10,6 +10,7 @@ module Radicle where
 import Base (OS)
 import Caddy (CaddyConfiguration (..), caddyServiceConfiguredFor, caddySiteConfigured)
 import qualified Data.List as List
+import Data.String (IsString)
 import Propellor
 import Propellor.Base (
   asks,
@@ -81,10 +82,10 @@ radicleHttpPackage =
       <> "-x86_64-unknown-linux-musl.tar.xz.sha256"
 
 newtype NID = NID {unnid :: String}
-  deriving newtype (Eq, Show, Read)
+  deriving newtype (Eq, Show, Read, IsString)
 
 newtype RID = RID {unrid :: String}
-  deriving newtype (Eq, Show, Read)
+  deriving newtype (Eq, Show, Read, IsString)
 
 -- From https://app.radicle.dev/nodes/radicle.liw.fi/rad%3AzwTxygwuz5LDGBq255RA2CbNGrz8/tree/doc/userguide.md
 radicleCIInstalled :: User -> String -> [NID] -> [RID] -> RevertableProperty OS OS
@@ -263,7 +264,7 @@ radicleSeedInstalled userName =
     , SeedAll "rad:z4G3FVTQJChcbGMAUQkSeR5yyuzor" []
     , SeedAll "rad:z2o7yJKSodNLjtqDfna8LPDhx4Shg" []
     , SeedAll "rad:z2TVj3gRjRcaVGu3Rxf6viRDwzvQn" []
-    , SeedAll "rad:z43MuaHvu2aQBXNT2rRZZWwW4nooq" []
+    , SeedAll "rad:z43MuaHvu2aQBXNT2rRZZWwW4nooq" ["z6MkhgPg6WShnhJcmfwox4G5yL3EvJ2zW8L31SZLD95yUi11"]
     ]
 
 data Seed
