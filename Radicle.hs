@@ -451,6 +451,7 @@ radicleInstalledFor user@(User userName) =
     , "  \"preferredSeeds\": ["
     , "    \"z6MkrLMMsiPWUcNPHcRajuMi9mDfYckSoJyPwwnknocNYPm7@iris.radicle.network:8776\","
     , "    \"z6Mkmqogy2qEM2ummccUthFEaaHvyYmYBYh3dbe9W4ebScxo@rosa.radicle.network:8776\","
+    , "    \"z6MkuyPDChcwCruKGd2tw54FZo2HemY135JvTLzbVTvoWKJR@index.radicle.garden:8776\","
     , "    \"z6MkfiRENtzUJiU1kxLhxWMWFCiGGxGi6jEbj33Pq9zBVQkK@cardano.hydra.bzh:8776\""
     , "  ],"
     , "  \"web\": {"
