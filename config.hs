@@ -152,6 +152,7 @@ clermont =
       -- TODO: configure cgit with caddy : https://www.nite07.com/en/posts/cgit/
       & senseiServerInstalled
       & lambdaServerInstalled
+      & radsimServerInstalled
       & caddyServiceConfiguredFor user
       & caddySiteConfigured senseiPankzsoftNet senseiCaddyConfiguration Nothing
       & caddySiteConfigured lambdaPankzsoftNet lambdaCaddyConfiguration Nothing
@@ -496,6 +497,47 @@ clermont =
     , "RestartSec=15s"
     , "StartLimitIntervalSec=0"
     , "WorkingDirectory=" <> dir </> ".config" </> "lambda"
+    , "User=curry"
+    , "Group=curry"
+    , ""
+    , "[Install]"
+    , "WantedBy=multi-user.target"
+    ]
+
+  radsimServerInstalled :: Property OS
+  radsimServerInstalled =
+    property' "λ service running" $ \w ->
+      do
+        dir <- liftIO $ homedir user
+        ensureProperty
+          w
+          ( propertyList "Radicle simulator service configured" $
+              props
+                & File.hasContent "/etc/systemd/system/radsim.service" (radsimService dir)
+                & Systemd.enabled "radsim"
+                & Systemd.restarted "radsim"
+          )
+
+  radsimService dir =
+    [ "[Unit]"
+    , "Description=Radicle Simulator Server"
+    , "After=multi-user.target"
+    , ""
+    , "[Service]"
+    , "Type=simple"
+    , "ExecStart=" <> dir </> ".local" </> "bin" </> "radicle-sim"
+    , "KillSignal = SIGINT"
+    , "RestartKillSignal = SIGINT"
+    , "StandardOutput=journal"
+    , "StandardError=journal"
+    , "SyslogIdentifier=radsim"
+    , ""
+    , "LimitNOFILE=32768"
+    , ""
+    , "Restart=on-failure"
+    , "RestartSec=15s"
+    , "StartLimitIntervalSec=0"
+    , "WorkingDirectory=" <> dir </> ".config" </> "radsim"
     , "User=curry"
     , "Group=curry"
     , ""
