@@ -514,6 +514,8 @@ clermont =
           ( propertyList "Radicle simulator service configured" $
               props
                 & File.hasContent "/etc/systemd/system/radsim.service" (radsimService dir)
+                & File.dirExists "/home/curry/.config/radsim/"
+                & File.ownerGroup "/home/curry/.config/radsim" user userGrp
                 & Systemd.enabled "radsim"
                 & Systemd.restarted "radsim"
           )
