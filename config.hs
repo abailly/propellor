@@ -155,6 +155,7 @@ clermont =
       & caddyServiceConfiguredFor user
       & caddySiteConfigured senseiPankzsoftNet senseiCaddyConfiguration Nothing
       & caddySiteConfigured lambdaPankzsoftNet lambdaCaddyConfiguration Nothing
+      & caddySiteConfigured radPankzsoftNet radCaddyConfiguration Nothing
       & caddySiteConfigured punkachienNet punkachienCaddyConfiguration Nothing
       & caddySiteConfigured ciPunkachienNet ciCaddyConfiguration (Just "ci.htpasswd")
       & caddySiteConfigured pacificWarPankzsoftNet pacificWarCaddyConfiguration Nothing
@@ -166,6 +167,7 @@ clermont =
       & Docker.installed
       & Cron.runPropellor (Cron.Times "30 * * * *")
       & Radicle.radicleInstalledFor user
+        `onChange` Radicle.seeding user "/home/curry/.radicle" (map ((`Radicle.SeedAll` []) . Radicle.unrid) ciRepos)
       & Radicle.radicleCIInstalled user ciPunkachienNet Radicle.trustedNodes ciRepos
       & Wireguard.clientInstalled
         (Wireguard.WgPublicKey "G+8Gq0jVZ6h9qJ188ycHY5X61FhJ7jMEC7ptdp7dwV0=")
@@ -181,16 +183,19 @@ clermont =
   senseiPankzsoftNet = "sensei.pankzsoft.net"
   pacificWarPankzsoftNet = "pacific-war.pankzsoft.net"
   lambdaPankzsoftNet = "lambda.pankzsoft.net"
+  radPankzsoftNet = "rad.pankzsoft.net"
   ciPunkachienNet = "ci.punkachien.net"
   cgitPunkachienNet = "git.punkachien.net"
   ciRepos =
     [ "rad:zbGJqNBuvVCFJcX8H862sUn1SuCe"
     , "rad:z3PQYrvBT8B2zP3XdGoXdUd2Enftc"
     , "rad:z28SSH7hyCTu387guFhtPXYxcwtUs"
+    , "rad:z3mEwM9vyHQn67j3sYdg7hgHXDJ3X"
     ]
 
   senseiCaddyConfiguration = ReverseProxy "127.0.0.1" 23456 []
   lambdaCaddyConfiguration = ReverseProxy "127.0.0.1" 7890 []
+  radCaddyConfiguration = ReverseProxy "127.0.0.1" 8901 []
   punkachienCaddyConfiguration = StaticFiles "/var/www/punkachien.net/public_html"
   ciCaddyConfiguration = WithBasicAuth $ StaticFiles (htmlDir ciPunkachienNet)
   pacificWarCaddyConfiguration = ReverseProxy "127.0.0.1" 8888 []
