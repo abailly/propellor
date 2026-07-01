@@ -156,7 +156,7 @@ clermont =
       & caddyServiceConfiguredFor user
       & caddySiteConfigured senseiPankzsoftNet senseiCaddyConfiguration Nothing
       & caddySiteConfigured lambdaPankzsoftNet lambdaCaddyConfiguration Nothing
-      & caddySiteConfigured radPankzsoftNet radCaddyConfiguration Nothing
+      & caddySiteConfigured radPankzsoftNet radCaddyConfiguration (Just "app.htpasswd")
       & caddySiteConfigured punkachienNet punkachienCaddyConfiguration Nothing
       & caddySiteConfigured ciPunkachienNet ciCaddyConfiguration (Just "ci.htpasswd")
       & caddySiteConfigured pacificWarPankzsoftNet pacificWarCaddyConfiguration Nothing
@@ -196,7 +196,7 @@ clermont =
 
   senseiCaddyConfiguration = ReverseProxy "127.0.0.1" 23456 []
   lambdaCaddyConfiguration = ReverseProxy "127.0.0.1" 7890 []
-  radCaddyConfiguration = ReverseProxy "127.0.0.1" 8901 []
+  radCaddyConfiguration = WithBasicAuth $ ReverseProxy "127.0.0.1" 8901 []
   punkachienCaddyConfiguration = StaticFiles "/var/www/punkachien.net/public_html"
   ciCaddyConfiguration = WithBasicAuth $ StaticFiles (htmlDir ciPunkachienNet)
   pacificWarCaddyConfiguration = ReverseProxy "127.0.0.1" 8888 []
