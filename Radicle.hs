@@ -584,6 +584,8 @@ authenticateRadicle user@(User userName) exePath =
         host <- asks hostName
         getPrivDataSeed $ \(PrivData privDataSeed) ->
           getPrivDataPwd $ \(PrivData privDataPwd) -> do
+            liftIO $ print privDataSeed
+            liftIO $ print privDataPwd
             ensureProperty
               w
               (radAuth exePath user (userName <.> host) privDataSeed privDataPwd)
