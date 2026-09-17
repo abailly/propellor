@@ -17,7 +17,7 @@ import Base (OS)
 import Data.String (IsString)
 import Data.Word (Word16)
 import Propellor
-import Propellor.Base (withPrivData)
+import Propellor.Base (liftIO, withPrivData)
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Systemd as Systemd
@@ -134,7 +134,8 @@ caddySiteConfigured domain config = \case
   Just passwdFile ->
     withPrivData (PrivFile passwdFile) (Context domain) $ \getHtpasswd ->
       property' ("Caddy site " <> domain <> " configured with .htpasswd " <> passwdFile) $ \w ->
-        getHtpasswd $ \(PrivData htpasswdContent) ->
+        getHtpasswd $ \(PrivData htpasswdContent) -> do
+          liftIO $ print htpasswdContent
           siteConfiguredProperty w (Just htpasswdContent)
  where
   siteConfiguredProperty w passwdContent =
