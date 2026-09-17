@@ -171,7 +171,9 @@ clermont =
         `onChange` Radicle.seeding user "/home/curry/.radicle" (map ((`Radicle.SeedAll` []) . Radicle.unrid) ciRepos)
       & Radicle.radicleCIInstalled user ciPunkachienNet Radicle.trustedNodes ciRepos
       & Wireguard.clientInstalled
-        (Wireguard.WgPublicKey "G+8Gq0jVZ6h9qJ188ycHY5X61FhJ7jMEC7ptdp7dwV0=")
+        -- cardano.hydra.bzh's public key
+        -- > wg pubkey <<< <the key...>
+        (Wireguard.WgPublicKey "2QT3xr2E3+3S81sbjKK6FeUKzZ7jmACsdLFxsDgpFQs=")
         (Wireguard.Endpoint "95.217.84.233" 51820)
       & firewall
  where

@@ -15,9 +15,9 @@ commonUserSetup ::
   OS.User ->
   Property
     ( MetaTypes.MetaTypes
-        [ MetaTypes.WithInfo,
-          MetaTypes.Targeting OS.OSDebian,
-          MetaTypes.Targeting OS.OSBuntish
+        [ MetaTypes.WithInfo
+        , MetaTypes.Targeting OS.OSDebian
+        , MetaTypes.Targeting OS.OSBuntish
         ]
     )
 commonUserSetup user =
@@ -30,21 +30,22 @@ commonUserSetup user =
         Nothing
         user
         hostContext
-        ( Ssh.SshEd25519,
-          "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIERjBICdoL0S4dU+HgevTutHF0QajK/qEN1iHKgeU7+T Remote curry user's key"
+        ( Ssh.SshEd25519
+        , "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIh05oXDbIfokL+shSttZb2cf6HUNx1viVp+xXgE+q8n arnaud@MacBook-Pro.local Remote curry user's key"
         )
       & Sudo.enabledFor user
       & User.hasGroup user systemdJournal
       & tmuxSetup user
-  where
-    systemdJournal = Group "systemd-journal"
+ where
+  systemdJournal = Group "systemd-journal"
 
 tmuxSetup :: OS.User -> Property OS
 tmuxSetup user =
   property' ("Configure tmux for user " <> show user) $ \w -> do
     dir <- liftIO $ User.homedir user
     group <- liftIO $ User.primaryGroup user
-    ensureProperty w
+    ensureProperty
+      w
       ( File.hasContent (tmuxConfFile dir) tmuxConfig
           <> File.ownerGroup (tmuxConfFile dir) user group
       )
@@ -54,10 +55,10 @@ tmuxConfFile = (</> ".tmux.conf")
 
 tmuxConfig :: [String]
 tmuxConfig =
-  [ "set -g prefix C-b",
-    "set -g default-terminal \"screen-256color\"",
-    "set-window-option -g xterm-keys on",
-    "set -g mouse on",
-    "set -s escape-time 0",
-    "set-option -g default-shell /bin/bash"
+  [ "set -g prefix C-b"
+  , "set -g default-terminal \"screen-256color\""
+  , "set-window-option -g xterm-keys on"
+  , "set -g mouse on"
+  , "set -s escape-time 0"
+  , "set-option -g default-shell /bin/bash"
   ]
