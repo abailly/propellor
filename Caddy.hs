@@ -74,7 +74,7 @@ data CGIConfiguration = CGIConfiguration
 
 toConfigBlock :: Maybe String -> HostName -> CaddyConfiguration -> [String]
 toConfigBlock htPasswdContent domain configuration =
-  (domain <> " {") : map ("  " <>) (directives configuration) ++ ["}"]
+  (domain <> " {") : "  log" : map ("  " <>) (directives configuration) ++ ["}"]
  where
   directives config =
     case config of
