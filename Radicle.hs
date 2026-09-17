@@ -184,7 +184,7 @@ radicleCIInstalled user@(User userName) hostname authorizedNodes authorizedRepos
     , "[Service]"
     , "User=" <> userName
     , "Group=" <> userName
-    , "Environment=RAD_PASSPHRASE=" <> radiclePwd
+    , "Environment=RAD_PASSPHRASE=\"" <> radiclePwd <> "\""
     , "ExecStart= " <> binDir dir </> "cib" <> " --config " <> configFilePath dir <> " process-events"
     , "KillMode=process"
     , "Restart=always"
@@ -289,7 +289,7 @@ seeding user radicleDir seeds =
   seeded pwd seed =
     userScriptPropertyPty
       user
-      [ "export RAD_PASSPHRASE=" <> pwd
+      [ "export RAD_PASSPHRASE=\"" <> pwd <> "\""
       , radicleDir </> "bin" </> "rad seed " <> repo seed <> " --no-fetch --scope " <> scope seed <> concatMap (" --from " <>) (from seed)
       ]
       `assume` NoChange
@@ -345,7 +345,7 @@ serviceConfigured user@(User userName) =
     , "User=" <> userName
     , "Group=" <> userName
     , "ExecStart=/usr/local/bin/radicle-node --listen 0.0.0.0:8776 --force --log-logger systemd --log-level debug"
-    , "Environment=RAD_HOME=/home/" <> userName </> ".radicle RUST_BACKTRACE=1 RUST_LOG=info RAD_PASSPHRASE=" <> radiclePwd
+    , "Environment=RAD_HOME=/home/" <> userName </> ".radicle RUST_BACKTRACE=1 RUST_LOG=info RAD_PASSPHRASE=\"" <> radiclePwd <> "\""
     , "KillMode=process"
     , "Restart=always"
     , "RestartSec=3"
@@ -433,7 +433,7 @@ radicleInstalledFor user@(User userName) =
             w
             ( userScriptPropertyPty
                 user
-                [ "export RAD_PASSPHRASE=" <> privDataPwd
+                [ "export RAD_PASSPHRASE=\"" <> privDataPwd <> "\""
                 , radicleDir </> "bin" </> "rad node stop"
                 ]
                 `assume` NoChange
@@ -568,7 +568,7 @@ nodeRunning user radExe =
           w
           ( userScriptPropertyPty
               user
-              [ "export RAD_PASSPHRASE=" <> privDataPwd
+              [ "export RAD_PASSPHRASE=\"" <> privDataPwd <> "\""
               , radExe <> " node start --path " <> radicleNodePath
               ]
               `assume` NoChange
