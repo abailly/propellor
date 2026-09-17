@@ -463,6 +463,7 @@ clermont =
         & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 3001))
         & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 3000))
         & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 9003))
+        & Firewall.rule INPUT Filter ACCEPT (Proto TCP :- DPort (Port 8776))
         & dropEverything
 
   lambdaServerInstalled :: Property OS
