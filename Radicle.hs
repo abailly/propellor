@@ -593,7 +593,7 @@ radAuth exePath user nodeName privDataSeed privDataPwd =
   check (not <$> keysExist) $
     userScriptPropertyPty
       user
-      [ "export RAD_KEYGEN_SEED=" <> privDataSeed
+      [ "export RAD_KEYGEN_SEED=\"" <> privDataSeed <> "\""
       , "export RAD_PASSPHRASE=\"" <> privDataPwd <> "\""
       , exePath </> "bin" </> "rad auth --alias " <> nodeName
       ]

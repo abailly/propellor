@@ -134,8 +134,7 @@ caddySiteConfigured domain config = \case
   Just passwdFile ->
     withPrivData (PrivFile passwdFile) (Context domain) $ \getHtpasswd ->
       property' ("Caddy site " <> domain <> " configured with .htpasswd " <> passwdFile) $ \w ->
-        getHtpasswd $ \(PrivData htpasswdContent) -> do
-          liftIO $ print htpasswdContent
+        getHtpasswd $ \(PrivData htpasswdContent) ->
           siteConfiguredProperty w (Just htpasswdContent)
  where
   siteConfiguredProperty w passwdContent =
