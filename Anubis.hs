@@ -6,6 +6,7 @@ module Anubis (
 ) where
 
 import Base (OS)
+import Data.List (isInfixOf)
 import Data.Word (Word16)
 import Propellor
 import Propellor.Base (doesFileExist, readProcess)
@@ -58,8 +59,8 @@ anubisInstalled =
     hasFile <- doesFileExist binaryPath
     if hasFile
       then do
-        output <- readProcess binaryPath ["version"]
-        pure $ anubisVersion `notElem` words (head (lines output))
+        output <- readProcess binaryPath ["--version"]
+        pure $ not (anubisVersion `isInfixOf` output)
       else pure True
 
 anubisConfigured :: String -> FilePath -> Property OS
