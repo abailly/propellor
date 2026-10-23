@@ -224,12 +224,12 @@ clermont =
                          `File.mode` combineModes [ownerReadMode, ownerWriteMode, ownerExecuteMode]
                      )
           `onChange` File.ownerGroup "/home/curry/sensei/hooks/update" user userGrp
+        & File.dirExists "/home/curry/.config"
+        & File.ownerGroup "/home/curry/.config" user userGrp
+        & File.dirExists ("/home/curry/.config" </> "sensei")
+        & File.ownerGroup ("/home/curry/.config" </> "sensei") user userGrp
         & File.hasPrivContent "/home/curry/.config/sensei/client.json" anyContext
           `requires` File.applyPath "/home/curry/.config" "sensei/client.json" (\f -> File.ownerGroup f u userGrp)
-          `requires` File.ownerGroup ("/home/curry/.config" </> "sensei") user userGrp
-          `requires` File.dirExists ("/home/curry/.config" </> "sensei")
-          `requires` File.ownerGroup "/home/curry/.config" user userGrp
-          `requires` File.dirExists "/home/curry/.config"
 
   senseiUpdateHook =
     [ "#!/usr/bin/env bash"
