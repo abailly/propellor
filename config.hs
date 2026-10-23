@@ -560,6 +560,8 @@ clermont =
             w
             ( propertyList "service configured" $
                 props
+                  & File.dirExists (dir </> ".config" </> "sensei")
+                  & File.ownerGroup (dir </> ".config" </> "sensei") user userGrp
                   & File.hasContent (dir </> ".config" </> "sensei" </> "sensei.jwk") [serverKey]
                   & File.hasContent (dir </> ".sensei.environment") (senseiEnv dir serverKey)
                   & File.hasContent "/etc/systemd/system/sensei.service" (senseiService dir)
