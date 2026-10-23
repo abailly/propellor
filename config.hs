@@ -560,6 +560,8 @@ clermont =
             w
             ( propertyList "service configured" $
                 props
+                  & File.dirExists (dir </> ".config")
+                  & File.ownerGroup (dir </> ".config") user userGrp
                   & File.dirExists (dir </> ".config" </> "sensei")
                   & File.ownerGroup (dir </> ".config" </> "sensei") user userGrp
                   & File.hasContent (dir </> ".config" </> "sensei" </> "sensei.jwk") [serverKey]
