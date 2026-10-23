@@ -109,7 +109,7 @@ llamaServer =
 
 clermont :: Host
 clermont =
-  host "clermont" $ do
+  host "clermont" $
     props
       & osDebian Unstable X86_64
       & alias "www.punkachien.net"
@@ -225,7 +225,10 @@ clermont =
                      )
           `onChange` File.ownerGroup "/home/curry/sensei/hooks/update" user userGrp
         & File.hasPrivContent "/home/curry/.config/sensei/client.json" anyContext
-          `requires` File.dirExists "/home/curry/.config/sensei/"
+          `requires` File.dirExists "/home/curry/.config"
+          `requires` File.ownerGroup "/home/curry/.config" user userGrp
+          `requires` File.dirExists ("/home/curry/.config" </> "sensei")
+          `requires` File.ownerGroup ("/home/curry/.config" </> "sensei") user userGrp
           `requires` File.applyPath "/home/curry/.config" "sensei/client.json" (\f -> File.ownerGroup f u userGrp)
 
   senseiUpdateHook =
@@ -553,23 +556,22 @@ clermont =
   senseiServerInstalled :: Property OS
   senseiServerInstalled =
     withPrivData (PrivFile "sensei-server-jwk") hostContext $ \getPrivDataPwd ->
-      property' "sensei service running" $ \w -> do
-        getPrivDataPwd $ \(PrivData serverKey) -> do
-          dir <- liftIO $ homedir user
-          ensureProperty
-            w
-            ( propertyList "service configured" $
-                props
-                  & File.dirExists (dir </> ".config")
-                  & File.ownerGroup (dir </> ".config") user userGrp
-                  & File.dirExists (dir </> ".config" </> "sensei")
-                  & File.ownerGroup (dir </> ".config" </> "sensei") user userGrp
-                  & File.hasContent (dir </> ".config" </> "sensei" </> "sensei.jwk") [serverKey]
-                  & File.hasContent (dir </> ".sensei.environment") (senseiEnv dir serverKey)
-                  & File.hasContent "/etc/systemd/system/sensei.service" (senseiService dir)
-                  & Systemd.enabled "sensei"
-                  & Systemd.restarted "sensei"
-            )
+      property' "sensei service running" $ \w -> getPrivDataPwd $ \(PrivData serverKey) -> do
+        dir <- liftIO $ homedir user
+        ensureProperty
+          w
+          ( propertyList "service configured" $
+              props
+                & File.dirExists (dir </> ".config")
+                & File.ownerGroup (dir </> ".config") user userGrp
+                & File.dirExists (dir </> ".config" </> "sensei")
+                & File.ownerGroup (dir </> ".config" </> "sensei") user userGrp
+                & File.hasContent (dir </> ".config" </> "sensei" </> "sensei.jwk") [serverKey]
+                & File.hasContent (dir </> ".sensei.environment") (senseiEnv dir serverKey)
+                & File.hasContent "/etc/systemd/system/sensei.service" (senseiService dir)
+                & Systemd.enabled "sensei"
+                & Systemd.restarted "sensei"
+          )
 
   senseiEnv dir serverKey =
     [ "SENSEI_SERVER_CONFIG_DIR=" <> dir </> ".config" </> "sensei"
