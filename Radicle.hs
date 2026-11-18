@@ -60,7 +60,7 @@ radicleHttpPackage :: Package
 radicleHttpPackage =
   Package "radicle-http" radicleHttpKey radicleHttpUrl radicleHttpSigUrl radicleHttpSHA256Url radicleHttpVersion
  where
-  radicleHttpVersion = "0.20.0"
+  radicleHttpVersion = "0.31.0"
   radicleHttpKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKU7IHRsae2q1/qd8NaWxfGhPEFGHwK1dcxvSjNdttjb"
   radicleHttpUrl =
     "https://files.radicle.dev/releases/radicle-httpd/"
