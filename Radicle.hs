@@ -268,6 +268,7 @@ radicleSeedInstalled userName =
     , SeedAll "rad:z3mEwM9vyHQn67j3sYdg7hgHXDJ3X" []
     , SeedAll "rad:z3RkvuMJdX4uY1Sk2AegLZXHwhDgD" []
     , SeedAll "rad:z3HkJisy8bCtTZqhWLD6zTtxUkYVW" []
+    , SeedAll "rad:z26Q59PxzzVuQE3CihddLq1PZJQqU" []
     ]
 
 data Seed
